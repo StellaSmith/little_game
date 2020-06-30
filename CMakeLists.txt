@@ -25,6 +25,8 @@ FetchContent_Declare(glm
     GIT_SHALLOW ON
 )
 
+set(GLAD_API "gl=3.3")
+set(GLAD_PROFILE "core")
 FetchContent_MakeAvailable(glad sdl2 glm)
 
 message(STATUS "All dependencies set up.")
@@ -33,5 +35,10 @@ add_executable(little_game
     src/main.cpp
     src/glDebug.c
 )
-target_link_libraries(little_game glad SDL2 glm)
+target_link_libraries(little_game glad SDL2-static glm)
 target_compile_features(little_game PUBLIC cxx_std_17)
+target_include_directories(little_game PRIVATE include)
+
+if(WIN32)
+target_link_libraries(little_game SDL2main)
+endif()
