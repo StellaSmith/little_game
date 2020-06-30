@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+﻿#include <glad/glad.h>
 #include <SDL.h>
 #include <cstdlib>
 #include <cstdio>
@@ -6,11 +6,13 @@
 #include <vector>
 #include <array>
 
+#include "glDebug.h"
+
 extern "C" void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char *message, const void *userParam);
 
 struct Chunk {
     static constexpr std::size_t chunk_size = 16;
-    
+
     enum Block {
         Air,
         Stone,
@@ -76,7 +78,7 @@ struct Chunk {
                         vertices.push_back({ { x, y - 1, z + 1 }, color });
                     }
 
-                    // +x 
+                    // +x
                     if (x != chunk_size - 1 && !is_solid(get_block(x + 1, y, z))) {
                         glm::vec4 const color = color_for_block(block);
 
@@ -96,7 +98,7 @@ struct Chunk {
                         vertices.push_back({ { x, y, z }, color });
                         vertices.push_back({ { x + 1, y, z}, color });
                         vertices.push_back({ { x + 1, y, z + 1 }, color });
-                        
+
                         vertices.push_back({ { x, y, z }, color });
 //                        vertices.push_back({  });
                     }
@@ -106,7 +108,7 @@ struct Chunk {
     }
 };
 
-int main() {
+int main(int argc, char** argv) {
     constexpr int width = 640, height = 480;
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         SDL_Log("SDL Error: %s", SDL_GetError());
@@ -125,7 +127,7 @@ int main() {
         /*Position (x, y)*/ SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         /*Size (width, height)*/ width, height,
         /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
-    ); 
+    );
 
     if (window == nullptr) {
         SDL_Log("SDL Error: %s", SDL_GetError());
@@ -160,15 +162,28 @@ int main() {
         SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &d);
         SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &s);
 
-        std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
+        char unsigned const* version = glGetString(GL_VERSION);
+        char unsigned const* vendor = glGetString(GL_VENDOR);
+        char unsigned const* renderer = glGetString(GL_RENDERER);
+        char unsigned const* shading_version = glGetString(GL_SHADING_LANGUAGE_VERSION);
 
-        int flags;
-        glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-        if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-            glEnable(GL_DEBUG_OUTPUT);
-            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            glDebugMessageCallback(glDebugOutput, nullptr);
-            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+        std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
+        std::printf("\tVersion: %s\n\tVendor: %s\n\tRenderer: %s\n\tShading language version: %s\n", version, vendor, renderer, shading_version);
+
+
+        if (SDL_GL_ExtensionSupported("GL_KHR_debug")) {
+            auto pfn_glDebugMessageCallback = reinterpret_cast<PFN_glDebugMessageCallback>(SDL_GL_GetProcAddress("glDebugMessageCallback"));
+            auto pfn_glDebugMessageControl = reinterpret_cast<PFN_glDebugMessageControl>(SDL_GL_GetProcAddress("glDebugMessageControl"));
+
+            int flags;
+            glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+            if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+                glEnable(GL_DEBUG_OUTPUT);
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+                pfn_glDebugMessageCallback(glDebugOutput, nullptr);
+                pfn_glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+                std::puts("\tDebug output enabled.\n");
+            }
         }
     }
 
@@ -179,7 +194,7 @@ int main() {
 
     char const *vertex_shader_source = R"GLSL(
     #version 330 core
-    
+
     layout (location = 0) in vec3 v_position;
     layout (location = 1) in vec4 v_color;
 
@@ -284,7 +299,7 @@ int main() {
 
         // not currently using depth nor stencil but anyways
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    
+
         glUseProgram(shader_program);
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
