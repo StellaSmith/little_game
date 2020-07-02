@@ -27,6 +27,8 @@ FetchContent_Declare(glm
 
 set(GLAD_API "gl=3.3")
 set(GLAD_PROFILE "core")
+set(SDL_SHARED OFF)
+
 FetchContent_MakeAvailable(glad sdl2 glm)
 
 message(STATUS "All dependencies set up.")

@@ -159,4 +159,19 @@ typedef void (APIENTRY* GLDEBUGPROC)(GLenum source,
 // GetFloatv, GetDoublev, and GetInteger64v
 // #define GL_MAX_LABEL_LENGTH
 
+/*
+    Custom stuff
+*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, char const *message, void const *userParam);
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #endif // !GL_DEBUG

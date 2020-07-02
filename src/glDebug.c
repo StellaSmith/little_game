@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <GL/glew.h>
+#include "glDebug.h"
 
 void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, char const *message, void const *userParam)
 {
