@@ -1,116 +1,38 @@
-﻿#include <glad/glad.h>
+﻿#include "glDebug.h"
+
+#include <glad/glad.h>
 #include <SDL.h>
+#include <glm/glm.hpp>
+
 #include <cstdlib>
 #include <cstdio>
-#include <glm/glm.hpp>
 #include <vector>
 #include <array>
+#include <string>
+#include <string_view>
+#include <fstream>
 
-#include "glDebug.h"
+using namespace std::literals;
 
-extern "C" void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char *message, const void *userParam);
+std::string load_file(std::istream &is)
+{
+    return {std::istreambuf_iterator<char>{is}, std::istreambuf_iterator<char>{}};
+}
 
-struct Chunk {
-    static constexpr std::size_t chunk_size = 16;
+std::string load_file(std::string_view path)
+{
+    std::ifstream stream;
+    stream.open(path.data());
+    if (!stream.is_open())
+        throw std::runtime_error("Can't open file");
+    return load_file(stream);
+}
 
-    enum Block {
-        Air,
-        Stone,
-        Dirt,
-        Grass
-    };
-
-    std::array<Block, chunk_size * chunk_size * chunk_size> m_blocks;
-
-    GLuint m_solid_mesh;
-
-    struct Vertex {
-        glm::vec3 position;
-        glm::vec4 color;
-    };
-
-    glm::vec4 color_for_block(Block const& block) {
-        switch (block) {
-        case Air:
-            return { 0.0, 0.0, 0.0, 0.0 };
-        case Stone:
-            return { 0.5, 0.5, 0.5, 1.0 };
-        case Dirt:
-            return { 0.5, 50.0 / 255.0, 50.0 / 255.0, 1.0 };
-        case Grass:
-            return { 0.0, 100.0 / 255.0, 0.0, 1.0 };
-        default:
-            return { 242.0 / 255.0, 0.0, 242.0 / 255.0, 1.0 };
-        }
-    }
-
-    auto const& get_block(std::size_t x, std::size_t y, std::size_t z) const
-    {
-        return m_blocks[ x * chunk_size * chunk_size + y * chunk_size + z];
-    }
-
-    auto& get_block(std::size_t x, std::size_t y, std::size_t z)
-    {
-        return m_blocks[ x * chunk_size * chunk_size + y * chunk_size + z ];
-    }
-
-    static constexpr bool is_solid(Block const& block) {
-        return block != Air;
-    }
-
-    void generate_mesh() {
-        std::vector<Vertex> vertices;
-
-        for (std::size_t x = 0; x < chunk_size; ++x) {
-            for (std::size_t y = 0; y < chunk_size; ++y) {
-                for (std::size_t z = 0; z < chunk_size; ++z) {
-                    auto const& block = get_block(x, y, z);
-
-                    // -x
-                    if (x != 0 && !is_solid(get_block(x - 1, y, z))) {
-                        glm::vec4 const color = color_for_block(block);
-                        vertices.push_back({ { x, y, z }, color });
-                        vertices.push_back({ { x, y - 1, z }, color });
-                        vertices.push_back({ { x, y - 1, z + 1}, color });
-
-                        vertices.push_back({ { x, y, z }, color });
-                        vertices.push_back({ { x, y, z + 1 }, color });
-                        vertices.push_back({ { x, y - 1, z + 1 }, color });
-                    }
-
-                    // +x
-                    if (x != chunk_size - 1 && !is_solid(get_block(x + 1, y, z))) {
-                        glm::vec4 const color = color_for_block(block);
-
-                        vertices.push_back({ { x + 1, y, z}, color });
-                        vertices.push_back({ { x + 1, y - 1, z}, color });
-                        vertices.push_back({ { x + 1, y - 1, z + 1}, color });
-
-                        vertices.push_back({ { x + 1, y, z}, color });
-                        vertices.push_back({ { x + 1, y, z + 1}, color });
-                        vertices.push_back({ { x + 1, y - 1, z + 1}, color });
-                    }
-
-                    // -y
-                    if (y != 0 && !is_solid(get_block(x, y, z))) {
-                        glm::vec4 const color = color_for_block(block);
-
-                        vertices.push_back({ { x, y, z }, color });
-                        vertices.push_back({ { x + 1, y, z}, color });
-                        vertices.push_back({ { x + 1, y, z + 1 }, color });
-
-                        vertices.push_back({ { x, y, z }, color });
-//                        vertices.push_back({  });
-                    }
-                }
-            }
-        }
-    }
-};
-
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
     constexpr int width = 640, height = 480;
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    {
         SDL_Log("SDL Error: %s", SDL_GetError());
         std::exit(EXIT_FAILURE);
     }
@@ -126,27 +48,30 @@ int main(int argc, char** argv) {
         /*Title*/ "My little game",
         /*Position (x, y)*/ SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         /*Size (width, height)*/ width, height,
-        /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
-    );
+        /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
-    if (window == nullptr) {
+    if (window == nullptr)
+    {
         SDL_Log("SDL Error: %s", SDL_GetError());
         std::exit(EXIT_FAILURE);
     }
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 
-    if (gl_context == nullptr) {
+    if (gl_context == nullptr)
+    {
         SDL_Log("SDL Error: %s", SDL_GetError());
         std::exit(EXIT_FAILURE);
     }
 
-    if (SDL_GL_MakeCurrent(window, gl_context) < 0) {
+    if (SDL_GL_MakeCurrent(window, gl_context) < 0)
+    {
         SDL_Log("SDL Error: %s", SDL_GetError());
         std::exit(EXIT_FAILURE);
     }
 
-    if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
+    if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
+    {
         SDL_Log("GLAD Error: Failed to initialize the OpenGL context.");
         std::exit(EXIT_FAILURE);
     }
@@ -162,22 +87,23 @@ int main(int argc, char** argv) {
         SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &d);
         SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &s);
 
-        char unsigned const* version = glGetString(GL_VERSION);
-        char unsigned const* vendor = glGetString(GL_VENDOR);
-        char unsigned const* renderer = glGetString(GL_RENDERER);
-        char unsigned const* shading_version = glGetString(GL_SHADING_LANGUAGE_VERSION);
+        char unsigned const *version = glGetString(GL_VERSION);
+        char unsigned const *vendor = glGetString(GL_VENDOR);
+        char unsigned const *renderer = glGetString(GL_RENDERER);
+        char unsigned const *shading_version = glGetString(GL_SHADING_LANGUAGE_VERSION);
 
         std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
         std::printf("\tVersion: %s\n\tVendor: %s\n\tRenderer: %s\n\tShading language version: %s\n", version, vendor, renderer, shading_version);
 
-
-        if (SDL_GL_ExtensionSupported("GL_KHR_debug")) {
+        if (SDL_GL_ExtensionSupported("GL_KHR_debug"))
+        {
             auto pfn_glDebugMessageCallback = reinterpret_cast<PFN_glDebugMessageCallback>(SDL_GL_GetProcAddress("glDebugMessageCallback"));
             auto pfn_glDebugMessageControl = reinterpret_cast<PFN_glDebugMessageControl>(SDL_GL_GetProcAddress("glDebugMessageControl"));
 
             int flags;
             glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-            if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+            if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+            {
                 glEnable(GL_DEBUG_OUTPUT);
                 glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
                 pfn_glDebugMessageCallback(glDebugOutput, nullptr);
@@ -191,49 +117,28 @@ int main(int argc, char** argv) {
 
     glClearColor(0.0, 0.25, 0.5, 1.0);
 
-
-    char const *vertex_shader_source = R"GLSL(
-    #version 330 core
-
-    layout (location = 0) in vec3 v_position;
-    layout (location = 1) in vec4 v_color;
-
-    out vec4 f_color;
-
-    void main() {
-        gl_Position = vec4(v_position, 1);
-        f_color = v_color;
-    }
-    )GLSL";
-
-    char const *fragment_shader_source = R"GLSL(
-    #version 330 core
-
-    in vec4 f_color;
-
-    out vec4 color;
-
-    void main() {
-        color = f_color;
-    }
-    )GLSL";
-
-    struct Vertex {
+    struct Vertex
+    {
         float x, y, z;
         std::uint8_t r, g, b, a;
     }; // total of 32 bytes per vertex
 
     Vertex vertices[] = {
-        {  0.0, -0.5, 0.0, 255u, 0u, 0u, 255u },
-        { -0.5,  0.5, 0.0, 0u, 255u, 0u, 255u },
-        {  0.5,  0.5, 0.0, 0u, 0u, 255u, 255u }
-    };
+        {+0.0, -0.5, +0.0, 255u, 0u, 0u, 255u},
+        {-0.5, +0.5, +0.0, 0u, 255u, 0u, 255u},
+        {+0.5, +0.5, +0.0, 0u, 0u, 255u, 255u}};
 
     GLuint shader_program;
 
     {
         GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
         GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+        std::string const vertex_shader_source_str = load_file("assets/basic.vert"sv);
+        std::string const fragment_shader_source_str = load_file("assets/basic.frag"sv);
+
+        char const *const vertex_shader_source = vertex_shader_source_str.c_str();
+        char const *const fragment_shader_source = fragment_shader_source_str.c_str();
 
         glShaderSource(vertex_shader, 1, &vertex_shader_source, nullptr);
         glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
@@ -244,13 +149,15 @@ int main(int argc, char** argv) {
         int success;
         char infoLog[512]{};
         glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
+        if (!success)
+        {
             glGetShaderInfoLog(vertex_shader, 512, nullptr, infoLog);
             SDL_Log("OpenGL: Error compiling vertex shader: %s", infoLog);
             std::exit(EXIT_FAILURE);
         }
         glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
+        if (!success)
+        {
             glGetShaderInfoLog(vertex_shader, 512, nullptr, infoLog);
             SDL_Log("OpenGL: Error compiling fragment shader: %s", infoLog);
             std::exit(EXIT_FAILURE);
@@ -263,7 +170,8 @@ int main(int argc, char** argv) {
         glLinkProgram(shader_program);
 
         glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-        if (!success) {
+        if (!success)
+        {
             glGetProgramInfoLog(shader_program, 512, nullptr, infoLog);
             SDL_Log("OpenGL: Error linking shader: %s", infoLog);
             std::exit(EXIT_FAILURE);
@@ -282,17 +190,20 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 0);
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE,  sizeof(Vertex), (void*)12);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void *)12);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
     bool running = true;
     SDL_Event event;
-    while (running) {
-        while (SDL_PollEvent(&event) && running) {
-            if (event.type == SDL_QUIT) {
+    while (running)
+    {
+        while (SDL_PollEvent(&event) && running)
+        {
+            if (event.type == SDL_QUIT)
+            {
                 running = false;
             }
         }
