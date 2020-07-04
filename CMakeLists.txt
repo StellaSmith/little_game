@@ -12,17 +12,11 @@ FetchContent_Declare(sdl2
 )
 
 FetchContent_Declare(glad
-    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-    GIT_TAG v0.1.33
-    GIT_PROGRESS ON
-    GIT_SHALLOW ON
+    URL https://github.com/Dav1dde/glad/archive/v0.1.33.tar.gz
 )
 
 FetchContent_Declare(glm
-    GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 0.9.9.8
-    GIT_PROGRESS ON
-    GIT_SHALLOW ON
+    URL https://github.com/g-truc/glm/archive/0.9.9.8.tar.gz
 )
 
 set(GLAD_API "gl=3.3")

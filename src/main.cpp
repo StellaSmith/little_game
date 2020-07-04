@@ -1,4 +1,4 @@
-﻿#include "glDebug.h"
+#include "glDebug.h"
 
 #include <glad/glad.h>
 #include <SDL.h>
