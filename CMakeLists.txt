@@ -47,6 +47,9 @@ message(STATUS "All dependencies set up.")
 add_executable(little_game
     src/main.cpp
     src/glDebug.c
+    src/fast_math.cpp
+    include/math/fast.hpp
+    include/math/constexpr.hpp
 )
 target_link_libraries(little_game glad SDL2-static glm)
 target_compile_features(little_game PUBLIC cxx_std_17)
