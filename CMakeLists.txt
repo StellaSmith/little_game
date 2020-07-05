@@ -11,6 +11,10 @@ FetchContent_Declare(sdl2
     URL https://www.libsdl.org/release/SDL2-2.0.12.tar.gz
 )
 
+FetchContent_Declare(stb
+    URL https://github.com/nothings/stb/archive/f54acd4e13430c5122cab4ca657705c84aa61b08.zip
+)
+
 FetchContent_Declare(glad
     URL https://github.com/Dav1dde/glad/archive/v0.1.33.tar.gz
 )
@@ -42,17 +46,31 @@ set(JACK OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(glad sdl2 glm)
 
+FetchContent_GetProperties(stb)
+if (NOT stb_POPULATED)
+    FetchContent_Populate(stb)
+    add_library(stb)
+    target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
+    target_sources(stb
+    PRIVATE
+    src/stb/image.c
+    src/stb/utils.c
+    )
+endif()
+
 message(STATUS "All dependencies set up.")
 
 add_executable(little_game
     src/main.cpp
     src/glDebug.c
+    src/chunk_renderer.cpp
     src/fast_math.cpp
+    include/engine/chunk_t.hpp
     include/operators.hpp
     include/math/fast.hpp
     include/math/constexpr.hpp
 )
-target_link_libraries(little_game glad SDL2-static glm)
+target_link_libraries(little_game glad SDL2-static glm stb)
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 
