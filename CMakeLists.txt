@@ -48,6 +48,7 @@ add_executable(little_game
     src/main.cpp
     src/glDebug.c
     src/fast_math.cpp
+    include/operators.hpp
     include/math/fast.hpp
     include/math/constexpr.hpp
 )
