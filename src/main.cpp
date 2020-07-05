@@ -31,7 +31,7 @@ std::string load_file(std::string_view path)
 int main(int argc, char **argv)
 {
     constexpr int width = 640, height = 480;
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         SDL_Log("SDL Error: %s", SDL_GetError());
         std::exit(EXIT_FAILURE);
