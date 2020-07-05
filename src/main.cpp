@@ -1,8 +1,11 @@
 #include "glDebug.h"
+#include "engine/chunk_renderer.hpp"
+#include "engine/chunk_t.hpp"
 
 #include <glad/glad.h>
 #include <SDL.h>
 #include <glm/glm.hpp>
+#include <stb_image.h>
 
 #include <cstdlib>
 #include <cstdio>
@@ -117,17 +120,6 @@ int main(int argc, char **argv)
 
     glClearColor(0.0, 0.25, 0.5, 1.0);
 
-    struct Vertex
-    {
-        float x, y, z;
-        std::uint8_t r, g, b, a;
-    }; // total of 32 bytes per vertex
-
-    Vertex vertices[] = {
-        {+0.0, -0.5, +0.0, 255u, 0u, 0u, 255u},
-        {-0.5, +0.5, +0.0, 0u, 255u, 0u, 255u},
-        {+0.5, +0.5, +0.0, 0u, 0u, 255u, 255u}};
-
     GLuint shader_program;
 
     {
@@ -173,7 +165,7 @@ int main(int argc, char **argv)
         if (!success)
         {
             glGetProgramInfoLog(shader_program, 512, nullptr, infoLog);
-            SDL_Log("OpenGL: Error linking shader: %s", infoLog);
+            SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "OpenGL: Error linking shader:\n%s", infoLog);
             std::exit(EXIT_FAILURE);
         }
 
@@ -185,16 +177,49 @@ int main(int argc, char **argv)
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    GLuint vbo; // vertex buffer object
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    engine::chunk_t chunk;
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void *)12);
+    chunk.blocks[0].id = 1;
 
+    engine::chunk_renderer::chunk_meshes chunk_meshes{0, 0, 0, 0};
+
+    glGenBuffers(1, &chunk_meshes.solid_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk_meshes.solid_buffer);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, (void *)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, (void *)12);
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+
+    glGenBuffers(1, &chunk_meshes.translucent_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk_meshes.translucent_buffer);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 20, (void *)0);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 20, (void *)12);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+
+    int x, y, c;
+    unsigned char *data = stbi_load("assets/Phosphophyllite.jpg", &x, &y, &c, 4);
+    std::fprintf(stderr, "Channels: %d\n", c);
+    if (!data)
+    {
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "STB: Can't load image: %s", stbi_failure_reason());
+        std::exit(EXIT_FAILURE);
+    }
+    GLuint texture0;
+    glGenTextures(1, &texture0);
+    glBindTexture(GL_TEXTURE_2D, texture0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glUseProgram(shader_program);
+    glUniform1i(glGetUniformLocation(shader_program, "texture0"), 0);
+
+    engine::chunk_renderer::generate_mesh(chunk_meshes, chunk);
 
     bool running = true;
     SDL_Event event;
@@ -212,17 +237,31 @@ int main(int argc, char **argv)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         glUseProgram(shader_program);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture0);
+
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glBindBuffer(GL_ARRAY_BUFFER, chunk_meshes.solid_buffer);
+        glDrawArrays(GL_TRIANGLES, 0, chunk_meshes.solid_vertices);
+
+        glBindBuffer(GL_ARRAY_BUFFER, chunk_meshes.translucent_buffer);
+        glDrawArrays(GL_TRIANGLES, 0, chunk_meshes.translucent_vertices);
 
         // swap the buffer (present to the window surface)
         SDL_GL_SwapWindow(window);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &chunk_meshes.solid_buffer);
+    glDeleteBuffers(1, &chunk_meshes.translucent_buffer);
     glDeleteVertexArrays(1, &vao);
     glDeleteProgram(shader_program);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    return 0;
 }
