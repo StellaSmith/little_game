@@ -21,7 +21,7 @@ namespace engine
         // Filles the buffers with vertices
         // Returns 0 on success
         // Returns -1 on error
-        static int generate_mesh(chunk_meshes& buffer, chunk_t const &chunk) noexcept;
+        static int generate_mesh(chunk_t const &chunk, chunk_meshes &buffer) noexcept;
     };
 
 } // namespace engine

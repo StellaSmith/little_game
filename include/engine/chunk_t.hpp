@@ -14,8 +14,7 @@ namespace engine
         std::uint32_t id = 0;
         std::uint32_t subid = 0;
 
-        union data_t
-        {
+        union data_t {
             std::uint64_t u64;
             double f64;
             void *ptr;
@@ -32,7 +31,8 @@ namespace engine
     {
         constexpr static auto chunk_size = 16_sz;
 
-        glm::u32vec3 position;
+        glm::u32vec4 position;
+        bool modified;
         std::array<block_t, chunk_size * chunk_size * chunk_size> blocks;
     };
 
