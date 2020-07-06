@@ -65,10 +65,12 @@ add_executable(little_game
     src/glDebug.c
     src/chunk_renderer.cpp
     src/fast_math.cpp
+    src/game.cpp
     include/engine/chunk_t.hpp
     include/operators.hpp
     include/math/fast.hpp
     include/math/constexpr.hpp
+    include/engine/game.hpp
 )
 target_link_libraries(little_game glad SDL2-static glm stb)
 target_compile_features(little_game PUBLIC cxx_std_17)

@@ -18,24 +18,24 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
 
 using vertex_vector = std::vector<engine::block_t::Vertex>;
 
-static void add_vertices_stone(vertex_vector &solid_vertices, vertex_vector &translucent_vertices)
+static void add_vertices_stone(vertex_vector &solid_vertices, vertex_vector &translucent_vertices, glm::vec3 position, engine::block_t const &block)
 {
     solid_vertices.insert(
         solid_vertices.end(),
         std::initializer_list<engine::block_t::Vertex>{
-            {glm::vec3{+0.0, +0.5, +0.0}, glm::vec2{0.5, 0.0}},
-            {glm::vec3{-0.5, -0.5, +0.0}, glm::vec2{0.0, 1.0}},
-            {glm::vec3{+0.5, -0.5, +0.0}, glm::vec2{1.0, 1.0}}});
+            {position + glm::vec3{+0.0, +0.5, +0.0}, glm::vec2{0.5, 0.0}},
+            {position + glm::vec3{-0.5, -0.5, +0.0}, glm::vec2{0.0, 1.0}},
+            {position + glm::vec3{+0.5, -0.5, +0.0}, glm::vec2{1.0, 1.0}}});
 }
 
-using PFN_GetVertices = void (*)(vertex_vector &solid_vertices, vertex_vector &translucent_vertices);
+using PFN_GetVertices = void (*)(vertex_vector &solid_vertices, vertex_vector &translucent_vertices, glm::vec3 position, engine::block_t const &block);
 static auto vertex_func_table = []() -> std::vector<PFN_GetVertices> {
     return {
         nullptr,
         &add_vertices_stone};
 }();
 
-int engine::chunk_renderer::generate_mesh(engine::chunk_renderer::chunk_meshes &meshes, engine::chunk_t const &chunk) noexcept
+int engine::chunk_renderer::generate_mesh(engine::chunk_t const &chunk, engine::chunk_renderer::chunk_meshes &meshes) noexcept
 {
     vertex_vector solid_vertices, translucent_vertices;
     solid_vertices.reserve(128_sz);
@@ -48,7 +48,13 @@ int engine::chunk_renderer::generate_mesh(engine::chunk_renderer::chunk_meshes &
                 auto const flat_coord = cube_at<engine::chunk_t::chunk_size>(x, y, z);
                 auto const &block = chunk.blocks[flat_coord];
                 if (block.id < vertex_func_table.size() && vertex_func_table[block.id])
-                    vertex_func_table[block.id](solid_vertices, translucent_vertices);
+                    vertex_func_table[block.id](
+                        solid_vertices,
+                        translucent_vertices,
+                        glm::vec3{x + chunk.position.x * engine::chunk_t::chunk_size,
+                                  y + chunk.position.y * engine::chunk_t::chunk_size,
+                                  z + chunk.position.z * engine::chunk_t::chunk_size},
+                        block);
             }
 
     glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_buffer);
