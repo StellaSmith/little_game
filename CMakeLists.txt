@@ -36,13 +36,13 @@ set(SDL_THREADS OFF CACHE BOOL "" FORCE)
 set(SDL_TIMERS OFF CACHE BOOL "" FORCE)
 
 set(VIDEO_DUMMY OFF CACHE BOOL "" FORCE)
-set(VIDEO_KMSDRM OFF CACHE BOOL "" FORCE)
-set(VIDEO_OPENGLES OFF CACHE BOOL "" FORCE)
+# Wayland and KMSDRM need OpenGL ES
+# set(VIDEO_OPENGLES OFF CACHE BOOL "" FORCE)
 set(VIDEO_VULKAN OFF CACHE BOOL "" FORCE)
-set(VIDEO_WAYLAND OFF CACHE BOOL "" FORCE)
 
-set(ALSA OFF CACHE BOOL "" FORCE)
-set(JACK OFF CACHE BOOL "" FORCE)
+# I tried using DirectFB, but it wont compile
+# This will rarely be used anyways
+set(VIDEO_DIRECTFB OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(glad sdl2 glm)
 
@@ -66,11 +66,13 @@ add_executable(little_game
     src/chunk_renderer.cpp
     src/fast_math.cpp
     src/game.cpp
+    src/config.cpp
     include/engine/chunk_t.hpp
     include/operators.hpp
     include/math/fast.hpp
     include/math/constexpr.hpp
     include/engine/game.hpp
+    include/Config.hpp
 )
 target_link_libraries(little_game glad SDL2-static glm stb)
 target_compile_features(little_game PUBLIC cxx_std_17)
