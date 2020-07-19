@@ -12,6 +12,10 @@
 #include <string>
 #include <charconv>
 
+#include <imgui.h>
+#include <examples/imgui_impl_opengl3.h>
+#include <examples/imgui_impl_sdl.h>
+
 static SDL_NORETURN void show_error(std::string_view msg, SDL_Window *w = nullptr)
 {
     if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR!", msg.data(), w) < 0)
@@ -78,46 +82,47 @@ int main(int argc, char **argv)
         if (SDL_AudioInit(audio_driver.empty() ? nullptr : audio_driver.data()) < 0)
             show_error("Error initializing SDL Audio subsystem: "s + SDL_GetError());
     }
-
-    auto get_integer = [](std::string_view v, unsigned &i) {
-        auto o_integer = config_engine.get(v);
-        if (o_integer.has_value())
-        {
-            auto [ptr, ec] = std::from_chars(o_integer->data(), o_integer->data() + o_integer->size(), i);
-            if (ec != std::errc{})
+    {
+        auto get_integer = [](std::string_view v, unsigned &i) {
+            auto o_integer = config_engine.get(v);
+            if (o_integer.has_value())
             {
-                std::string error_str;
-                error_str += v;
-                error_str += " is not an unsigned integer"sv;
-                show_error(error_str);
+                auto [ptr, ec] = std::from_chars(o_integer->data(), o_integer->data() + o_integer->size(), i);
+                if (ec != std::errc{})
+                {
+                    std::string error_str;
+                    error_str += v;
+                    error_str += " is not an unsigned integer"sv;
+                    show_error(error_str);
+                }
             }
-        }
-    };
+        };
 
-    unsigned red_bits = 3, green_bits = 3, blue_bits = 2, alpha_bits = 0, depth_bits = 24, stencil_bits = 0;
-    get_integer("sdl_gl_red_size"sv, red_bits);
-    get_integer("sdl_gl_green_size"sv, green_bits);
-    get_integer("sdl_gl_blue_size"sv, blue_bits);
-    get_integer("sdl_gl_alpha_size"sv, alpha_bits);
-    get_integer("sdl_gl_depth_size"sv, depth_bits);
-    get_integer("sdl_gl_stencil_size"sv, stencil_bits);
+        unsigned red_bits = 3, green_bits = 3, blue_bits = 2, alpha_bits = 0, depth_bits = 24, stencil_bits = 0;
+        get_integer("sdl_gl_red_size"sv, red_bits);
+        get_integer("sdl_gl_green_size"sv, green_bits);
+        get_integer("sdl_gl_blue_size"sv, blue_bits);
+        get_integer("sdl_gl_alpha_size"sv, alpha_bits);
+        get_integer("sdl_gl_depth_size"sv, depth_bits);
+        get_integer("sdl_gl_stencil_size"sv, stencil_bits);
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, red_bits) < 0)
-        show_error("Error setting SDL_GL_RED_SIZE");
-    if (SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, green_bits) < 0)
-        show_error("Error setting SDL_GL_GREEN_SIZE");
-    if (SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, blue_bits) < 0)
-        show_error("Error setting SDL_GL_BLUE_SIZE");
-    if (SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, alpha_bits) < 0)
-        show_error("Error setting SDL_GL_ALPHA_SIZE");
-    if (SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depth_bits) < 0)
-        show_error("Error setting SDL_GL_DEPTH_SIZE");
-    if (SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, stencil_bits) < 0)
-        show_error("Error setting SDL_GL_STENCIL_SIZE");
+        if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, red_bits) < 0)
+            show_error("Error setting SDL_GL_RED_SIZE");
+        if (SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, green_bits) < 0)
+            show_error("Error setting SDL_GL_GREEN_SIZE");
+        if (SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, blue_bits) < 0)
+            show_error("Error setting SDL_GL_BLUE_SIZE");
+        if (SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, alpha_bits) < 0)
+            show_error("Error setting SDL_GL_ALPHA_SIZE");
+        if (SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depth_bits) < 0)
+            show_error("Error setting SDL_GL_DEPTH_SIZE");
+        if (SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, stencil_bits) < 0)
+            show_error("Error setting SDL_GL_STENCIL_SIZE");
+    }
 
 #ifndef NDEBUG
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -180,10 +185,49 @@ int main(int argc, char **argv)
         }
     }
 
+    if (!IMGUI_CHECKVERSION())
+        show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
+
+    ImGuiContext *imgui_context = ImGui::CreateContext();
+    ImGuiIO &imgui_io = ImGui::GetIO();
+    imgui_io.IniFilename = "cfg/imgui.ini";
+    
+    imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    if (SDL_WasInit(SDL_INIT_GAMECONTROLLER))
+        imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+
+    // TODO: Make color scheme of imgui configurable
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context); // always returns true
+
+    // See imgui/examples/imgui_impl_opengl3.cpp
+    ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
+
+    {
+        auto o_imgui_font_path = config_engine.get("imgui_font_path"sv);
+        if (o_imgui_font_path.has_value())
+        {
+            if (!imgui_io.Fonts->AddFontFromFileTTF(o_imgui_font_path->data(), 14))
+            {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", o_imgui_font_path->size(), o_imgui_font_path->data());
+                if (!imgui_io.Fonts->AddFontDefault())
+                    show_error("IMGUI: Can't load default font."sv, window);
+            }
+        }
+        else
+        {
+            if (!imgui_io.Fonts->AddFontDefault())
+                show_error("IMGUI: Can't load default font."sv, window);
+        }
+    }
+
     engine::Game game;
     game.start();
 
     auto start = engine::Game::clock_type::now();
+
+    bool show_demo_window = true;
 
     SDL_Event event;
     while (game.running)
@@ -193,20 +237,43 @@ int main(int argc, char **argv)
         start = now;
 
         while (SDL_PollEvent(&event) && game.running)
+        {
+            // Poll and handle events (inputs, window resize, etc.)
+            // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+            // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
+            // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
+            // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+            ImGui_ImplSDL2_ProcessEvent(&event);
             game.input(event);
+        }
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame(window);
+        ImGui::NewFrame();
+
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
 
         game.update(delta);
         if (!game.running)
             break;
         game.render();
 
+        // Draw ImGui on top of the game stuff
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         // swap the buffer (present to the window surface)
         SDL_GL_SwapWindow(window);
     }
 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
-    SDL_AudioQuit();
+    SDL_AudioQuit(); // ERROR: Crashes when exiting pulseaudio, it tries to lock a (SDL) mutex, which are disabled.
     SDL_VideoQuit();
     SDL_Quit();
 

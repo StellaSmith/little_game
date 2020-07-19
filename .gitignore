@@ -1,3 +1,6 @@
 videos/
 build/
 .vscode/
+
+# Auto generated
+cfg/imgui.ini
