@@ -1,8 +1,8 @@
 #ifndef OPERATORS_HPP
 #define OPERATORS_HPP
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 constexpr auto operator""_i8(unsigned long long n) noexcept
 {

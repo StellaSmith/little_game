@@ -3,14 +3,12 @@
 
 #include "operators.hpp"
 
-#include <cstddef>
 #include <array>
+#include <cstddef>
 #include <glm/glm.hpp>
 
-namespace engine
-{
-    struct block_t
-    {
+namespace engine {
+    struct block_t {
         std::uint32_t id = 0;
         std::uint32_t subid = 0;
 
@@ -18,17 +16,15 @@ namespace engine
             std::uint64_t u64;
             double f64;
             void *ptr;
-        } data{.ptr = nullptr};
+        } data { .ptr = nullptr };
 
-        struct Vertex
-        {
+        struct Vertex {
             glm::vec3 position;
             glm::vec2 uv;
         };
     };
 
-    struct chunk_t
-    {
+    struct chunk_t {
         constexpr static auto chunk_size = 16_sz;
 
         glm::u32vec4 position;

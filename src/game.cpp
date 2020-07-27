@@ -3,16 +3,16 @@
 #include <SDL.h>
 #include <stb_image.h>
 
-#include <string>
-#include <fstream>
 #include <cstdlib>
+#include <fstream>
+#include <string>
 #include <string_view>
 
 using namespace std::literals;
 
 static std::string load_file(std::istream &is)
 {
-    return {std::istreambuf_iterator<char>{is}, std::istreambuf_iterator<char>{}};
+    return { std::istreambuf_iterator<char> { is }, std::istreambuf_iterator<char> {} };
 }
 
 static std::string load_file(std::string_view path)
@@ -47,8 +47,7 @@ void engine::Game::setup_shader()
     GLint info_log_size;
 
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_size);
         info_log.clear();
         info_log.resize(info_log_size);
@@ -58,8 +57,7 @@ void engine::Game::setup_shader()
     }
 
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_size);
         info_log.clear();
         info_log.resize(info_log_size);
@@ -75,8 +73,7 @@ void engine::Game::setup_shader()
     glLinkProgram(m_shader);
 
     glGetProgramiv(m_shader, GL_LINK_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
 
         glGetProgramiv(m_shader, GL_INFO_LOG_LENGTH, &info_log_size);
         info_log.clear();
@@ -95,8 +92,7 @@ void engine::Game::setup_texture()
     int x, y, c;
     unsigned char *data = stbi_load("assets/Phosphophyllite.jpg", &x, &y, &c, 4);
 
-    if (!data)
-    {
+    if (!data) {
         SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "STB: Can't load image: %s", stbi_failure_reason());
         std::exit(EXIT_FAILURE);
     }
@@ -131,7 +127,7 @@ void engine::Game::start()
         chunk.blocks[0].id = 1;
         chunk.modified = true;
 
-        m_chunks.emplace(glm::u32vec4{0, 0, 0, 0}, std::move(chunk));
+        m_chunks.emplace(glm::u32vec4 { 0, 0, 0, 0 }, std::move(chunk));
     }
 }
 
@@ -150,18 +146,15 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
 {
     std::vector<glm::i32vec4> to_delete;
     std::vector<chunk_t> to_add;
-    for (auto &[k, chunk] : m_chunks)
-    {
-        if (chunk.modified)
-        {
+    for (auto &[k, chunk] : m_chunks) {
+        if (chunk.modified) {
 
             auto it = m_chunk_meshes.find(chunk.position);
-            if (it == m_chunk_meshes.end())
-            {
+            if (it == m_chunk_meshes.end()) {
                 GLuint buffers[2];
                 glGenBuffers(2, buffers);
 
-                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, chunk_renderer::chunk_meshes{buffers[0], buffers[1], 0, 0});
+                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, chunk_renderer::chunk_meshes { buffers[0], buffers[1], 0, 0 });
             }
 
             engine::chunk_renderer::generate_mesh(chunk, it->second);
@@ -185,8 +178,7 @@ void engine::Game::render()
     glBindTexture(GL_TEXTURE_2D, m_texture);
     glBindVertexArray(m_vao);
 
-    for (auto const &[p, meshes] : m_chunk_meshes)
-    {
+    for (auto const &[p, meshes] : m_chunk_meshes) {
         glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, (void *)0);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, (void *)12);

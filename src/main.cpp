@@ -1,20 +1,19 @@
-#include "glDebug.h"
+#include <SDL.h>
+#include <glad/glad.h>
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl.h>
+
+#include <charconv>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+
+#include "Config.hpp"
 #include "engine/chunk_renderer.hpp"
 #include "engine/chunk_t.hpp"
 #include "engine/game.hpp"
-#include "Config.hpp"
-
-#include <glad/glad.h>
-#include <SDL.h>
-
-#include <cstdlib>
-#include <cstdio>
-#include <string>
-#include <charconv>
-
-#include <imgui.h>
-#include <examples/imgui_impl_opengl3.h>
-#include <examples/imgui_impl_sdl.h>
+#include "glDebug.h"
 
 static SDL_NORETURN void show_error(std::string_view msg, SDL_Window *w = nullptr)
 {
@@ -31,17 +30,13 @@ int main(int argc, char **argv)
 {
     constexpr int width = 640, height = 480;
 
-    for (int i = 0; i < argc; ++i)
-    {
-        if (argv[i] == "--sdl-video-drivers"sv)
-        {
+    for (int i = 0; i < argc; ++i) {
+        if (argv[i] == "--sdl-video-drivers"sv) {
             int drivers = SDL_GetNumVideoDrivers();
             std::printf("Available video drivers (%d):\n", drivers);
             for (int i = 0; i < drivers; ++i)
                 std::printf("\t%d) %s\n", i + 1, SDL_GetVideoDriver(i));
-        }
-        else if (argv[i] == "--sdl-audio-drivers"sv)
-        {
+        } else if (argv[i] == "--sdl-audio-drivers"sv) {
             int drivers = SDL_GetNumAudioDrivers();
             std::printf("Available audio drivers (%d):\n", drivers);
             for (int i = 0; i < drivers; ++i)
@@ -55,15 +50,11 @@ int main(int argc, char **argv)
     {
         char const *fname = "./cfg/engine.cfg";
         FILE *fp = std::fopen(fname, "r");
-        if (!fp)
-            show_error("Error opening engine configuration file. ("s + fname + ")");
+        if (!fp) show_error("Error opening engine configuration file. ("s + fname + ")");
 
-        try
-        {
+        try {
             config_engine = Config::from_file(fp);
-        }
-        catch (std::exception &e)
-        {
+        } catch (std::exception &e) {
             std::fclose(fp);
             if (SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "EXCEPTION!", e.what(), nullptr) < 0)
                 SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "%s", e.what());
@@ -85,11 +76,9 @@ int main(int argc, char **argv)
     {
         auto get_integer = [](std::string_view v, unsigned &i) {
             auto o_integer = config_engine.get(v);
-            if (o_integer.has_value())
-            {
+            if (o_integer.has_value()) {
                 auto [ptr, ec] = std::from_chars(o_integer->data(), o_integer->data() + o_integer->size(), i);
-                if (ec != std::errc{})
-                {
+                if (ec != std::errc {}) {
                     std::string error_str;
                     error_str += v;
                     error_str += " is not an unsigned integer"sv;
@@ -134,13 +123,11 @@ int main(int argc, char **argv)
         /*Size (width, height)*/ width, height,
         /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
-    if (!window)
-        show_error("Can't create main window: "s + SDL_GetError());
+    if (!window) show_error("Can't create main window: "s + SDL_GetError());
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 
-    if (!gl_context)
-        show_error("Can't create OpenGL 3.3 context: "s + SDL_GetError(), window);
+    if (!gl_context) show_error("Can't create OpenGL 3.3 context: "s + SDL_GetError(), window);
 
     if (SDL_GL_MakeCurrent(window, gl_context) < 0)
         show_error("Can't set OpenGL context current: "s + SDL_GetError(), window);
@@ -167,15 +154,13 @@ int main(int argc, char **argv)
         std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
         std::printf("\tVersion: %s\n\tVendor: %s\n\tRenderer: %s\n\tShading language version: %s\n", version, vendor, renderer, shading_version);
 
-        if (SDL_GL_ExtensionSupported("GL_KHR_debug"))
-        {
+        if (SDL_GL_ExtensionSupported("GL_KHR_debug")) {
             auto pfn_glDebugMessageCallback = reinterpret_cast<PFN_glDebugMessageCallback>(SDL_GL_GetProcAddress("glDebugMessageCallback"));
             auto pfn_glDebugMessageControl = reinterpret_cast<PFN_glDebugMessageControl>(SDL_GL_GetProcAddress("glDebugMessageControl"));
 
             int flags;
             glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-            if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
-            {
+            if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
                 glEnable(GL_DEBUG_OUTPUT);
                 glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
                 pfn_glDebugMessageCallback(glDebugOutput, nullptr);
@@ -185,13 +170,11 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!IMGUI_CHECKVERSION())
-        show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
+    if (!IMGUI_CHECKVERSION()) show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
 
     ImGuiContext *imgui_context = ImGui::CreateContext();
     ImGuiIO &imgui_io = ImGui::GetIO();
     imgui_io.IniFilename = "cfg/imgui.ini";
-    
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER))
         imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
@@ -206,20 +189,14 @@ int main(int argc, char **argv)
 
     {
         auto o_imgui_font_path = config_engine.get("imgui_font_path"sv);
-        if (o_imgui_font_path.has_value())
-        {
-            if (!imgui_io.Fonts->AddFontFromFileTTF(o_imgui_font_path->data(), 14))
-            {
+        if (o_imgui_font_path.has_value()) {
+            if (!imgui_io.Fonts->AddFontFromFileTTF(o_imgui_font_path->data(), 14)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", o_imgui_font_path->size(), o_imgui_font_path->data());
                 if (!imgui_io.Fonts->AddFontDefault())
                     show_error("IMGUI: Can't load default font."sv, window);
             }
-        }
-        else
-        {
-            if (!imgui_io.Fonts->AddFontDefault())
-                show_error("IMGUI: Can't load default font."sv, window);
-        }
+        } else if (!imgui_io.Fonts->AddFontDefault())
+            show_error("IMGUI: Can't load default font."sv, window);
     }
 
     engine::Game game;
@@ -230,14 +207,12 @@ int main(int argc, char **argv)
     bool show_demo_window = true;
 
     SDL_Event event;
-    while (game.running)
-    {
+    while (game.running) {
         auto now = engine::Game::clock_type::now();
         auto delta = now - start;
         start = now;
 
-        while (SDL_PollEvent(&event) && game.running)
-        {
+        while (SDL_PollEvent(&event) && game.running) {
             // Poll and handle events (inputs, window resize, etc.)
             // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
             // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
@@ -251,12 +226,10 @@ int main(int argc, char **argv)
         ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
 
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+        if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 
         game.update(delta);
-        if (!game.running)
-            break;
+        if (!game.running) break;
         game.render();
 
         // Draw ImGui on top of the game stuff

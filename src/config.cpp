@@ -1,8 +1,8 @@
 #include "Config.hpp"
 
-#include <iostream>
-#include <cassert>
 #include <algorithm>
+#include <cassert>
+#include <iostream>
 
 static std::string_view rstrip(std::string_view s)
 {
@@ -30,14 +30,11 @@ static void parse_line(Config &cfg, std::string_view line, std::size_t lnumber)
     if (line.empty())
         return;
 
-    if (auto pos = line.find('='); pos == std::string_view::npos)
-    {
+    if (auto pos = line.find('='); pos == std::string_view::npos) {
         char buff[256];
         std::sprintf(buff, "Invalid format at line %z; no equal sign.", lnumber);
         throw std::runtime_error(buff);
-    }
-    else
-    {
+    } else {
         auto key = lstrip(line.substr(0, pos));
         auto val = rstrip(line.substr(pos + 1));
         cfg.set(key, val);
@@ -51,11 +48,9 @@ Config Config::from_file(FILE *fp)
     std::string line;
     char buffer[256];
 
-    while (std::fgets(buffer, sizeof(buffer), fp))
-    {
+    while (std::fgets(buffer, sizeof(buffer), fp)) {
         line += buffer;
-        if (line.back() == '\n' || std::feof(fp))
-        {
+        if (line.back() == '\n' || std::feof(fp)) {
             parse_line(config, line, lnumber);
             line.clear();
             ++lnumber;
@@ -75,8 +70,7 @@ Config Config::from_stream(std::istream &stream)
     Config config;
     std::size_t lnumber = 1;
     std::string line;
-    while (std::getline(stream, line))
-    {
+    while (std::getline(stream, line)) {
         parse_line(config, line, lnumber);
         ++lnumber;
     }
@@ -90,10 +84,9 @@ Config Config::from_string(std::string_view str)
     std::size_t lnumber = 1;
     auto prev = str.begin();
 
-    for (;;)
-    {
+    for (;;) {
         auto it = std::find(prev, str.end(), '\n');
-        std::string_view line{prev, static_cast<std::size_t>(it - prev)};
+        std::string_view line { prev, static_cast<std::size_t>(it - prev) };
         parse_line(config, line, lnumber);
         if (it == str.end())
             break;
@@ -111,7 +104,7 @@ void Config::set(std::string_view k, std::string_view v)
     else if (it->first == k)
         it->second = static_cast<std::string>(v);
     else
-        m_data.insert(it, std::pair<std::string, std::string>{static_cast<std::string>(k), static_cast<std::string>(v)});
+        m_data.insert(it, std::pair<std::string, std::string> { static_cast<std::string>(k), static_cast<std::string>(v) });
 }
 
 void Config::set(std::string_view k, std::string &&v)
@@ -122,7 +115,7 @@ void Config::set(std::string_view k, std::string &&v)
     else if (it->first == k)
         it->second = std::move(v);
     else
-        m_data.insert(it, std::pair<std::string, std::string>{static_cast<std::string>(k), std::move(v)});
+        m_data.insert(it, std::pair<std::string, std::string> { static_cast<std::string>(k), std::move(v) });
 }
 
 void Config::set(std::string &&k, std::string &&v)
@@ -133,7 +126,7 @@ void Config::set(std::string &&k, std::string &&v)
     else if (it->first == k)
         it->second = std::move(v);
     else
-        m_data.insert(it, std::pair<std::string, std::string>{std::move(k), std::move(v)});
+        m_data.insert(it, std::pair<std::string, std::string> { std::move(k), std::move(v) });
 }
 
 std::optional<std::string_view> Config::get(std::string_view k) const noexcept

@@ -1,11 +1,10 @@
 #ifndef MATH_FAST_HPP
 #define MATH_FAST_HPP
 
-#include <cmath>
 #include <array>
+#include <cmath>
 
-namespace math
-{
+namespace math {
 
     // functions that use lookup tables instead of calculating stuff every time
 
