@@ -1,24 +1,20 @@
 #ifndef MATH_CONSTEXPR_HPP
 #define MATH_CONSTEXPR_HPP
 
-namespace math
-{
+namespace math {
     // constexpr integer power
     template <std::int64_t v, std::uint64_t x>
-    struct c_ipow
-    {
+    struct c_ipow {
         constexpr static std::int64_t value = v * c_ipow<v, x - 1>::value;
     };
 
     template <std::int64_t v>
-    struct c_ipow<v, 1>
-    {
+    struct c_ipow<v, 1> {
         constexpr static std::int64_t value = v;
     };
 
     template <std::int64_t v>
-    struct c_ipow<v, 0>
-    {
+    struct c_ipow<v, 0> {
         constexpr static std::int64_t value = 1;
     };
 
@@ -27,78 +23,64 @@ namespace math
 
     // constexpr integer logarithm (rounded down)
     template <std::uint64_t x>
-    struct c_ilog10
-    {
+    struct c_ilog10 {
         constexpr static std::uint64_t value = 1 + c_ilog10<x / 10>::value;
     };
 
     template <>
-    struct c_ilog10<9>
-    {
+    struct c_ilog10<9> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<8>
-    {
+    struct c_ilog10<8> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<7>
-    {
+    struct c_ilog10<7> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<6>
-    {
+    struct c_ilog10<6> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<5>
-    {
+    struct c_ilog10<5> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<4>
-    {
+    struct c_ilog10<4> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<3>
-    {
+    struct c_ilog10<3> {
         constexpr static std::uint64_t value = 1;
     };
     template <>
-    struct c_ilog10<2>
-    {
+    struct c_ilog10<2> {
         constexpr static std::uint64_t value = 1;
     };
 
     template <>
-    struct c_ilog10<1>
-    {
+    struct c_ilog10<1> {
         constexpr static std::uint64_t value = 0;
     };
 
     template <>
-    struct c_ilog10<0>
-    {
+    struct c_ilog10<0> {
     };
 
     template <std::uint64_t x>
-    struct c_ilog2
-    {
+    struct c_ilog2 {
         constexpr static std::uint64_t value = 1 + c_ilog2<x / 2>::value;
     };
 
     template <>
-    struct c_ilog2<1>
-    {
+    struct c_ilog2<1> {
         constexpr static std::uint64_t value = 0;
     };
 
     template <>
-    struct c_ilog2<0>
-    {
+    struct c_ilog2<0> {
     };
 
     template <std::uint64_t x>

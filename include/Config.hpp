@@ -1,15 +1,14 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include <vector>
+#include <iosfwd>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <optional>
-#include <iosfwd>
 #include <type_traits>
+#include <vector>
 
-class Config
-{
+class Config {
 public:
     static Config from_file(FILE *fp);
     static Config from_string(std::string_view str);

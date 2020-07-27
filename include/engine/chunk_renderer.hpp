@@ -3,15 +3,12 @@
 
 #include <cstdint>
 
-namespace engine
-{
+namespace engine {
     struct chunk_t;
 
-    struct chunk_renderer
-    {
-        struct chunk_meshes
-        {
-            unsigned int solid_buffer;       // blocks whose textures have fully opaque or fully transparent pixels (alpha == 0.0 or alpha == 1.0)
+    struct chunk_renderer {
+        struct chunk_meshes {
+            unsigned int solid_buffer; // blocks whose textures have fully opaque or fully transparent pixels (alpha == 0.0 or alpha == 1.0)
             unsigned int translucent_buffer; // blocks whose textures that have some transparency (alpha != 0.0 and alpha != 1.0)
 
             std::uint32_t solid_vertices;

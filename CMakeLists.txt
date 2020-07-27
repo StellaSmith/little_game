@@ -66,7 +66,7 @@ FetchContent_GetProperties(imgui)
 if (NOT imgui_POPULATED)
     FetchContent_Populate(imgui)
     add_library(imgui)
-    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/examples)
     target_sources(imgui
     PRIVATE
     ${imgui_SOURCE_DIR}/imgui.cpp

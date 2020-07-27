@@ -1,0 +1,7 @@
+BasedOnStyle: WebKit
+---
+Language:           Cpp
+PointerAlignment:   Right
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+NamespaceIndentation: All
