@@ -24,6 +24,8 @@ static SDL_NORETURN void show_error(std::string_view msg, SDL_Window *w = nullpt
 
 Config config_engine;
 
+bool g_verbose = false;
+
 using namespace std::literals;
 
 int main(int argc, char **argv)
@@ -41,6 +43,8 @@ int main(int argc, char **argv)
             std::printf("Available audio drivers (%d):\n", drivers);
             for (int i = 0; i < drivers; ++i)
                 std::printf("\t%d) %s\n", i + 1, SDL_GetAudioDriver(i));
+        } else if (argv[i] == "-v" || argv[i] == "--verbose") {
+            g_verbose = true;
         }
     }
 
