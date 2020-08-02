@@ -1,5 +1,6 @@
-#include "engine/chunk_renderer.hpp"
+#include "engine/chunk_mesh_generation.hpp"
 #include "engine/chunk_t.hpp"
+#include "engine/rendering/block.hpp"
 #include "math/constexpr.hpp"
 
 #include <glad/glad.h>
@@ -16,55 +17,134 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
         return first * math::c_ipow_v<D, sizeof...(Rest)> + cube_at<D>(rest...);
 }
 
-using vertex_vector = std::vector<engine::block_t::Vertex>;
+enum Sides : std::uint8_t {
+    NORTH = 1 << 0, // -z
+    SOUTH = 1 << 1, // +z
+    EAST = 1 << 2, // +x
+    WEST = 1 << 3, // -x
+    TOP = 1 << 4, // +y
+    BOTTOM = 1 << 5, // -y
 
-static void add_vertices_stone(vertex_vector &solid_vertices, vertex_vector &translucent_vertices, glm::vec3 position, engine::block_t const &block)
+    NONE = 0,
+    ALL = NORTH | SOUTH | EAST | WEST | TOP | BOTTOM
+};
+
+// return a flag set indicating which sides are solid
+static Sides is_solid(engine::block_t const &block)
 {
-    solid_vertices.insert(
-        solid_vertices.end(),
-        std::initializer_list<engine::block_t::Vertex> {
-            { position + glm::vec3 { +0.0, +0.5, +0.0 }, glm::vec2 { 0.5, 0.0 } },
-            { position + glm::vec3 { -0.5, -0.5, +0.0 }, glm::vec2 { 0.0, 1.0 } },
-            { position + glm::vec3 { +0.5, -0.5, +0.0 }, glm::vec2 { 1.0, 1.0 } } });
+    switch (block.id) {
+    case 0: // air
+        return Sides::NONE;
+    case 1: // stone
+    case 2: // dirt
+    case 3: // grass
+        return Sides::ALL;
+    default:
+        return Sides::NONE; // we don't know
+    }
 }
 
-using PFN_GetVertices = void (*)(vertex_vector &solid_vertices, vertex_vector &translucent_vertices, glm::vec3 position, engine::block_t const &block);
-static auto vertex_func_table = []() -> std::vector<PFN_GetVertices> {
-    return {
-        nullptr,
-        &add_vertices_stone
-    };
-}();
+using vertex = engine::rendering::block_vertex_t;
+using vertex_vector = std::vector<vertex>;
+using PFN_GetVertices = vertex_vector (*)(engine::block_t const &, Sides);
 
-int engine::chunk_renderer::generate_mesh(engine::chunk_t const &chunk, engine::chunk_renderer::chunk_meshes &meshes) noexcept
+// most blocks are very simple, like stone, dirt, rock, etc
+// might template on texture coordinates?
+static vertex_vector GetVertices_Common(engine::block_t const &block, Sides sides)
 {
-    vertex_vector solid_vertices, translucent_vertices;
-    solid_vertices.reserve(128_sz);
-    translucent_vertices.reserve(128_sz);
+    vertex_vector result;
+    // TODO!: return the vertices of a common block based on id
+    if (block.id == 1) {
+        result.push_back(vertex { glm::vec3 { -0.75, -0.75, 0.0 }, glm::vec2 { 0.0, 1.0 } });
+        result.push_back(vertex { glm::vec3 { +0.75, -0.75, 0.0 }, glm::vec2 { 1.0, 1.0 } });
+        result.push_back(vertex { glm::vec3 { +0.00, +0.75, 0.0 }, glm::vec2 { 0.5, 0.0 } });
+    }
+    return result;
+}
 
-    for (std::uint32_t x = 0; x < engine::chunk_t::chunk_size; ++x)
-        for (std::uint32_t y = 0; y < engine::chunk_t::chunk_size; ++y)
-            for (std::uint32_t z = 0; z < engine::chunk_t::chunk_size; ++z) {
-                auto const flat_coord = cube_at<engine::chunk_t::chunk_size>(x, y, z);
-                auto const &block = chunk.blocks[flat_coord];
-                if (block.id < vertex_func_table.size() && vertex_func_table[block.id])
-                    vertex_func_table[block.id](
-                        solid_vertices,
-                        translucent_vertices,
-                        glm::vec3 { x + chunk.position.x * engine::chunk_t::chunk_size,
-                            y + chunk.position.y * engine::chunk_t::chunk_size,
-                            z + chunk.position.z * engine::chunk_t::chunk_size },
-                        block);
+// grass uses tree textures:
+//  bottom being the same as the base for dirt,
+//  top begin the green one,
+//  and for sides a green to dirt
+static vertex_vector GetVertices_Grass(engine::block_t const &block, Sides sides)
+{
+    // TODO!: return the vertices of a grass block
+    return {};
+}
+
+static std::vector<PFN_GetVertices> const block_vertices_table = {
+    nullptr, // id 0 is air, which has no vertices
+    &GetVertices_Common, // stone
+    &GetVertices_Common, // dirt
+    &GetVertices_Grass // grass
+};
+
+constexpr std::size_t chunk_size = engine::chunk_t::chunk_size;
+
+vertex_vector engine::generate_solid_mesh(engine::chunk_t const &chunk)
+{
+    vertex_vector result;
+    result.reserve(256); // avoid small allocations
+
+    for (std::uint32_t x = 0; x < chunk_size; ++x) {
+        for (std::uint32_t y = 0; y < chunk_size; ++y) {
+            for (std::uint32_t z = 0; z < chunk_size; ++z) {
+                engine::block_t const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
+
+                assert(block.id < block_vertices_table.size());
+
+                PFN_GetVertices const pfn_GetVertices = block_vertices_table[block.id];
+
+                if (!pfn_GetVertices) continue;
+                if (!is_solid(block)) continue;
+
+                const bool is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
+                const bool is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
+                const bool is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)]) & Sides::WEST);
+                const bool is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)]) & Sides::EAST);
+                const bool is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)]) & Sides::SOUTH);
+                const bool is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)]) & Sides::NORTH);
+
+                // clang-format off
+                // pack to a Sides flags
+                Sides const sides = static_cast<Sides>(
+                    Sides::TOP    * is_top_visible    |
+                    Sides::BOTTOM * is_bottom_visible |
+                    Sides::EAST   * is_east_visible   |
+                    Sides::WEST   * is_west_visible   |
+                    Sides::NORTH  * is_north_visible  |
+                    Sides::SOUTH  * is_south_visible);
+                // clang-format on
+
+                if (!sides) continue; // no visible sides
+
+                vertex_vector vertices = pfn_GetVertices(block, sides); // these are in block coords
+                for (auto &vertex : vertices) // transform to world coords
+                    vertex.position += static_cast<glm::vec3>(chunk.position) + glm::vec3 { x, y, z };
+                // or maybe use std::move with an insert iterator?
+                result.insert(result.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
             }
+        }
+    }
 
-    glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_buffer);
-    glBufferData(GL_ARRAY_BUFFER, solid_vertices.size() * sizeof(vertex_vector::value_type), solid_vertices.data(), GL_DYNAMIC_DRAW);
+    // maybe call shrink_to_fit?
+    return result;
+}
 
-    glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_buffer);
-    glBufferData(GL_ARRAY_BUFFER, translucent_vertices.size() * sizeof(vertex_vector::value_type), translucent_vertices.data(), GL_DYNAMIC_DRAW);
+// will be called more frequently
+vertex_vector engine::generate_translucent_mesh(engine::chunk_t const &chunk)
+{
+    vertex_vector result;
+    result.reserve(256); // avoid small allocations
 
-    meshes.solid_vertices = solid_vertices.size();
-    meshes.translucent_vertices = translucent_vertices.size();
+    // TODO!: Logic to generate translucent meshes
+    //
+    // Iterate over each block in chunk
+    // If block is completely solid, skip
+    // Check for visible sides similar to how it is done with the solid blocks, but if the adjacent block id is the same then interpret it as an invisible face
+    // (perhaps check if the adjacent block is the same with the subid too, or do it at runtime, for cases like different glass color per subid.)
+    // If block is not visible for any side, skip
+    // Generate vertices
 
-    return 0;
+    return result;
 }

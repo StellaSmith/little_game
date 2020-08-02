@@ -1,4 +1,5 @@
 #include "engine/game.hpp"
+#include "engine/chunk_mesh_generation.hpp"
 
 #include <SDL.h>
 #include <stb_image.h>
@@ -154,10 +155,21 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
                 GLuint buffers[2];
                 glGenBuffers(2, buffers);
 
-                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, chunk_renderer::chunk_meshes { buffers[0], buffers[1], 0, 0 });
+                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, rendering::chunk_meshes { buffers[0], buffers[1], 0, 0 });
             }
 
-            engine::chunk_renderer::generate_mesh(chunk, it->second);
+            auto const solid_mesh = generate_solid_mesh(chunk);
+            auto const translucent_mesh = generate_translucent_mesh(chunk);
+
+            glBindBuffer(GL_ARRAY_BUFFER, it->second.solid_vertex_buffer);
+            glBufferData(GL_ARRAY_BUFFER, solid_mesh.size() * sizeof(*solid_mesh.data()), solid_mesh.data(), GL_DYNAMIC_DRAW);
+            it->second.solid_vertex_count = solid_mesh.size();
+
+            glBindBuffer(GL_ARRAY_BUFFER, it->second.translucent_vertex_buffer);
+            glBufferData(GL_ARRAY_BUFFER, translucent_mesh.size() * sizeof(*translucent_mesh.data()), translucent_mesh.data(), GL_STREAM_DRAW);
+            it->second.translucent_vertex_count = translucent_mesh.size();
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
 
             chunk.modified = false;
         }
@@ -179,18 +191,23 @@ void engine::Game::render()
     glBindVertexArray(m_vao);
 
     for (auto const &[p, meshes] : m_chunk_meshes) {
-        glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_buffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, (void *)0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, (void *)12);
+        glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
-        glDrawArrays(GL_TRIANGLES, 0, meshes.solid_vertices);
+        glDrawArrays(GL_TRIANGLES, 0, meshes.solid_vertex_count);
 
-        glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_buffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, (void *)0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, (void *)12);
+        glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
-        glDrawArrays(GL_TRIANGLES, 0, meshes.translucent_vertices);
+        glDrawArrays(GL_TRIANGLES, 0, meshes.translucent_vertex_count);
     }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
 }
