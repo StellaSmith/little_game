@@ -119,6 +119,9 @@ void engine::Game::start()
     setup_texture();
 
     glUseProgram(m_shader);
+    m_projection_uniform = glGetUniformLocation(m_shader, "projection");
+    m_view_uniform = glGetUniformLocation(m_shader, "view");
+
     glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
     glUseProgram(0);
 
@@ -137,6 +140,15 @@ void engine::Game::stop()
     running = false;
 }
 
+struct Camera {
+    glm::vec3 position = glm::vec3 { 0.0f, 0.0f, -1.0f };
+    glm::vec3 forward = glm::vec3 { 0.0f, 0.0f, 1.0f };
+    float fov = 60.0f;
+    bool to_center;
+} g_camera;
+
+#include <imgui.h>
+
 void engine::Game::input(SDL_Event const &event)
 {
     if (event.type == SDL_QUIT)
@@ -147,6 +159,8 @@ void engine::Game::input(SDL_Event const &event)
         }
     }
 }
+
+#include <glm/gtc/type_ptr.hpp>
 
 void engine::Game::update(engine::Game::clock_type::duration delta)
 {
@@ -185,7 +199,23 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
 
     for (auto &chunk : to_add)
         m_chunks.emplace(chunk.position, std::move(chunk));
+
+    if (ImGui::Begin("Camera Controls")) {
+        ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);
+        ImGui::SliderFloat3("Position", glm::value_ptr(g_camera.position), -10.0f, 10.0f);
+        ImGui::Checkbox("Looking at center", &g_camera.to_center);
+        if (ImGui::Button("Reset")) {
+            g_camera.position = glm::vec3 { 0.0f, 0.0f, -1.0f };
+            g_camera.forward = glm::vec3 { 0.0f, 0.0f, 1.0f };
+            g_camera.fov = 60.0f;
+            g_camera.to_center = false;
+        }
+    }
+    ImGui::End();
 }
+
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
 
 void engine::Game::render()
 {
@@ -194,6 +224,16 @@ void engine::Game::render()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_texture);
     glBindVertexArray(m_vao);
+
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    glm::mat4 const projection_matrix = glm::perspective(glm::radians(g_camera.fov), viewport[2] / (float)viewport[3], 0.1f, 100.0f);
+    glm::vec3 const actual_position = glm::vec3 { -g_camera.position.x, g_camera.position.y, g_camera.position.z };
+    glm::mat4 const view_matrix = glm::lookAt(actual_position, (actual_position + g_camera.forward) * static_cast<float>(!g_camera.to_center), glm::vec3 { 0.0f, 1.0f, 0.0f });
+
+    glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
+    glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
 
     for (auto const &[p, meshes] : m_chunk_meshes) {
         glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);

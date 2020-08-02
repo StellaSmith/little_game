@@ -229,8 +229,6 @@ int main(int argc, char **argv)
         ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
 
-        if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
-
         game.update(delta);
         if (!game.running) break;
         game.render();

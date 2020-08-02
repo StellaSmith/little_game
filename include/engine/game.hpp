@@ -46,6 +46,8 @@ namespace engine {
         GLuint m_vao;
         GLuint m_shader;
         GLuint m_texture;
+        GLuint m_projection_uniform;
+        GLuint m_view_uniform;
 
         std::unordered_map<glm::i32vec4, chunk_t> m_chunks;
         std::unordered_map<glm::i32vec4, rendering::chunk_meshes> m_chunk_meshes;
