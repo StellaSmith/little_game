@@ -10,7 +10,6 @@
 #include <string>
 
 #include "Config.hpp"
-#include "engine/chunk_renderer.hpp"
 #include "engine/chunk_t.hpp"
 #include "engine/game.hpp"
 #include "glDebug.h"
@@ -22,7 +21,7 @@ static SDL_NORETURN void show_error(std::string_view msg, SDL_Window *w = nullpt
     std::exit(EXIT_FAILURE);
 }
 
-Config config_engine;
+Config g_config_engine;
 
 bool g_verbose = false;
 
@@ -57,7 +56,7 @@ int main(int argc, char **argv)
         if (!fp) show_error("Error opening engine configuration file. ("s + fname + ")");
 
         try {
-            config_engine = Config::from_file(fp);
+            g_config_engine = Config::from_file(fp);
         } catch (std::exception &e) {
             std::fclose(fp);
             if (SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "EXCEPTION!", e.what(), nullptr) < 0)
@@ -68,18 +67,18 @@ int main(int argc, char **argv)
         std::fclose(fp);
     }
     {
-        auto video_driver = config_engine.get_or("sdl_video_driver"sv, {});
+        auto video_driver = g_config_engine.get_or("sdl_video_driver"sv, {});
         if (SDL_VideoInit(video_driver.empty() ? nullptr : video_driver.data()) < 0)
             show_error("Error initializing SDL Video subsystem: "s + SDL_GetError());
     }
     {
-        auto audio_driver = config_engine.get_or("sdl_audio_driver"sv, {});
+        auto audio_driver = g_config_engine.get_or("sdl_audio_driver"sv, {});
         if (SDL_AudioInit(audio_driver.empty() ? nullptr : audio_driver.data()) < 0)
             show_error("Error initializing SDL Audio subsystem: "s + SDL_GetError());
     }
     {
         auto get_integer = [](std::string_view v, unsigned &i) {
-            auto o_integer = config_engine.get(v);
+            auto o_integer = g_config_engine.get(v);
             if (o_integer.has_value()) {
                 auto [ptr, ec] = std::from_chars(o_integer->data(), o_integer->data() + o_integer->size(), i);
                 if (ec != std::errc {}) {
@@ -192,7 +191,7 @@ int main(int argc, char **argv)
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
 
     {
-        auto o_imgui_font_path = config_engine.get("imgui_font_path"sv);
+        auto o_imgui_font_path = g_config_engine.get("imgui_font_path"sv);
         if (o_imgui_font_path.has_value()) {
             if (!imgui_io.Fonts->AddFontFromFileTTF(o_imgui_font_path->data(), 14)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", o_imgui_font_path->size(), o_imgui_font_path->data());

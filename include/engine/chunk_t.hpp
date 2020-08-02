@@ -1,34 +1,21 @@
 #ifndef ENGINE_CHUNK_HPP
 #define ENGINE_CHUNK_HPP
 
+#include "engine/block_t.hpp"
 #include "operators.hpp"
 
 #include <array>
 #include <cstddef>
+
 #include <glm/glm.hpp>
 
 namespace engine {
-    struct block_t {
-        std::uint32_t id = 0;
-        std::uint32_t subid = 0;
-
-        union data_t {
-            std::uint64_t u64;
-            double f64;
-            void *ptr;
-        } data { .ptr = nullptr };
-
-        struct Vertex {
-            glm::vec3 position;
-            glm::vec2 uv;
-        };
-    };
 
     struct chunk_t {
         constexpr static auto chunk_size = 16_sz;
 
-        glm::u32vec4 position;
-        bool modified;
+        glm::u32vec4 position; // x, y, z, d. Where d is the dimension id (0 = overworld)
+        bool modified; // needs to regenerate all the meshes again
         std::array<block_t, chunk_size * chunk_size * chunk_size> blocks;
     };
 
