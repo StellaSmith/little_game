@@ -55,13 +55,48 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
 {
     engine::chunk_mesh_data_t result;
     // TODO!: return the vertices of a common block based on id
-    if (block.id == 1) {
-        result.vertices.push_back(vertex { glm::vec3 { -0.75, -0.75, 0.0 }, glm::vec2 { 0.0, 1.0 } });
-        result.vertices.push_back(vertex { glm::vec3 { +0.75, -0.75, 0.0 }, glm::vec2 { 1.0, 1.0 } });
-        result.vertices.push_back(vertex { glm::vec3 { +0.00, +0.75, 0.0 }, glm::vec2 { 0.5, 0.0 } });
+    if (block.id == 2) {
+        result.vertices = {
+            vertex { { -0.75, -0.75, 0.0 }, { 0.0, 1.0 } },
+            vertex { { +0.75, -0.75, 0.0 }, { 1.0, 1.0 } },
+            vertex { { +0.00, +0.75, 0.0 }, { 0.5, 0.0 } }
+        };
 
-        result.indices.insert(result.indices.end(), { 0u, 1u, 2u });
+        result.indices = { 2u, 1u, 0u };
     }
+    return result;
+}
+
+static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &block, Sides sides)
+{
+    glm::u8vec3 color = { (block.data.u64 & 0xFF0000) >> 16, (block.data.u64 & 0x00FF00) >> 8, block.data.u64 & 0x0000FF };
+    engine::chunk_mesh_data_t result;
+    result.vertices = {
+        vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { -0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
+        vertex { { -0.5f, -0.5f, +0.5f }, { 0.0f, 0.0f }, color }
+    };
+    result.indices = {
+        // clang-format off
+        0, 4, 2,
+        3, 6, 7,
+        7, 6, 4,
+        5, 1, 3,
+        1, 2, 3,
+        5, 4, 0,
+        6, 3, 2,
+        2, 1, 0,
+        0, 1, 5, 
+        4, 5, 7, 
+        3, 7, 5,
+        2, 4, 6
+        // clang-format on
+    };
     return result;
 }
 
@@ -77,6 +112,7 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::block_t const &block,
 
 static std::vector<PFN_GetVertices> const block_vertices_table = {
     nullptr, // id 0 is air, which has no vertices
+    &GetVertices_Colorful,
     &GetVertices_Common, // stone
     &GetVertices_Common, // dirt
     &GetVertices_Grass // grass
@@ -130,7 +166,7 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
                 for (auto &vertex : mesh.vertices) // transform to world coords
                     vertex.position += static_cast<glm::vec3>(chunk.position) + glm::vec3 { x, y, z };
                 for (auto &index : mesh.indices)
-                    index += result.indices.size();
+                    index += result.vertices.size();
 
                 // vertices and indices are trivial so no need to move them
                 result.vertices.insert(result.vertices.end(), mesh.vertices.begin(), mesh.vertices.end());

@@ -91,7 +91,7 @@ void engine::Game::setup_shader()
 void engine::Game::setup_texture()
 {
     int x, y, c;
-    unsigned char *data = stbi_load("assets/Phosphophyllite.jpg", &x, &y, &c, 4);
+    unsigned char *data = stbi_load("assets/texture_atlas.png", &x, &y, &c, 4);
 
     if (!data) {
         SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "STB: Can't load image: %s", stbi_failure_reason());
@@ -129,6 +129,8 @@ void engine::Game::start()
     {
         chunk_t chunk;
         chunk.blocks[0].id = 1;
+        chunk.blocks[0].data.u64 = 0x00AAFF;
+        chunk.blocks[1].id = 2;
         chunk.modified = true;
 
         m_chunks.emplace(glm::u32vec4 { 0, 0, 0, 0 }, std::move(chunk));
@@ -193,6 +195,16 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
             g_camera.forward = glm::vec3 { 0.0f, 0.0f, 1.0f };
             g_camera.fov = 60.0f;
             g_camera.to_center = false;
+        }
+    }
+    ImGui::End();
+    if (ImGui::Begin("Random Stuff")) {
+        static float col[3] { 0, 0, 0 };
+        if (ImGui::ColorPicker3("Colorful block color", col)) {
+            chunk_t &chunk = m_chunks.find(glm::i32vec4 { 0, 0, 0, 0 })->second;
+            chunk.modified = true;
+            chunk.blocks[0].data.u64 = static_cast<int>(col[0] * 255.0f) << 16 | static_cast<int>(col[1] * 255.0f) << 8 | static_cast<int>(col[2] * 255);
+            ImGui::Text("Chunk Modified");
         }
     }
     ImGui::End();
@@ -288,23 +300,29 @@ void engine::Game::render()
     glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
     glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
 
+    glEnable(GL_DEPTH_TEST);
+
     for (auto const &[p, meshes] : m_chunk_meshes) {
+        glEnable(GL_CULL_FACE);
         glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
-        glVertexAttribPointer(3, 3, GL_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
+        glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
         glDrawElements(GL_TRIANGLES, meshes.solid_index_count, GL_UNSIGNED_INT, nullptr);
 
+        glDisable(GL_CULL_FACE);
         glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
-        glVertexAttribPointer(3, 3, GL_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
+        glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
         glDrawElements(GL_TRIANGLES, meshes.translucent_index_count, GL_UNSIGNED_INT, nullptr);
     }
 
