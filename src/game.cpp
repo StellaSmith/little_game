@@ -251,11 +251,18 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
         }
     }
 
-    for (auto pos : to_delete)
-        m_chunks.erase(pos);
+    for (auto position : to_delete) {
+        m_chunks.erase(position);
+        m_translucent_mesh_data.erase(position);
+        auto p_mesh = std::find_if(m_chunk_meshes.begin(), m_chunk_meshes.end(), [position](auto const &p) { return p.first == position; });
+        if (p_mesh != m_chunk_meshes.end())
+            m_chunk_meshes.erase(p_mesh);
+    }
 
-    for (auto &chunk : to_add)
+    for (auto &chunk : to_add) {
+        chunk.modified = true; // will generate the meshes next iteration
         m_chunks.emplace(chunk.position, std::move(chunk));
+    }
 
     previous_camera_position = g_camera.position;
 }
