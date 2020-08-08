@@ -46,18 +46,21 @@ static Sides is_solid(engine::block_t const &block)
 
 using vertex = engine::rendering::block_vertex_t;
 using vertex_vector = std::vector<vertex>;
-using PFN_GetVertices = vertex_vector (*)(engine::block_t const &, Sides);
+using index_vector = std::vector<std::uint32_t>;
+using PFN_GetVertices = engine::chunk_mesh_data_t (*)(engine::block_t const &, Sides);
 
 // most blocks are very simple, like stone, dirt, rock, etc
 // might template on texture coordinates?
-static vertex_vector GetVertices_Common(engine::block_t const &block, Sides sides)
+static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block, Sides sides)
 {
-    vertex_vector result;
+    engine::chunk_mesh_data_t result;
     // TODO!: return the vertices of a common block based on id
     if (block.id == 1) {
-        result.push_back(vertex { glm::vec3 { -0.75, -0.75, 0.0 }, glm::vec2 { 0.0, 1.0 } });
-        result.push_back(vertex { glm::vec3 { +0.75, -0.75, 0.0 }, glm::vec2 { 1.0, 1.0 } });
-        result.push_back(vertex { glm::vec3 { +0.00, +0.75, 0.0 }, glm::vec2 { 0.5, 0.0 } });
+        result.vertices.push_back(vertex { glm::vec3 { -0.75, -0.75, 0.0 }, glm::vec2 { 0.0, 1.0 } });
+        result.vertices.push_back(vertex { glm::vec3 { +0.75, -0.75, 0.0 }, glm::vec2 { 1.0, 1.0 } });
+        result.vertices.push_back(vertex { glm::vec3 { +0.00, +0.75, 0.0 }, glm::vec2 { 0.5, 0.0 } });
+
+        result.indices.insert(result.indices.end(), { 0u, 1u, 2u });
     }
     return result;
 }
@@ -66,7 +69,7 @@ static vertex_vector GetVertices_Common(engine::block_t const &block, Sides side
 //  bottom being the same as the base for dirt,
 //  top begin the green one,
 //  and for sides a green to dirt
-static vertex_vector GetVertices_Grass(engine::block_t const &block, Sides sides)
+static engine::chunk_mesh_data_t GetVertices_Grass(engine::block_t const &block, Sides sides)
 {
     // TODO!: return the vertices of a grass block
     return {};
@@ -81,10 +84,13 @@ static std::vector<PFN_GetVertices> const block_vertices_table = {
 
 constexpr std::size_t chunk_size = engine::chunk_t::chunk_size;
 
-vertex_vector engine::generate_solid_mesh(engine::chunk_t const &chunk)
+engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chunk)
 {
-    vertex_vector result;
-    result.reserve(256); // avoid small allocations
+    engine::chunk_mesh_data_t result;
+
+    // avoid small allocations
+    result.vertices.reserve(256);
+    result.indices.reserve(256);
 
     for (std::uint32_t x = 0; x < chunk_size; ++x) {
         for (std::uint32_t y = 0; y < chunk_size; ++y) {
@@ -98,12 +104,12 @@ vertex_vector engine::generate_solid_mesh(engine::chunk_t const &chunk)
                 if (!pfn_GetVertices) continue;
                 if (!is_solid(block)) continue;
 
-                const bool is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
-                const bool is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
-                const bool is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)]) & Sides::WEST);
-                const bool is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)]) & Sides::EAST);
-                const bool is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)]) & Sides::SOUTH);
-                const bool is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)]) & Sides::NORTH);
+                bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
+                bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
+                bool const is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)]) & Sides::WEST);
+                bool const is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)]) & Sides::EAST);
+                bool const is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)]) & Sides::SOUTH);
+                bool const is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)]) & Sides::NORTH);
 
                 // clang-format off
                 // pack to a Sides flags
@@ -118,11 +124,17 @@ vertex_vector engine::generate_solid_mesh(engine::chunk_t const &chunk)
 
                 if (!sides) continue; // no visible sides
 
-                vertex_vector vertices = pfn_GetVertices(block, sides); // these are in block coords
-                for (auto &vertex : vertices) // transform to world coords
+                engine::chunk_mesh_data_t mesh = pfn_GetVertices(block, sides); // these are in block coords
+                assert(mesh.indices.size() % 3 == 0);
+
+                for (auto &vertex : mesh.vertices) // transform to world coords
                     vertex.position += static_cast<glm::vec3>(chunk.position) + glm::vec3 { x, y, z };
-                // or maybe use std::move with an insert iterator?
-                result.insert(result.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+                for (auto &index : mesh.indices)
+                    index += result.indices.size();
+
+                // vertices and indices are trivial so no need to move them
+                result.vertices.insert(result.vertices.end(), mesh.vertices.begin(), mesh.vertices.end());
+                result.indices.insert(result.indices.end(), mesh.indices.begin(), mesh.indices.end());
             }
         }
     }
@@ -132,10 +144,13 @@ vertex_vector engine::generate_solid_mesh(engine::chunk_t const &chunk)
 }
 
 // will be called more frequently
-vertex_vector engine::generate_translucent_mesh(engine::chunk_t const &chunk)
+engine::chunk_mesh_data_t engine::generate_translucent_mesh(engine::chunk_t const &chunk)
 {
-    vertex_vector result;
-    result.reserve(256); // avoid small allocations
+    engine::chunk_mesh_data_t result;
+
+    // avoid small allocations
+    result.vertices.reserve(256);
+    result.indices.reserve(256);
 
     // TODO!: Logic to generate translucent meshes
     //

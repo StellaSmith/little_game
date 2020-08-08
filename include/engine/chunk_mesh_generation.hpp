@@ -9,8 +9,13 @@
 namespace engine {
     struct chunk_t;
 
-    std::vector<rendering::block_vertex_t> generate_solid_mesh(chunk_t const&);
-    std::vector<rendering::block_vertex_t> generate_translucent_mesh(chunk_t const&);
+    struct chunk_mesh_data_t {
+        std::vector<rendering::block_vertex_t> vertices;
+        std::vector<std::uint32_t> indices;
+    };
+
+    chunk_mesh_data_t generate_solid_mesh(chunk_t const &);
+    chunk_mesh_data_t generate_translucent_mesh(chunk_t const &);
 
 } // namespace engine
 
