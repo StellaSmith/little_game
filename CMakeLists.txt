@@ -29,6 +29,7 @@ FetchContent_Declare(imgui
 
 set(GLAD_API "gl=3.3" CACHE STRING "" FORCE)
 set(GLAD_PROFILE "core" CACHE STRING "" FORCE)
+set(GLAD_EXTENSIONS "GL_KHR_debug" CACHE STRING "" FORCE)
 
 # these are mostly to reduce compile time, since we wont use them
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -91,6 +92,8 @@ if (NOT imgui_POPULATED)
 endif()
 
 message(STATUS "All dependencies set up.")
+
+add_subdirectory(tools)
 
 add_executable(little_game
     src/main.cpp
