@@ -59,10 +59,10 @@ void engine::Game::setup_shader()
 
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_size);
+        glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_log_size);
         info_log.clear();
         info_log.resize(info_log_size);
-        glGetShaderInfoLog(vertex_shader, info_log_size, nullptr, info_log.data());
+        glGetShaderInfoLog(fragment_shader, info_log_size, nullptr, info_log.data());
         SDL_Log("OpenGL: Error compiling fragment shader: %s", info_log.c_str());
         std::exit(EXIT_FAILURE);
     }
@@ -293,6 +293,7 @@ void engine::Game::render()
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribPointer(3, 3, GL_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glDrawElements(GL_TRIANGLES, meshes.solid_index_count, GL_UNSIGNED_INT, nullptr);
@@ -301,6 +302,7 @@ void engine::Game::render()
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribPointer(3, 3, GL_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glDrawElements(GL_TRIANGLES, meshes.translucent_index_count, GL_UNSIGNED_INT, nullptr);
