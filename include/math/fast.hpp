@@ -4,6 +4,10 @@
 #include <array>
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace math {
 
     // functions that use lookup tables instead of calculating stuff every time
@@ -25,12 +29,12 @@ namespace math {
 
     inline double fast_cos256(double x) noexcept
     {
-        return fast_sin256(x + M_PI_2);
+        return fast_sin256(x + M_PI / 2.0);
     }
 
     inline double fast_cos8192(double x) noexcept
     {
-        return fast_sin8192(x + M_PI_2);
+        return fast_sin8192(x + M_PI / 2.0);
     }
 
 } // namespace math

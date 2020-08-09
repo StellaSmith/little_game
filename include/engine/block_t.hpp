@@ -13,7 +13,7 @@ namespace engine {
             std::uint64_t u64;
             double f64;
             void *ptr;
-        } data { .ptr = nullptr };
+        } data { 0ull };
     };
 
 } // namespace engine

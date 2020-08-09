@@ -34,15 +34,22 @@ set(GLAD_EXTENSIONS "GL_KHR_debug" CACHE STRING "" FORCE)
 # these are mostly to reduce compile time, since we wont use them
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_ATOMIC OFF CACHE BOOL "" FORCE)
-set(SDL_FILE OFF CACHE BOOL "" FORCE)
 set(SDL_FILESYSTEM OFF CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_THREADS OFF CACHE BOOL "" FORCE)
 set(SDL_TIMERS OFF CACHE BOOL "" FORCE)
 
+if(APPLE)
+set(SDL_FILE ON CACHE BOOL "" FORCE)
+else()
+set(SDL_FILE OFF CACHE BOOL "" FORCE)
+endif()
+
 set(VIDEO_DUMMY OFF CACHE BOOL "" FORCE)
 # Wayland and KMSDRM need OpenGL ES
-# set(VIDEO_OPENGLES OFF CACHE BOOL "" FORCE)
+if(NOT LINUX)
+set(VIDEO_OPENGLES OFF CACHE BOOL "" FORCE)
+endif()
 set(VIDEO_VULKAN OFF CACHE BOOL "" FORCE)
 
 # I tried using DirectFB, but it wont compile
@@ -93,8 +100,6 @@ endif()
 
 message(STATUS "All dependencies set up.")
 
-add_subdirectory(tools)
-
 add_executable(little_game
     src/main.cpp
     src/glDebug.c
@@ -123,4 +128,7 @@ target_include_directories(little_game PRIVATE include)
 
 if(WIN32)
 target_link_libraries(little_game SDL2main)
+endif()
+if (MSVC)
+target_compile_options(little_game PUBLIC /std:c++latest)
 endif()

@@ -1,0 +1,35 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }} for ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        build_type: [Release, Debug]
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Python
+      uses: actions/setup-python@v2
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@v3.18.0
+
+    - name: Configure
+      run: cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build/ --parallel
