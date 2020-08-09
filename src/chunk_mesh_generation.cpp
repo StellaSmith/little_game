@@ -134,7 +134,7 @@ static std::size_t remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_da
     std::size_t erased = 0;
     for (std::uint32_t index : chunk_data.indices) {
         auto const &to_find = chunk_data.vertices[index];
-        auto it = std::find_if(chunk_data.vertices.begin() + index, chunk_data.vertices.begin(), [&to_find](auto const &vertex) {
+        auto it = std::find_if(chunk_data.vertices.begin() + index + 1, chunk_data.vertices.end(), [&to_find](auto const &vertex) {
             return std::memcmp(&to_find, &vertex, sizeof(to_find)) == 0;
         });
         if (it == chunk_data.vertices.end()) continue;
@@ -208,7 +208,6 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
     calculate_light(result);
     remove_duplicate_vertices(result);
 
-    // maybe call shrink_to_fit?
     return result;
 }
 
