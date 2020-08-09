@@ -5,6 +5,8 @@
 
 #include <glad/glad.h>
 
+#include <algorithm>
+#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -57,9 +59,9 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
     // TODO!: return the vertices of a common block based on id
     if (block.id == 2) {
         result.vertices = {
-            vertex { { -0.75, -0.75, 0.0 }, { 0.0, 1.0 } },
-            vertex { { +0.75, -0.75, 0.0 }, { 1.0, 1.0 } },
-            vertex { { +0.00, +0.75, 0.0 }, { 0.5, 0.0 } }
+            vertex { { -0.5, -0.5, 0.0 }, { 0.0, 1.0 } },
+            vertex { { +0.5, -0.5, 0.0 }, { 1.0, 1.0 } },
+            vertex { { +0.0, +0.5, 0.0 }, { 0.5, 0.0 } }
         };
 
         result.indices = { 2u, 1u, 0u };
@@ -72,6 +74,7 @@ static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &blo
     glm::u8vec3 color = { (block.data.u64 & 0xFF0000) >> 16, (block.data.u64 & 0x00FF00) >> 8, block.data.u64 & 0x0000FF };
     engine::chunk_mesh_data_t result;
     result.vertices = {
+        // TODO: Fix uv coords
         vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
         vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
         vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
@@ -117,6 +120,33 @@ static std::vector<PFN_GetVertices> const block_vertices_table = {
     &GetVertices_Common, // dirt
     &GetVertices_Grass // grass
 };
+
+static glm::u8vec4 get_produced_light(engine::block_t const &block) // r, g, b, intensity
+{
+    if (block.id == 1) {
+        return { (block.data.u64 >> 32 & 0x00FF0000) >> 16, (block.data.u64 >> 32 & 0x0000FF00) >> 8, block.data.u64 >> 32 & 0x000000FF, (block.data.u64 >> 32 & 0xFF000000) >> 24 };
+    }
+    return { 0, 0, 0, 0 };
+}
+
+static std::size_t remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_data)
+{
+    std::size_t erased = 0;
+    for (std::uint32_t index : chunk_data.indices) {
+        auto const &to_find = chunk_data.vertices[index];
+        auto it = std::find_if(chunk_data.vertices.begin() + index, chunk_data.vertices.begin(), [&to_find](auto const &vertex) {
+            return std::memcmp(&to_find, &vertex, sizeof(to_find)) == 0;
+        });
+        if (it == chunk_data.vertices.end()) continue;
+        auto found_index = static_cast<std::uint32_t>(it - chunk_data.vertices.begin());
+        std::replace(chunk_data.indices.begin(), chunk_data.indices.end(), found_index, index);
+        chunk_data.vertices.erase(it);
+        ++erased;
+    }
+    return erased;
+}
+
+static std::size_t calculate_light(engine::chunk_mesh_data_t &chunk_data) { return 0; }
 
 constexpr std::size_t chunk_size = engine::chunk_t::chunk_size;
 
@@ -175,6 +205,9 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
         }
     }
 
+    calculate_light(result);
+    remove_duplicate_vertices(result);
+
     // maybe call shrink_to_fit?
     return result;
 }
@@ -196,6 +229,9 @@ engine::chunk_mesh_data_t engine::generate_translucent_mesh(engine::chunk_t cons
     // (perhaps check if the adjacent block is the same with the subid too, or do it at runtime, for cases like different glass color per subid.)
     // If block is not visible for any side, skip
     // Generate vertices
+
+    calculate_light(result);
+    remove_duplicate_vertices(result);
 
     return result;
 }
