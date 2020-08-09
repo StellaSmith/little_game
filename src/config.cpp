@@ -82,13 +82,13 @@ Config Config::from_string(std::string_view str)
 {
     Config config;
     std::size_t lnumber = 1;
-    auto prev = str.begin();
+    auto prev = str.data();
 
     for (;;) {
-        auto it = std::find(prev, str.end(), '\n');
-        std::string_view line { prev, static_cast<std::size_t>(it - prev) };
+        auto it = std::find(prev, str.data() + str.size(), '\n');
+        std::string_view line(prev, static_cast<std::size_t>(it - prev));
         parse_line(config, line, lnumber);
-        if (it == str.end())
+        if (it == str.data() + str.size())
             break;
         ++prev;
         ++lnumber;

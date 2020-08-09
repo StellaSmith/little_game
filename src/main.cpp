@@ -4,7 +4,6 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl.h>
 
-#include <charconv>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -80,8 +79,11 @@ int main(int argc, char **argv)
         auto get_integer = [](std::string_view v, unsigned &i) {
             auto o_integer = g_config_engine.get(v);
             if (o_integer.has_value()) {
-                auto [ptr, ec] = std::from_chars(o_integer->data(), o_integer->data() + o_integer->size(), i);
-                if (ec != std::errc {}) {
+                try {
+                    int n = std::stoi(std::string { v });
+                    if (n < 0) throw std::exception();
+                    i = n;
+                } catch (...) {
                     std::string error_str;
                     error_str += v;
                     error_str += " is not an unsigned integer"sv;
