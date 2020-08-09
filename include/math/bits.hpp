@@ -28,9 +28,10 @@ namespace math {
     }
 }
 #else
+#include <type_traits>
 namespace math {
     template <typename T>
-    constexpr auto popcount(T x) -> std::enable_if_t<std::is_unsigned<T>, int> noexcept
+    constexpr auto popcount(T x) -> std::enable_if_t<std::is_unsigned_v<T>, int> noexcept
     {
         int count = 0;
         while (x) {
@@ -40,7 +41,7 @@ namespace math {
         return count;
     }
     template <typename T>
-    constexpr auto has_single_bit(T x) -> std::enable_if_t<std::is_unsigned<T>, bool> noexcept
+    constexpr auto has_single_bit(T x) -> std::enable_if_t<std::is_unsigned_v<T>, bool> noexcept
     {
         return x != 0 && (x & (x - 1)) == 0;
     }

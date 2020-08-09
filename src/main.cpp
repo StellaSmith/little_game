@@ -80,12 +80,15 @@ int main(int argc, char **argv)
             auto o_integer = g_config_engine.get(v);
             if (o_integer.has_value()) {
                 try {
-                    int n = std::stoi(std::string { v });
+                    int n = std::stoi(std::string { o_integer.value() });
                     if (n < 0) throw std::exception();
                     i = n;
                 } catch (...) {
                     std::string error_str;
                     error_str += v;
+                    error_str += " ("sv;
+                    error_str += o_integer.value();
+                    error_str += ")"sv;
                     error_str += " is not an unsigned integer"sv;
                     show_error(error_str);
                 }
