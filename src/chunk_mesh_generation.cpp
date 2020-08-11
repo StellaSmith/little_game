@@ -68,10 +68,10 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
     }
     return result;
 }
-
+#include "math/bits.hpp"
 static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &block, Sides sides)
 {
-    glm::u8vec3 color = { (block.data.u64 & 0xFF0000) >> 16, (block.data.u64 & 0x00FF00) >> 8, block.data.u64 & 0x0000FF };
+    glm::u8vec4 color = math::pack_u32(static_cast<std::uint32_t>(block.data.u64));
     engine::chunk_mesh_data_t result;
     result.vertices = {
         // TODO: Fix uv coords
