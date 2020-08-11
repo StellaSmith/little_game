@@ -26,12 +26,12 @@ namespace math {
     {
         return std::has_single_bit(x);
     }
-}
+} // namespace math
 #else
 #include <type_traits>
 namespace math {
-    template <typename T>
-    constexpr auto popcount(T x) -> std::enable_if_t<std::is_unsigned_v<T>, int> noexcept
+    template <typename T, std::enable_if_t<std::is_unsigned_v<T>, std::nullptr_t> = nullptr>
+    constexpr int popcount(T x) noexcept
     {
         int count = 0;
         while (x) {
@@ -40,12 +40,12 @@ namespace math {
         }
         return count;
     }
-    template <typename T>
-    constexpr auto has_single_bit(T x) -> std::enable_if_t<std::is_unsigned_v<T>, bool> noexcept
+    template <typename T, std::enable_if_t<std::is_unsigned_v<T>, std::nullptr_t> = nullptr>
+    constexpr bool has_single_bit(T x) noexcept
     {
         return x != 0 && (x & (x - 1)) == 0;
     }
-}
+} // namespace math
 #endif
 
 #ifdef HAS_BIT_HEADER
@@ -55,5 +55,20 @@ namespace math {
 #ifdef HAS_LIB_BITOPS
 #undef HAS_LIB_BITOPS
 #endif
+
+#include <cstdint>
+#include <glm/glm.hpp>
+
+namespace math {
+    constexpr std::uint32_t pack_u32(std::uint8_t x, std::uint8_t y, std::uint8_t z, std::uint8_t w = 0) noexcept
+    {
+        return (x << 24) | (y << 16) | (z << 8) | w;
+    }
+
+    constexpr glm::u8vec4 unpack_u32(std::uint64_t v) noexcept
+    {
+        return { (v >> 24) & 0xFF, (v >> 16 & 0xFF), (v >> 8 & 0xFF), v & 0xFF };
+    }
+} // namespace math
 
 #endif

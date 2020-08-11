@@ -109,6 +109,8 @@ void engine::Game::setup_texture()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+#include "math/bits.hpp"
+
 void engine::Game::start()
 {
     glClearColor(0.0, 0.25, 0.5, 1.0);
@@ -129,9 +131,10 @@ void engine::Game::start()
     {
         chunk_t chunk;
         chunk.blocks[0].id = 1;
-        chunk.blocks[0].data.u64 = 0x00AAFF;
+        chunk.blocks[0].data.u64 = math::pack_u32(0, 0xAA, 0xFF);
         chunk.blocks[1].id = 2;
         chunk.modified = true;
+        chunk.position = glm::ivec4 { 0, 0, 0, 0 };
 
         m_chunks.emplace(glm::u32vec4 { 0, 0, 0, 0 }, std::move(chunk));
     }
@@ -203,7 +206,7 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
         if (ImGui::ColorPicker3("Colorful block color", col)) {
             chunk_t &chunk = m_chunks.find(glm::i32vec4 { 0, 0, 0, 0 })->second;
             chunk.modified = true;
-            chunk.blocks[0].data.u64 = static_cast<int>(col[0] * 255.0f) << 16 | static_cast<int>(col[1] * 255.0f) << 8 | static_cast<int>(col[2] * 255);
+            chunk.blocks[0].data.u64 = math::pack_u32(col[0] * 255.0f, col[1] * 255.0f, col[2] * 255.0f);
             ImGui::Text("Chunk Modified");
         }
     }
