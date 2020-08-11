@@ -41,7 +41,7 @@ int main(int argc, char **argv)
             std::printf("Available audio drivers (%d):\n", drivers);
             for (int i = 0; i < drivers; ++i)
                 std::printf("\t%d) %s\n", i + 1, SDL_GetAudioDriver(i));
-        } else if (argv[i] == "-v" || argv[i] == "--verbose") {
+        } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
             g_verbose = true;
         }
     }
@@ -52,7 +52,8 @@ int main(int argc, char **argv)
     {
         char const *fname = "./cfg/engine.cfg";
         FILE *fp = std::fopen(fname, "r");
-        if (!fp) show_error("Error opening engine configuration file. ("s + fname + ")");
+        if (!fp)
+            show_error("Error opening engine configuration file. ("s + fname + ")");
 
         try {
             g_config_engine = Config::from_file(fp);
@@ -131,11 +132,13 @@ int main(int argc, char **argv)
         /*Size (width, height)*/ width, height,
         /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
-    if (!window) show_error("Can't create main window: "s + SDL_GetError());
+    if (!window)
+        show_error("Can't create main window: "s + SDL_GetError());
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 
-    if (!gl_context) show_error("Can't create OpenGL 3.3 context: "s + SDL_GetError(), window);
+    if (!gl_context)
+        show_error("Can't create OpenGL 3.3 context: "s + SDL_GetError(), window);
 
     if (SDL_GL_MakeCurrent(window, gl_context) < 0)
         show_error("Can't set OpenGL context current: "s + SDL_GetError(), window);
@@ -143,7 +146,7 @@ int main(int argc, char **argv)
     if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
         show_error("GLAD Error: Failed to initialize the OpenGL context.", window);
 
-    {
+    if (g_verbose) {
         int major, minor, r, g, b, a, d, s;
         SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
         SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
@@ -161,21 +164,22 @@ int main(int argc, char **argv)
 
         std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
         std::printf("\tVersion: %s\n\tVendor: %s\n\tRenderer: %s\n\tShading language version: %s\n", version, vendor, renderer, shading_version);
-
-        if (GLAD_GL_KHR_debug) {
-            int flags;
-            glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-            if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-                glEnable(GL_DEBUG_OUTPUT);
-                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-                glDebugMessageCallback(glDebugOutput, nullptr);
-                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+    if (GLAD_GL_KHR_debug) {
+        int flags;
+        glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+        if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageCallback(glDebugOutput, nullptr);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+            if (g_verbose)
                 std::puts("\tDebug output enabled.\n");
-            }
         }
     }
 
-    if (!IMGUI_CHECKVERSION()) show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
+    if (!IMGUI_CHECKVERSION())
+        show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
 
     ImGuiContext *imgui_context = ImGui::CreateContext();
     ImGuiIO &imgui_io = ImGui::GetIO();
