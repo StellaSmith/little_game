@@ -71,7 +71,7 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
 #include "math/bits.hpp"
 static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &block, Sides sides)
 {
-    glm::u8vec4 color = math::pack_u32(static_cast<std::uint32_t>(block.data.u64));
+    glm::u8vec4 color = math::unpack_u32(static_cast<std::uint32_t>(block.data.u64));
     engine::chunk_mesh_data_t result;
     result.vertices = {
         // TODO: Fix uv coords
@@ -124,7 +124,11 @@ static std::vector<PFN_GetVertices> const block_vertices_table = {
 static glm::u8vec4 get_produced_light(engine::block_t const &block) // r, g, b, intensity
 {
     if (block.id == 1) {
-        return { (block.data.u64 >> 32 & 0x00FF0000) >> 16, (block.data.u64 >> 32 & 0x0000FF00) >> 8, block.data.u64 >> 32 & 0x000000FF, (block.data.u64 >> 32 & 0xFF000000) >> 24 };
+        constexpr float default_intensity = 16.0f;
+        auto color = math::unpack_u32(static_cast<std::uint32_t>(block.data.u64));
+        float const intensity = glm::length(glm::vec3 { color.x, color.y, color.z } / 255.0f);
+        color.w = static_cast<std::uint8_t>(intensity * default_intensity);
+        return color;
     }
     return { 0, 0, 0, 0 };
 }
