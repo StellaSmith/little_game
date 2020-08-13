@@ -149,10 +149,32 @@ static std::size_t remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_da
     }
     return erased;
 }
-
-static std::size_t calculate_light(engine::chunk_mesh_data_t &chunk_data) { return 0; }
-
 constexpr std::size_t chunk_size = engine::chunk_t::chunk_size;
+
+static std::size_t calculate_light(engine::chunk_t const &chunk, engine::chunk_mesh_data_t &mesh_data)
+{
+    std::size_t emiters = 0;
+    for (std::uint32_t x = 0; x < chunk_size; ++x) {
+        for (std::uint32_t y = 0; y < chunk_size; ++y) {
+            for (std::uint32_t z = 0; z < chunk_size; ++z) {
+                engine::block_t const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
+                glm::u8vec4 const produced_light = get_produced_light(block);
+                if (!produced_light.w) continue;
+                ++emiters;
+                for (auto &vertex : mesh_data.vertices) {
+                    float const distance = glm::length(vertex.position - glm::vec3 { x, y, z } + static_cast<glm::vec3>(chunk.position));
+                    if (distance > produced_light.w) continue;
+
+                    glm::u8vec3 const light { produced_light.x / distance, produced_light.y / distance, produced_light.z / distance };
+                    vertex.light.x = std::max(light.x, vertex.light.x);
+                    vertex.light.y = std::max(light.y, vertex.light.y);
+                    vertex.light.z = std::max(light.z, vertex.light.z);
+                }
+            }
+        }
+    }
+    return 0;
+}
 
 engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chunk)
 {
@@ -209,7 +231,7 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
         }
     }
 
-    calculate_light(result);
+    calculate_light(chunk, result);
     remove_duplicate_vertices(result);
 
     return result;
@@ -233,7 +255,7 @@ engine::chunk_mesh_data_t engine::generate_translucent_mesh(engine::chunk_t cons
     // If block is not visible for any side, skip
     // Generate vertices
 
-    calculate_light(result);
+    calculate_light(chunk, result);
     remove_duplicate_vertices(result);
 
     return result;
