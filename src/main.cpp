@@ -3,12 +3,14 @@
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 
-#include "Config.hpp"
 #include "engine/chunk_t.hpp"
 #include "engine/game.hpp"
 #include "glDebug.h"
@@ -20,7 +22,7 @@ static SDL_NORETURN void show_error(std::string_view msg, SDL_Window *w = nullpt
     std::exit(EXIT_FAILURE);
 }
 
-Config g_config_engine;
+json g_config_engine;
 
 bool g_verbose = false;
 
@@ -50,76 +52,83 @@ int main(int argc, char **argv)
         show_error("Error initializing SDL: "s + SDL_GetError());
 
     {
-        char const *fname = "./cfg/engine.cfg";
+        char const *fname = "./cfg/engine.json";
         FILE *fp = std::fopen(fname, "r");
         if (!fp)
             show_error("Error opening engine configuration file. ("s + fname + ")");
 
         try {
-            g_config_engine = Config::from_file(fp);
+            g_config_engine = json::parse(fp, nullptr, true, true);
         } catch (std::exception &e) {
+            std::string error_str = "Error parsing engine config file.\n"s + e.what();
             std::fclose(fp);
-            if (SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "EXCEPTION!", e.what(), nullptr) < 0)
-                SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "%s", e.what());
+            if (SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "EXCEPTION!", error_str.c_str(), nullptr) < 0)
+                SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "%s", error_str.c_str());
 
             throw;
         }
         std::fclose(fp);
     }
     {
-        auto video_driver = g_config_engine.get_or("sdl_video_driver"sv, {});
+        std::string video_driver;
+        try {
+            g_config_engine.at("/SDL/video_driver"_json_pointer).get_to(video_driver);
+        } catch (json::type_error const &e) {
+            show_error("SDL Video Driver must be a string\n"s + e.what());
+        } catch (json::out_of_range const &) {
+            // do nothing
+        }
         if (SDL_VideoInit(video_driver.empty() ? nullptr : video_driver.data()) < 0)
             show_error("Error initializing SDL Video subsystem: "s + SDL_GetError());
     }
     {
-        auto audio_driver = g_config_engine.get_or("sdl_audio_driver"sv, {});
+        std::string audio_driver;
+        try {
+            g_config_engine.at("/SDL/audio_driver"_json_pointer).get_to(audio_driver);
+        } catch (json::type_error const &e) {
+            show_error("SDL Audio Driver must be a string.\n"s + e.what());
+        } catch (json::out_of_range const &) {
+            // do nothing
+        }
         if (SDL_AudioInit(audio_driver.empty() ? nullptr : audio_driver.data()) < 0)
             show_error("Error initializing SDL Audio subsystem: "s + SDL_GetError());
     }
     {
-        auto get_integer = [](std::string_view v, unsigned &i) {
-            auto o_integer = g_config_engine.get(v);
-            if (o_integer.has_value()) {
-                try {
-                    int n = std::stoi(std::string { o_integer.value() });
-                    if (n < 0) throw std::exception();
-                    i = n;
-                } catch (...) {
-                    std::string error_str;
-                    error_str += v;
-                    error_str += " ("sv;
-                    error_str += o_integer.value();
-                    error_str += ")"sv;
-                    error_str += " is not an unsigned integer"sv;
-                    show_error(error_str);
-                }
+        auto get_integer = [](json::json_pointer const &path, unsigned &i) {
+            try {
+                json::const_reference node = g_config_engine.at(path);
+                node.get_to(i);
+            } catch (json::out_of_range const &e) {
+                return; // use default if value is not present
+            } catch (json::type_error const &e) {
+                show_error(path.to_string() + " isnt an unsigned integer.\n" + e.what());
             }
         };
 
         unsigned red_bits = 3, green_bits = 3, blue_bits = 2, alpha_bits = 0, depth_bits = 24, stencil_bits = 0;
-        get_integer("sdl_gl_red_size"sv, red_bits);
-        get_integer("sdl_gl_green_size"sv, green_bits);
-        get_integer("sdl_gl_blue_size"sv, blue_bits);
-        get_integer("sdl_gl_alpha_size"sv, alpha_bits);
-        get_integer("sdl_gl_depth_size"sv, depth_bits);
-        get_integer("sdl_gl_stencil_size"sv, stencil_bits);
+        get_integer("/SDL/OpenGL/red_bits"_json_pointer, red_bits);
+        get_integer("/SDL/OpenGL/green_bits"_json_pointer, green_bits);
+        get_integer("/SDL/OpenGL/blue_bits"_json_pointer, blue_bits);
+        get_integer("/SDL/OpenGL/alpha_bits"_json_pointer, alpha_bits);
+        get_integer("/SDL/OpenGL/depth_bits"_json_pointer, depth_bits);
+        get_integer("/SDL/OpenGL/stencil_bits"_json_pointer, stencil_bits);
 
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
         if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, red_bits) < 0)
-            show_error("Error setting SDL_GL_RED_SIZE");
+            show_error("Error setting SDL_GL_RED_SIZE to " + std::to_string(red_bits));
         if (SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, green_bits) < 0)
-            show_error("Error setting SDL_GL_GREEN_SIZE");
+            show_error("Error setting SDL_GL_GREEN_SIZE to " + std::to_string(green_bits));
         if (SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, blue_bits) < 0)
-            show_error("Error setting SDL_GL_BLUE_SIZE");
+            show_error("Error setting SDL_GL_BLUE_SIZE to " + std::to_string(blue_bits));
         if (SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, alpha_bits) < 0)
-            show_error("Error setting SDL_GL_ALPHA_SIZE");
+            show_error("Error setting SDL_GL_ALPHA_SIZE to " + std::to_string(alpha_bits));
         if (SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depth_bits) < 0)
-            show_error("Error setting SDL_GL_DEPTH_SIZE");
+            show_error("Error setting SDL_GL_DEPTH_SIZE to " + std::to_string(depth_bits));
         if (SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, stencil_bits) < 0)
-            show_error("Error setting SDL_GL_STENCIL_SIZE");
+            show_error("Error setting SDL_GL_STENCIL_SIZE to" + std::to_string(stencil_bits));
     }
 
 #ifndef NDEBUG
@@ -181,7 +190,7 @@ int main(int argc, char **argv)
     if (!IMGUI_CHECKVERSION())
         show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
 
-    ImGuiContext *imgui_context = ImGui::CreateContext();
+    ImGui::CreateContext();
     ImGuiIO &imgui_io = ImGui::GetIO();
     imgui_io.IniFilename = "cfg/imgui.ini";
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
@@ -197,23 +206,26 @@ int main(int argc, char **argv)
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
 
     {
-        auto o_imgui_font_path = g_config_engine.get("imgui_font_path"sv);
-        if (o_imgui_font_path.has_value()) {
-            if (!imgui_io.Fonts->AddFontFromFileTTF(o_imgui_font_path->data(), 14)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", o_imgui_font_path->size(), o_imgui_font_path->data());
+        try {
+            auto const font_path = g_config_engine.at("/ImGui/font_path"_json_pointer).get<std::string>();
+
+            if (!imgui_io.Fonts->AddFontFromFileTTF(font_path.data(), 14)) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", static_cast<int>(font_path.size()), font_path.data());
                 if (!imgui_io.Fonts->AddFontDefault())
                     show_error("IMGUI: Can't load default font."sv, window);
             }
-        } else if (!imgui_io.Fonts->AddFontDefault())
-            show_error("IMGUI: Can't load default font."sv, window);
+        } catch (json::out_of_range const &e) {
+            if (!imgui_io.Fonts->AddFontDefault())
+                show_error("IMGUI: Can't load default font!"sv, window);
+        } catch (json::type_error const &e) {
+            show_error("ImGui font_path must be a string.\n"s + e.what());
+        }
     }
 
     engine::Game game;
     game.start();
 
     auto start = engine::Game::clock_type::now();
-
-    bool show_demo_window = true;
 
     SDL_Event event;
     while (game.running) {

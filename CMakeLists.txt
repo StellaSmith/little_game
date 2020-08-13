@@ -10,7 +10,6 @@ add_executable(little_game
     src/fast_math.cpp
     src/game.cpp
     src/chunk_mesh_generation.cpp
-    src/config.cpp
 
     include/engine/chunk_t.hpp
     include/engine/game.hpp
@@ -23,10 +22,9 @@ add_executable(little_game
     include/math/bits.hpp
     include/math/constexpr.hpp
     include/utils/timeit.hpp
-    include/Config.hpp
     include/operators.hpp
 )
-target_link_libraries(little_game glad SDL2-static glm stb imgui)
+target_link_libraries(little_game glad SDL2-static glm stb imgui nlohmann_json)
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC GLM_FORCE_XYZW_ONLY)

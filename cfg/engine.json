@@ -1,0 +1,19 @@
+{
+    // Don't set for the SDL defaults
+    "SDL": {
+        // "video_driver": "wayland",
+        // "audio_driver": "jack",
+        "OpenGL": {
+            "red_bits": 8,
+            "green_bits": 8,
+            "blue_bits": 8,
+            "alpha_bits": 8,
+            "depth_bits": 24,
+            "stencil_bits":0
+        }
+    },
+    "ImGui": {
+        // Don't set for the default font
+        "font_path": "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
+    }
+}

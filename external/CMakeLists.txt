@@ -17,6 +17,10 @@ FetchContent_Declare(imgui
     URL https://github.com/ocornut/imgui/archive/v1.77.tar.gz
 )
 
+FetchContent_Declare(nlohmann_json
+    URL https://github.com/nlohmann/json/archive/v3.9.1.tar.gz
+)
+
 # these are mostly to reduce compile time, since we wont use them
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_ATOMIC OFF CACHE BOOL "" FORCE)
@@ -45,7 +49,12 @@ set(VIDEO_DIRECTFB OFF CACHE BOOL "" FORCE)
 
 set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(sdl2 glm)
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+set(JSON_Install OFF CACHE BOOL "" FORCE)
+set(JSON_MultipleHeaders ON CACHE BOOL "" FORCE)
+set(JSON_ImplicitConversions OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(sdl2 glm nlohmann_json)
 
 
 FetchContent_GetProperties(imgui)
