@@ -22,9 +22,9 @@ void main()
     if (color.a < 0.1) discard; // discard (almost) transparent fragment
 
     if (color_diff(color.r, color.g, color.b) < 0.01)
-        color = vec4(f_color, color.a) * color.r;
+        color = vec4(f_color * color.r, color.a);
 
-    color *= vec4(f_light, 1.0);
+    color = vec4(f_light.r * color.r, f_light.g * color.g, f_light.b * color.b, color.a);
 
     o_color = color;
 }

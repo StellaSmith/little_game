@@ -10,7 +10,7 @@ namespace engine {
             glm::vec3 position;
             glm::vec2 uv;
             glm::u8vec3 color = { 0xFF, 0xFF, 0xFF };
-            glm::u8vec3 light = { 0xFF, 0xFF, 0xFF };
+            glm::u8vec3 light = {};
         };
 
     } // namespace rendering
