@@ -44,7 +44,7 @@ add_executable(little_game
     include/utils/error.hpp
     include/operators.hpp
 )
-target_link_libraries(little_game PRIVATE glad SDL2 glm stb imgui nlohmann_json fmt spdlog)
+target_link_libraries(little_game glad SDL2-static glm stb imgui nlohmann_json lua)
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC GLM_FORCE_XYZW_ONLY)
