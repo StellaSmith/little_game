@@ -4,6 +4,7 @@ message(STATUS "Downloading and setting up dependencies, please wait.")
 
 add_subdirectory(glad)
 add_subdirectory(stb)
+add_subdirectory(lua)
 
 FetchContent_Declare(sdl2
     URL https://www.libsdl.org/release/SDL2-2.0.12.tar.gz
