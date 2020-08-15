@@ -15,7 +15,7 @@ using json = nlohmann::json;
 #include "engine/game.hpp"
 #include "glDebug.h"
 
-static SDL_NORETURN void show_error(std::string_view msg, SDL_Window *w = nullptr)
+[[noreturn]] static void show_error(std::string_view msg, SDL_Window *w = nullptr)
 {
     if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR!", msg.data(), w) < 0)
         SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", msg.data());
