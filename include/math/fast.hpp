@@ -3,10 +3,7 @@
 
 #include <array>
 #include <cmath>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include <glm/ext/scalar_constants.hpp>
 
 namespace math {
 
@@ -17,24 +14,24 @@ namespace math {
 
     inline double fast_sin256(double x) noexcept
     {
-        constexpr double magic_number = 256.0 / M_PI / 2.0;
-        return sin_table_256[(int)(x * magic_number) & 255];
+        constexpr double magic_number = sin_table_256.size() / glm::pi<double>() / 2.0;
+        return sin_table_256[(unsigned)(x * magic_number) & (sin_table_256.size() - 1)];
     }
 
     inline double fast_sin8192(double x) noexcept
     {
-        constexpr double magic_number = 8192.0 / M_PI / 2.0;
-        return sin_table_8192[(int)(x * magic_number) & 8191];
+        constexpr double magic_number = sin_table_8192.size() / glm::pi<double>() / 2.0;
+        return sin_table_8192[(unsigned)(x * magic_number) & (sin_table_8192.size() - 1)];
     }
 
     inline double fast_cos256(double x) noexcept
     {
-        return fast_sin256(x + M_PI / 2.0);
+        return fast_sin256(x + glm::pi<double>() / 2.0);
     }
 
     inline double fast_cos8192(double x) noexcept
     {
-        return fast_sin8192(x + M_PI / 2.0);
+        return fast_sin8192(x + glm::pi<double>() / 2.0);
     }
 
 } // namespace math
