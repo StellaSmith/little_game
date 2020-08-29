@@ -59,9 +59,9 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
     // TODO!: return the vertices of a common block based on id
     if (block.id == 2) {
         result.vertices = {
-            vertex { { -0.5, -0.5, 0.0 }, { 0.0, 1.0 } },
-            vertex { { +0.5, -0.5, 0.0 }, { 1.0, 1.0 } },
-            vertex { { +0.0, +0.5, 0.0 }, { 0.5, 0.0 } }
+            vertex { { -0.5, -0.5, 0.0 }, { 16.0, 16.0 } },
+            vertex { { +0.5, -0.5, 0.0 }, { 32.0, 16.0 } },
+            vertex { { +0.0, +0.5, 0.0 }, { 24.0, 0.0 } }
         };
 
         result.indices = { 2u, 1u, 0u };
@@ -75,14 +75,14 @@ static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &blo
     engine::chunk_mesh_data_t result;
     result.vertices = {
         // TODO: Fix uv coords
-        vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, -0.5f, +0.5f }, { 0.0f, 0.0f }, color }
+        vertex { { +0.5f, +0.5f, -0.5f }, { 00, 00 }, color }, // 0
+        vertex { { +0.5f, -0.5f, -0.5f }, { 16, 00 }, color }, // 1
+        vertex { { +0.5f, +0.5f, +0.5f }, { 16, 16 }, color }, // 2
+        vertex { { +0.5f, -0.5f, +0.5f }, { 00, 00 }, color }, // 3
+        vertex { { -0.5f, +0.5f, -0.5f }, { 00, 16 }, color }, // 4
+        vertex { { -0.5f, -0.5f, -0.5f }, { 00, 00 }, color }, // 5
+        vertex { { -0.5f, +0.5f, +0.5f }, { 00, 00 }, color }, // 6
+        vertex { { -0.5f, -0.5f, +0.5f }, { 16, 00 }, color } // 7
     };
     result.indices = {
         // clang-format off

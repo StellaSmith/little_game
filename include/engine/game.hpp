@@ -1,9 +1,9 @@
 #ifndef ENGINE_GAME_HPP
 #define ENGINE_GAME_HPP
 
+#include "engine/chunk_mesh_generation.hpp"
 #include "engine/chunk_t.hpp"
 #include "engine/rendering/chunk.hpp"
-#include "engine/chunk_mesh_generation.hpp"
 
 #include <glad/glad.h>
 
@@ -49,6 +49,8 @@ namespace engine {
         GLuint m_texture;
         GLuint m_projection_uniform;
         GLuint m_view_uniform;
+        GLuint m_texture_size_uniform;
+        glm::u32vec2 m_texture_size;
 
         std::unordered_map<glm::i32vec4, chunk_t> m_chunks;
         std::vector<std::pair<glm::i32vec4, rendering::chunk_meshes>> m_chunk_meshes;
