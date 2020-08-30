@@ -59,9 +59,9 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
     // TODO!: return the vertices of a common block based on id
     if (block.id == 2) {
         result.vertices = {
-            vertex { { -0.5, -0.5, 0.0 }, { 0.0, 1.0 } },
-            vertex { { +0.5, -0.5, 0.0 }, { 1.0, 1.0 } },
-            vertex { { +0.0, +0.5, 0.0 }, { 0.5, 0.0 } }
+            vertex { { -0.5, -0.5, 0.0 }, { 16.0, 16.0 } },
+            vertex { { +0.5, -0.5, 0.0 }, { 32.0, 16.0 } },
+            vertex { { +0.0, +0.5, 0.0 }, { 24.0, 0.0 } }
         };
 
         result.indices = { 2u, 1u, 0u };
@@ -75,14 +75,14 @@ static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &blo
     engine::chunk_mesh_data_t result;
     result.vertices = {
         // TODO: Fix uv coords
-        vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f }, color },
-        vertex { { -0.5f, -0.5f, +0.5f }, { 0.0f, 0.0f }, color }
+        vertex { { +0.5f, +0.5f, -0.5f }, { 00, 00 }, color }, // 0
+        vertex { { +0.5f, -0.5f, -0.5f }, { 16, 00 }, color }, // 1
+        vertex { { +0.5f, +0.5f, +0.5f }, { 16, 16 }, color }, // 2
+        vertex { { +0.5f, -0.5f, +0.5f }, { 00, 00 }, color }, // 3
+        vertex { { -0.5f, +0.5f, -0.5f }, { 00, 16 }, color }, // 4
+        vertex { { -0.5f, -0.5f, -0.5f }, { 00, 00 }, color }, // 5
+        vertex { { -0.5f, +0.5f, +0.5f }, { 00, 00 }, color }, // 6
+        vertex { { -0.5f, -0.5f, +0.5f }, { 16, 00 }, color } // 7
     };
     result.indices = {
         // clang-format off
@@ -176,6 +176,26 @@ static std::size_t calculate_light(engine::chunk_t const &chunk, engine::chunk_m
     return 0;
 }
 
+static std::size_t remove_unreferenced_vertices(engine::chunk_mesh_data_t &mesh_data)
+{
+    // there shouldn't be that many anyways
+    assert(mesh_data.vertices.size() <= std::numeric_limits<std::make_signed_t<std::size_t>>::max());
+
+    std::size_t removed = 0;
+
+    std::vector<bool> mask(mesh_data.vertices.size(), false);
+    for (auto const &index : mesh_data.indices)
+        mask[index] = true;
+
+    for (std::make_signed_t<std::size_t> i = mesh_data.vertices.size() - 1; i >= 0; --i)
+        if (!mask[i]) {
+            mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
+            ++removed;
+        }
+
+    return removed;
+}
+
 engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chunk)
 {
     engine::chunk_mesh_data_t result;
@@ -233,6 +253,7 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
 
     calculate_light(chunk, result);
     remove_duplicate_vertices(result);
+    remove_unreferenced_vertices(result);
 
     return result;
 }
@@ -257,6 +278,7 @@ engine::chunk_mesh_data_t engine::generate_translucent_mesh(engine::chunk_t cons
 
     calculate_light(chunk, result);
     remove_duplicate_vertices(result);
+    remove_unreferenced_vertices(result);
 
     return result;
 }

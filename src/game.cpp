@@ -1,11 +1,18 @@
 #include "engine/game.hpp"
 #include "engine/chunk_mesh_generation.hpp"
+#include "math/bits.hpp"
 
 #include <SDL.h>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
 #include <stb_image.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <random>
 #include <string>
 #include <string_view>
 
@@ -107,9 +114,9 @@ void engine::Game::setup_texture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     stbi_image_free(data);
     glBindTexture(GL_TEXTURE_2D, 0);
+    m_texture_size.x = x;
+    m_texture_size.y = y;
 }
-
-#include "math/bits.hpp"
 
 void engine::Game::start()
 {
@@ -123,6 +130,7 @@ void engine::Game::start()
     glUseProgram(m_shader);
     m_projection_uniform = glGetUniformLocation(m_shader, "projection");
     m_view_uniform = glGetUniformLocation(m_shader, "view");
+    m_texture_size_uniform = glGetUniformLocation(m_shader, "texture_size");
 
     glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
     glUseProgram(0);
@@ -151,8 +159,6 @@ struct Camera {
     float fov = 60.0f;
     bool to_center;
 } g_camera;
-
-#include <imgui.h>
 
 void engine::Game::input(SDL_Event const &event)
 {
@@ -282,9 +288,6 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
     previous_camera_position = g_camera.position;
 }
 
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-
 void engine::Game::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -302,6 +305,7 @@ void engine::Game::render()
 
     glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
     glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
+    glUniform2uiv(m_texture_size_uniform, 1, glm::value_ptr(m_texture_size));
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -309,7 +313,7 @@ void engine::Game::render()
         glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribPointer(1, 2, GL_UNSIGNED_INT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
         glEnableVertexAttribArray(0);

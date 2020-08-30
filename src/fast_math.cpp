@@ -5,7 +5,7 @@ static std::array<double, N> calculate_sin_array()
 {
     std::array<double, N> result;
     for (std::size_t i = 0; i < N; ++i)
-        result[i] = std::sin(i * M_PI * 2.0 / N);
+        result[i] = std::sin(i * glm::pi<double>() * 2.0 / N);
     return result;
 }
 
