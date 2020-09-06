@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 
 #include <chrono>
+#include <deque>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
@@ -25,6 +26,8 @@ namespace std {
     };
 } // namespace std
 
+struct lua_State;
+
 namespace engine {
     class Game {
     public:
@@ -39,11 +42,17 @@ namespace engine {
     private:
         void setup_shader();
         void setup_texture();
+        void setup_lua();
+
+        static int l_print(lua_State *);
 
     public:
         bool running;
 
     private:
+        lua_State *m_lua = nullptr;
+        std::deque<std::string> m_console_text;
+
         GLuint m_vao;
         GLuint m_shader;
         GLuint m_texture;

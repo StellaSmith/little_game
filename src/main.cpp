@@ -28,10 +28,6 @@ bool g_verbose = false;
 
 using namespace std::literals;
 
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-
 int main(int argc, char **argv)
 {
     constexpr int width = 640, height = 480;
@@ -50,15 +46,6 @@ int main(int argc, char **argv)
         } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
             g_verbose = true;
         }
-    }
-
-    {
-        lua_State *L = luaL_newstate();
-        luaL_openlibs(L);
-        lua_pushboolean(L, g_verbose);
-        lua_setglobal(L, "_VERBOSE");
-        luaL_dostring(L, R"(print("Hello from Lua!") if _VERBOSE then print("_VERBOSE is set to true") end)");
-        lua_close(L);
     }
 
     if (SDL_Init(0) < 0)

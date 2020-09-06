@@ -135,6 +135,8 @@ void engine::Game::start()
     glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
     glUseProgram(0);
 
+    setup_lua();
+
     running = true;
     {
         chunk_t chunk;
@@ -192,7 +194,7 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
 }
 
 static glm::vec3 previous_camera_position {};
-
+#include <iostream>
 void engine::Game::update(engine::Game::clock_type::duration delta)
 {
     if (ImGui::Begin("Camera Controls")) {
@@ -207,6 +209,7 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
         }
     }
     ImGui::End();
+
     if (ImGui::Begin("Random Stuff")) {
         static float col[3] { 0, 0, 0 };
         if (ImGui::ColorPicker3("Colorful block color", col)) {
@@ -215,6 +218,45 @@ void engine::Game::update(engine::Game::clock_type::duration delta)
             chunk.blocks[0].data.u64 = math::pack_u32(col[0] * 255.0f, col[1] * 255.0f, col[2] * 255.0f);
             ImGui::Text("Chunk Modified");
         }
+    }
+    ImGui::End();
+
+    if (ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+        static char line_buf[1024 * 8] {};
+        static bool enter = false;
+
+        if (std::exchange(enter, false))
+            ImGui::SetNextWindowFocus();
+
+        enter |= ImGui::InputText("##Input", line_buf, std::size(line_buf), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::SameLine();
+        enter |= ImGui::Button("Eval");
+
+        ImGui::SameLine();
+        if (ImGui::Button("Clear"))
+            m_console_text.clear();
+
+        if (enter) {
+            m_console_text.push_back(line_buf);
+            std::memset(line_buf, 0, sizeof(line_buf));
+        }
+
+        ImGui::BeginChild("Output", {}, true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_HorizontalScrollbar);
+        static float prev_scroll = 0;
+        static float prev_max_scroll = 0;
+
+        if (prev_scroll == prev_max_scroll)
+            ImGui::SetScrollY(ImGui::GetScrollMaxY());
+
+        for (std::string const &line : m_console_text) {
+            ImGui::TextUnformatted(line.data(), line.data() + line.size());
+        }
+
+        prev_scroll = ImGui::GetScrollY();
+        prev_max_scroll = ImGui::GetScrollMaxY();
+
+        ImGui::EndChild();
     }
     ImGui::End();
 
