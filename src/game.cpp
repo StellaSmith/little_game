@@ -137,10 +137,14 @@ void engine::Game::start()
 
     running = true;
     {
-        chunk_t chunk;
-        chunk.blocks[0].id = 1;
-        chunk.blocks[0].data.u64 = math::pack_u32(0, 0xAA, 0xFF);
-        chunk.blocks[1].id = 2;
+        std::random_device rd{};
+        std::uniform_int_distribution<std::uint8_t> dist{};
+        chunk_t chunk{};
+        for (auto &block : chunk.blocks) {
+            block.id = 1;
+            block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
+        }
+
         chunk.modified = true;
         chunk.position = glm::ivec4 { 0, 0, 0, 0 };
 
@@ -313,7 +317,7 @@ void engine::Game::render()
         glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribPointer(1, 2, GL_UNSIGNED_INT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribIPointer(1, 2, GL_UNSIGNED_INT, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
         glEnableVertexAttribArray(0);
@@ -329,7 +333,7 @@ void engine::Game::render()
         glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribIPointer(1, 2, GL_UNSIGNED_INT, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
         glEnableVertexAttribArray(0);
