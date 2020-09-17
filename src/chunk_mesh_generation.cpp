@@ -2,6 +2,7 @@
 #include "engine/chunk_t.hpp"
 #include "engine/rendering/block.hpp"
 #include "math/constexpr.hpp"
+#include "utils/timeit.hpp"
 
 #include <glad/glad.h>
 
@@ -44,6 +45,30 @@ static Sides is_solid(engine::block_t const &block)
     default:
         return Sides::NONE; // we don't know
     }
+}
+
+constexpr auto chunk_size = engine::chunk_t::chunk_size;
+
+static Sides get_visible_sides(engine::chunk_t const &chunk, glm::u32vec3 block_pos) {
+    auto const [x, y, z] = block_pos;
+    bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
+    bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
+    bool const is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)]) & Sides::WEST);
+    bool const is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)]) & Sides::EAST);
+    bool const is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)]) & Sides::SOUTH);
+    bool const is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)]) & Sides::NORTH);
+
+    // clang-format off
+    // pack to a Sides flags
+    Sides const sides = static_cast<Sides>(
+        Sides::TOP    * is_top_visible    |
+        Sides::BOTTOM * is_bottom_visible |
+        Sides::EAST   * is_east_visible   |
+        Sides::WEST   * is_west_visible   |
+        Sides::NORTH  * is_north_visible  |
+        Sides::SOUTH  * is_south_visible);
+    // clang-format on
+    return sides;
 }
 
 using vertex = engine::rendering::block_vertex_t;
@@ -133,34 +158,30 @@ static glm::u8vec4 get_produced_light(engine::block_t const &block) // r, g, b, 
     return { 0, 0, 0, 0 };
 }
 
-static std::size_t remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_data)
+static void remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_data)
 {
-    std::size_t erased = 0;
-    for (std::uint32_t index : chunk_data.indices) {
-        auto const &to_find = chunk_data.vertices[index];
-        auto it = std::find_if(chunk_data.vertices.begin() + index + 1, chunk_data.vertices.end(), [&to_find](auto const &vertex) {
-            return std::memcmp(&to_find, &vertex, sizeof(to_find)) == 0;
+    assert(chunk_data.vertices.size() <= UINT32_MAX);
+    if (chunk_data.vertices.empty()) [[unlikely]] return;
+    for (std::uint32_t i = 0; i < chunk_data.vertices.size() - 1; ++i) {
+        auto it = std::find_if(chunk_data.vertices.data() + i + 1, chunk_data.vertices.data() + chunk_data.vertices.size(), [to_find = chunk_data.vertices.data() + i](auto const &vertex) {
+            return std::memcmp(to_find, &vertex, sizeof(vertex)) == 0;
         });
-        if (it == chunk_data.vertices.end()) continue;
-        auto found_index = static_cast<std::uint32_t>(it - chunk_data.vertices.begin());
-        std::replace(chunk_data.indices.begin(), chunk_data.indices.end(), found_index, index);
-        chunk_data.vertices.erase(it);
-        ++erased;
+        if (it == chunk_data.vertices.data() + chunk_data.vertices.size()) continue;
+        auto found_index = static_cast<std::uint32_t>(it - chunk_data.vertices.data());
+        std::replace(chunk_data.indices.begin(), chunk_data.indices.end(), found_index, i);
+        chunk_data.vertices.erase(chunk_data.vertices.begin() + found_index);
     }
-    return erased;
 }
-constexpr std::size_t chunk_size = engine::chunk_t::chunk_size;
 
-static std::size_t calculate_light(engine::chunk_t const &chunk, engine::chunk_mesh_data_t &mesh_data)
+static void calculate_light(engine::chunk_t const &chunk, engine::chunk_mesh_data_t &mesh_data)
 {
-    std::size_t emiters = 0;
     for (std::uint32_t x = 0; x < chunk_size; ++x) {
         for (std::uint32_t y = 0; y < chunk_size; ++y) {
             for (std::uint32_t z = 0; z < chunk_size; ++z) {
+                if (!get_visible_sides(chunk, { x, y, z })) continue;
                 engine::block_t const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
                 glm::u8vec4 const produced_light = get_produced_light(block);
                 if (!produced_light.w) continue;
-                ++emiters;
                 for (auto &vertex : mesh_data.vertices) {
                     float const distance = glm::length(vertex.position - glm::vec3 { x, y, z } + static_cast<glm::vec3>(chunk.position));
                     if (distance > produced_light.w) continue;
@@ -173,27 +194,20 @@ static std::size_t calculate_light(engine::chunk_t const &chunk, engine::chunk_m
             }
         }
     }
-    return 0;
 }
 
-static std::size_t remove_unreferenced_vertices(engine::chunk_mesh_data_t &mesh_data)
+static void remove_unreferenced_vertices(engine::chunk_mesh_data_t &mesh_data)
 {
     // there shouldn't be that many anyways
     assert(mesh_data.vertices.size() <= std::numeric_limits<std::make_signed_t<std::size_t>>::max());
-
-    std::size_t removed = 0;
 
     std::vector<bool> mask(mesh_data.vertices.size(), false);
     for (auto const &index : mesh_data.indices)
         mask[index] = true;
 
     for (std::make_signed_t<std::size_t> i = mesh_data.vertices.size() - 1; i >= 0; --i)
-        if (!mask[i]) {
+        if (!mask[i])
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
-            ++removed;
-        }
-
-    return removed;
 }
 
 engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chunk)
@@ -216,24 +230,7 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
                 if (!pfn_GetVertices) continue;
                 if (!is_solid(block)) continue;
 
-                bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
-                bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
-                bool const is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)]) & Sides::WEST);
-                bool const is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)]) & Sides::EAST);
-                bool const is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)]) & Sides::SOUTH);
-                bool const is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)]) & Sides::NORTH);
-
-                // clang-format off
-                // pack to a Sides flags
-                Sides const sides = static_cast<Sides>(
-                    Sides::TOP    * is_top_visible    |
-                    Sides::BOTTOM * is_bottom_visible |
-                    Sides::EAST   * is_east_visible   |
-                    Sides::WEST   * is_west_visible   |
-                    Sides::NORTH  * is_north_visible  |
-                    Sides::SOUTH  * is_south_visible);
-                // clang-format on
-
+                Sides sides = get_visible_sides(chunk, { x, y, z });
                 if (!sides) continue; // no visible sides
 
                 engine::chunk_mesh_data_t mesh = pfn_GetVertices(block, sides); // these are in block coords
@@ -251,9 +248,19 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::chunk_t const &chu
         }
     }
 
-    calculate_light(chunk, result);
-    remove_duplicate_vertices(result);
-    remove_unreferenced_vertices(result);
+    using namespace std::literals;
+    {
+        utils::TimeIt timer { "vertex duplication removal"sv };
+        remove_duplicate_vertices(result);
+    }
+    {
+        utils::TimeIt timer { "vertex unreferenced removal"sv };
+        remove_unreferenced_vertices(result);
+    }
+    {
+        utils::TimeIt timer { "lights"sv };
+        calculate_light(chunk, result);
+    }
 
     return result;
 }
