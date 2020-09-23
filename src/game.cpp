@@ -1,6 +1,7 @@
 #include "engine/game.hpp"
 #include "engine/chunk_mesh_generation.hpp"
 #include "math/bits.hpp"
+#include "utils/cache.hpp"
 
 #include <SDL.h>
 #include <glm/ext/matrix_clip_space.hpp>
@@ -34,6 +35,35 @@ static std::string load_file(std::string_view path)
 
 void engine::Game::setup_shader()
 {
+
+#ifdef GL_ARB_get_program_binary
+    if (GLAD_GL_ARB_get_program_binary) {
+        std::FILE *fp = utils::get_cache_file("shaders/basic.bin"sv, { "assets/basic.vert"sv, "assets/basic.frag"sv });
+        if (fp) {
+            GLenum format;
+            std::fread(&format, sizeof(format), 1, fp);
+            auto start = std::ftell(fp);
+            std::fseek(fp, 0, SEEK_END);
+            auto stop = std::ftell(fp);
+            auto len = static_cast<std::size_t>(stop - start);
+            std::fseek(fp, start, SEEK_SET);
+            auto data = std::make_unique<std::byte[]>(len);
+            std::fread(data.get(), 1, len, fp);
+            std::fclose(fp);
+
+            m_shader = glCreateProgram();
+            glProgramBinary(m_shader, format, data.get(), len);
+
+            int success;
+            glGetProgramiv(m_shader, GL_LINK_STATUS, &success);
+            if (success)
+                return;
+            else
+                glDeleteProgram(m_shader);
+        }
+    }
+
+#endif
 
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -93,6 +123,24 @@ void engine::Game::setup_shader()
 
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
+
+#ifdef GL_ARB_get_program_binary
+    if (GLAD_GL_ARB_get_program_binary) {
+        std::FILE *fp = utils::create_cache_file("shaders/basic.bin");
+        if (!fp)
+            return;
+        GLint bufSize;
+        glGetProgramiv(m_shader, GL_PROGRAM_BINARY_LENGTH, &bufSize);
+        auto data = std::make_unique<std::byte[]>(bufSize);
+        GLsizei length = bufSize;
+        GLenum format;
+        glGetProgramBinary(m_shader, bufSize, &length, &format, data.get());
+
+        std::fwrite(&format, sizeof(format), 1, fp);
+        std::fwrite(data.get(), length, 1, fp);
+        std::fclose(fp);
+    }
+#endif
 }
 
 void engine::Game::setup_texture()

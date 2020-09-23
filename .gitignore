@@ -4,3 +4,4 @@ build/
 
 # Auto generated
 cfg/imgui.ini
+.cache/
