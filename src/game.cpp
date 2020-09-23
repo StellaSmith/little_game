@@ -16,6 +16,7 @@
 #include <random>
 #include <string>
 #include <string_view>
+#include <memory>
 
 using namespace std::literals;
 
@@ -241,6 +242,7 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
     });
 
     return indices;
+    
 }
 
 static glm::vec3 previous_camera_position {};
