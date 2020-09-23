@@ -10,6 +10,7 @@ add_executable(little_game
     src/fast_math.cpp
     src/game.cpp
     src/chunk_mesh_generation.cpp
+    src/cache.cpp
 
     include/engine/chunk_t.hpp
     include/engine/game.hpp
@@ -22,6 +23,7 @@ add_executable(little_game
     include/math/bits.hpp
     include/math/constexpr.hpp
     include/utils/timeit.hpp
+    include/utils/cache.hpp
     include/operators.hpp
 )
 target_link_libraries(little_game glad SDL2-static glm stb imgui nlohmann_json)
