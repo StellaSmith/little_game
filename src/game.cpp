@@ -137,9 +137,9 @@ void engine::Game::start()
 
     running = true;
     {
-        std::random_device rd{};
-        std::uniform_int_distribution<std::uint8_t> dist{};
-        chunk_t chunk{};
+        std::random_device rd {};
+        std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
+        chunk_t chunk {};
         for (auto &block : chunk.blocks) {
             block.id = 1;
             block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
@@ -197,7 +197,7 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
 
 static glm::vec3 previous_camera_position {};
 
-void engine::Game::update(engine::Game::clock_type::duration delta)
+void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {
     if (ImGui::Begin("Camera Controls")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);

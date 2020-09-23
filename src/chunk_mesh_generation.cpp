@@ -49,7 +49,8 @@ static Sides is_solid(engine::block_t const &block)
 
 constexpr auto chunk_size = engine::chunk_t::chunk_size;
 
-static Sides get_visible_sides(engine::chunk_t const &chunk, glm::u32vec3 block_pos) {
+static Sides get_visible_sides(engine::chunk_t const &chunk, glm::u32vec3 block_pos)
+{
     auto const [x, y, z] = block_pos;
     bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
     bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
@@ -78,7 +79,7 @@ using PFN_GetVertices = engine::chunk_mesh_data_t (*)(engine::block_t const &, S
 
 // most blocks are very simple, like stone, dirt, rock, etc
 // might template on texture coordinates?
-static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block, Sides sides)
+static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block, [[maybe_unused]] Sides sides)
 {
     engine::chunk_mesh_data_t result;
     // TODO!: return the vertices of a common block based on id
@@ -94,7 +95,7 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::block_t const &block
     return result;
 }
 #include "math/bits.hpp"
-static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &block, Sides sides)
+static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &block, [[maybe_unused]] Sides sides)
 {
     glm::u8vec4 color = math::unpack_u32(static_cast<std::uint32_t>(block.data.u64));
     engine::chunk_mesh_data_t result;
@@ -132,7 +133,7 @@ static engine::chunk_mesh_data_t GetVertices_Colorful(engine::block_t const &blo
 //  bottom being the same as the base for dirt,
 //  top begin the green one,
 //  and for sides a green to dirt
-static engine::chunk_mesh_data_t GetVertices_Grass(engine::block_t const &block, Sides sides)
+static engine::chunk_mesh_data_t GetVertices_Grass([[maybe_unused]] engine::block_t const &block, [[maybe_unused]] Sides sides)
 {
     // TODO!: return the vertices of a grass block
     return {};
