@@ -1,10 +1,10 @@
 #version 330 core
 
-in vec2 f_uv;
+in vec3 f_uv;
 in vec3 f_color;
 in vec3 f_light;
 
-uniform sampler2D texture0;
+uniform sampler2DArray texture0;
 
 out vec4 o_color;
 
@@ -17,7 +17,11 @@ float color_diff(float r, float g, float b)
 
 void main()
 {
-    vec4 color = texture(texture0, f_uv);
+    vec4 color;
+    if (f_uv.z < 0)
+        color = vec4(1.0, 0.5, 0.5, 1.0);
+    else
+        color = texture(texture0, f_uv);
 
     if (color.a < 0.1) discard; // discard (almost) transparent fragment
 
