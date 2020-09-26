@@ -11,6 +11,9 @@ add_executable(little_game
     src/game.cpp
     src/chunk_mesh_generation.cpp
     src/cache.cpp
+    src/file.cpp
+    src/textures.cpp
+    src/error.cpp
 
     include/engine/chunk_t.hpp
     include/engine/game.hpp
@@ -24,6 +27,9 @@ add_executable(little_game
     include/math/constexpr.hpp
     include/utils/timeit.hpp
     include/utils/cache.hpp
+    include/utils/file.hpp
+    include/engine/textures.hpp
+    include/utils/error.hpp
     include/operators.hpp
 )
 target_link_libraries(little_game glad SDL2-static glm stb imgui nlohmann_json)
@@ -42,7 +48,7 @@ if (ENABLE_WARNINGS)
 message(STATUS "Warnings enabled")
 target_compile_options(little_game PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-          -Wall -Wextra>
+          -Wall -Wextra -pedantic>
      $<$<CXX_COMPILER_ID:MSVC>:
           /W4>)
 endif()

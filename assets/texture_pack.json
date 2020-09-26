@@ -1,0 +1,11 @@
+{
+    "textures": {
+        // we are using minecraft textures for the time being
+        "white": "game:textures/white.png",
+        "stone": "game:textures/stone.png",
+        "dirt": "game:textures/dirt.png",
+        "grass_block_top": "game:textures/grass_block_top.png",
+        "grass_block_side1": "game:textures/grass_block_side1.png",
+        "grass_block_side2": "game:textures/grass_block_side2.png"
+    }
+}

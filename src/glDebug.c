@@ -6,7 +6,7 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenu
     (void)userParam;
     // ignore non-significant error/warning codes
     // if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
-    if (id == 1) return;
+    // if (id == 2) return;
 
     fputs("---------------\n", stderr);
     fprintf(stderr, "Debug message (%u): %.*s\n", id, length, message);

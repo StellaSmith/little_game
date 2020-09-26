@@ -4,6 +4,7 @@
 #include "engine/chunk_mesh_generation.hpp"
 #include "engine/chunk_t.hpp"
 #include "engine/rendering/chunk.hpp"
+#include "engine/textures.hpp"
 
 #include <glad/glad.h>
 
@@ -36,6 +37,8 @@ namespace engine {
         void render();
         void input(SDL_Event const &);
 
+        int get_texture_index(std::string_view) const noexcept;
+
     private:
         void setup_shader();
         void setup_texture();
@@ -46,11 +49,11 @@ namespace engine {
     private:
         GLuint m_vao;
         GLuint m_shader;
-        GLuint m_texture;
         GLuint m_projection_uniform;
         GLuint m_view_uniform;
         GLuint m_texture_size_uniform;
-        glm::u32vec2 m_texture_size;
+        
+        engine::Textures m_textures;
 
         std::unordered_map<glm::i32vec4, chunk_t> m_chunks;
         std::vector<std::pair<glm::i32vec4, rendering::chunk_meshes>> m_chunk_meshes;

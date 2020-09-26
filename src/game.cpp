@@ -2,6 +2,7 @@
 #include "engine/chunk_mesh_generation.hpp"
 #include "math/bits.hpp"
 #include "utils/cache.hpp"
+#include "utils/file.hpp"
 
 #include <SDL.h>
 #include <glm/ext/matrix_clip_space.hpp>
@@ -13,26 +14,12 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <random>
 #include <string>
 #include <string_view>
-#include <memory>
 
 using namespace std::literals;
-
-static std::string load_file(std::istream &is)
-{
-    return { std::istreambuf_iterator<char> { is }, std::istreambuf_iterator<char> {} };
-}
-
-static std::string load_file(std::string_view path)
-{
-    std::ifstream stream;
-    stream.open(path.data());
-    if (!stream.is_open())
-        throw std::runtime_error("Can't open file");
-    return load_file(stream);
-}
 
 void engine::Game::setup_shader()
 {
@@ -69,8 +56,20 @@ void engine::Game::setup_shader()
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    std::string const vertex_shader_source_str = load_file("assets/basic.vert"sv);
-    std::string const fragment_shader_source_str = load_file("assets/basic.frag"sv);
+    std::FILE *fp = std::fopen("assets/shaders/basic.vert", "r");
+    if (!fp) {
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Can't open shader: assets/shaders/basic.vert");
+        std::exit(EXIT_FAILURE);
+    }
+    std::string const vertex_shader_source_str = utils::load_file(fp);
+    std::fclose(fp);
+    fp = std::fopen("assets/shaders/basic.frag", "r");
+    if (!fp) {
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Can't open shader: assets/shaders/basic.frag");
+        std::exit(EXIT_FAILURE);
+    }
+    std::string const fragment_shader_source_str = utils::load_file(fp);
+    std::fclose(fp);
 
     char const *const vertex_shader_source = vertex_shader_source_str.c_str();
     char const *const fragment_shader_source = fragment_shader_source_str.c_str();
@@ -143,28 +142,19 @@ void engine::Game::setup_shader()
     }
 #endif
 }
-
+#include "utils/timeit.hpp"
 void engine::Game::setup_texture()
 {
-    int x, y, c;
-    unsigned char *data = stbi_load("assets/texture_atlas.png", &x, &y, &c, 4);
-
-    if (!data) {
-        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "STB: Can't load image: %s", stbi_failure_reason());
-        std::exit(EXIT_FAILURE);
+    {
+        utils::TimeIt timer { "load_textures"sv };
+        m_textures = engine::load_textures();
     }
-
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    m_texture_size.x = x;
-    m_texture_size.y = y;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures.texture2d_array);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
 void engine::Game::start()
@@ -179,20 +169,26 @@ void engine::Game::start()
     glUseProgram(m_shader);
     m_projection_uniform = glGetUniformLocation(m_shader, "projection");
     m_view_uniform = glGetUniformLocation(m_shader, "view");
-    m_texture_size_uniform = glGetUniformLocation(m_shader, "texture_size");
 
     glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
     glUseProgram(0);
 
     running = true;
     {
-        std::random_device rd {};
-        std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
         chunk_t chunk {};
-        for (auto &block : chunk.blocks) {
-            block.id = 1;
-            block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
-        }
+
+        // std::random_device rd {};
+        // std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
+        // for (auto &block : chunk.blocks) {
+        //     block.id = 1;
+        //     block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
+        // }
+
+        chunk.blocks[0].id = 1;
+        chunk.blocks[0].data.u64 = math::pack_u32(0xff, 0xff, 0xff);
+        chunk.blocks[1].id = 2;
+        chunk.blocks[2].id = 3;
+        chunk.blocks[3].id = 4;
 
         chunk.modified = true;
         chunk.position = glm::ivec4 { 0, 0, 0, 0 };
@@ -242,7 +238,6 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
     });
 
     return indices;
-    
 }
 
 static glm::vec3 previous_camera_position {};
@@ -286,8 +281,8 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
                 it = m_chunk_meshes.end() - 1;
             }
 
-            auto const solid_mesh = generate_solid_mesh(chunk);
-            auto const translucent_mesh = generate_translucent_mesh(chunk);
+            auto const solid_mesh = generate_solid_mesh(*this, chunk);
+            auto const translucent_mesh = generate_translucent_mesh(*this, chunk);
 
             auto const sorted_indices = get_sorted_indices(translucent_mesh.vertices, translucent_mesh.indices);
 
@@ -347,7 +342,7 @@ void engine::Game::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glUseProgram(m_shader);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures.texture2d_array);
     glBindVertexArray(m_vao);
 
     int viewport[4];
@@ -359,7 +354,6 @@ void engine::Game::render()
 
     glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
     glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
-    glUniform2uiv(m_texture_size_uniform, 1, glm::value_ptr(m_texture_size));
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -367,7 +361,7 @@ void engine::Game::render()
         glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribIPointer(1, 2, GL_UNSIGNED_INT, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
         glEnableVertexAttribArray(0);
@@ -383,7 +377,7 @@ void engine::Game::render()
         glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribIPointer(1, 2, GL_UNSIGNED_INT, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
         glEnableVertexAttribArray(0);
