@@ -39,6 +39,8 @@ namespace engine {
 
         int get_texture_index(std::string_view) const noexcept;
 
+        ~Game();
+
     private:
         void setup_shader();
         void setup_texture();
@@ -49,9 +51,9 @@ namespace engine {
     private:
         GLuint m_vao;
         GLuint m_shader;
+
         GLuint m_projection_uniform;
         GLuint m_view_uniform;
-        GLuint m_texture_size_uniform;
         
         engine::Textures m_textures;
 
