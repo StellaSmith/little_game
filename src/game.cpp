@@ -21,6 +21,13 @@
 
 using namespace std::literals;
 
+engine::Game::~Game()
+{
+    glDeleteVertexArrays(1, &m_vao);
+    glDeleteProgram(m_shader);
+    glDeleteTextures(1, &m_textures.texture2d_array);
+}
+
 void engine::Game::setup_shader()
 {
 
@@ -152,8 +159,9 @@ void engine::Game::setup_texture()
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures.texture2d_array);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
@@ -177,12 +185,13 @@ void engine::Game::start()
     {
         chunk_t chunk {};
 
-        // std::random_device rd {};
-        // std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
-        // for (auto &block : chunk.blocks) {
-        //     block.id = 1;
-        //     block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
-        // }
+        std::random_device rd {};
+        std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
+        std::uniform_int_distribution<std::uint32_t> id_dist { 1, 4 };
+        for (auto &block : chunk.blocks) {
+            if ((block.id = id_dist(rd)) == 1)
+                block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
+        }
 
         chunk.blocks[0].id = 1;
         chunk.blocks[0].data.u64 = math::pack_u32(0xff, 0xff, 0xff);
@@ -191,9 +200,9 @@ void engine::Game::start()
         chunk.blocks[3].id = 4;
 
         chunk.modified = true;
-        chunk.position = glm::ivec4 { 0, 0, 0, 0 };
+        chunk.position = glm::i32vec4 { 0, 0, 0, 0 };
 
-        m_chunks.emplace(glm::u32vec4 { 0, 0, 0, 0 }, std::move(chunk));
+        m_chunks.emplace(glm::i32vec4 { 0, 0, 0, 0 }, std::move(chunk));
     }
 }
 
@@ -377,7 +386,7 @@ void engine::Game::render()
         glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
         glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
         glEnableVertexAttribArray(0);
@@ -390,6 +399,6 @@ void engine::Game::render()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     glUseProgram(0);
 }
