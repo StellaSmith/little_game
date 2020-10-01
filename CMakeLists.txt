@@ -8,12 +8,16 @@ add_executable(little_game
     src/main.cpp
     src/glDebug.c
     src/fast_math.cpp
-    src/game.cpp
     src/chunk_mesh_generation.cpp
     src/cache.cpp
     src/file.cpp
     src/textures.cpp
     src/error.cpp
+
+    src/game/shared.cpp
+    src/game/input.cpp
+    src/game/update.cpp
+    src/game/render.cpp
 
     include/engine/chunk_t.hpp
     include/engine/game.hpp
