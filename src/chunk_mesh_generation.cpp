@@ -193,7 +193,7 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[m
     glm::u8vec3 const color { 0x00, 0xFF, 0x55 };
 
     int const texture_index_top = top_visible ? game.get_texture_index("grass_block_top") : -1; // grass top
-    int const texture_index_side1 = sides_visible ? game.get_texture_index("grass_block_side1") : -1; // dirt side
+    int const texture_index_side1 = sides_visible ? game.get_texture_index("dirt" /*"grass_block_side1"*/) : -1; // dirt side
     int const texture_index_side2 = sides_visible ? game.get_texture_index("grass_block_side2") : -1; // grass side
     int const texture_index_bottom = bottom_visible ? game.get_texture_index("dirt") : -1; // dirt bottom
 
@@ -215,17 +215,6 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[m
             auto offset = static_cast<std::uint32_t>(result.vertices.size());
             result.vertices.insert(result.vertices.end(),
                 {
-                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { -0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-        }
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
                     vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
                     vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
                     vertex { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
@@ -233,20 +222,20 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[m
                 });
             result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
         }
-    }
-
-    if (sides & Sides::WEST) {
         {
             auto offset = static_cast<std::uint32_t>(result.vertices.size());
             result.vertices.insert(result.vertices.end(),
                 {
-                    vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
+                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
+                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
+                    vertex { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
+                    vertex { { -0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
                 });
             result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
         }
+    }
+
+    if (sides & Sides::WEST) {
         {
             auto offset = static_cast<std::uint32_t>(result.vertices.size());
             result.vertices.insert(result.vertices.end(),
@@ -258,9 +247,31 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[m
                 });
             result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
         }
+        {
+            auto offset = static_cast<std::uint32_t>(result.vertices.size());
+            result.vertices.insert(result.vertices.end(),
+                {
+                    vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
+                    vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
+                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
+                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
+                });
+            result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
+        }
     }
 
     if (sides & Sides::SOUTH) {
+        {
+            auto offset = static_cast<std::uint32_t>(result.vertices.size());
+            result.vertices.insert(result.vertices.end(),
+                {
+                    vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
+                    vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
+                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
+                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
+                });
+            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
+        }
         {
             auto offset = static_cast<std::uint32_t>(result.vertices.size());
             result.vertices.insert(result.vertices.end(),
@@ -271,31 +282,9 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[m
                     vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
                 });
             result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-            {
-                auto offset = static_cast<std::uint32_t>(result.vertices.size());
-                result.vertices.insert(result.vertices.end(),
-                    {
-                        vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
-                        vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
-                        vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
-                        vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
-                    });
-                result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-            }
         }
     }
     if (sides & Sides::EAST) {
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-        }
         {
             auto offset = static_cast<std::uint32_t>(result.vertices.size());
             result.vertices.insert(result.vertices.end(),
@@ -304,6 +293,17 @@ static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[m
                     vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
                     vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
                     vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
+                });
+            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
+        }
+        {
+            auto offset = static_cast<std::uint32_t>(result.vertices.size());
+            result.vertices.insert(result.vertices.end(),
+                {
+                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
+                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
+                    vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
+                    vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
                 });
             result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
         }

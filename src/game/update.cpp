@@ -1,9 +1,9 @@
-#include "engine/game.hpp"
 #include "engine/camera.hpp"
+#include "engine/game.hpp"
 #include "math/bits.hpp"
 
-#include <imgui.h>
 #include <glad/glad.h>
+#include <imgui.h>
 
 #include <algorithm>
 
@@ -26,9 +26,28 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
 
     return indices;
 }
-
+#include <SDL.h>
 void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {
+    const double d_delta = std::chrono::duration<double>(delta).count();
+    auto const *const keyboard_state = SDL_GetKeyboardState(nullptr);
+
+    constexpr float camera_speed = 25.0f;
+
+    const glm::vec3 right = -glm::cross(g_camera.up, g_camera.forward);
+    if (keyboard_state[SDL_SCANCODE_W])
+        g_camera.position += glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z } * camera_speed * static_cast<float>(d_delta);
+    if (keyboard_state[SDL_SCANCODE_S])
+        g_camera.position -= glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z } * camera_speed * static_cast<float>(d_delta);
+    if (keyboard_state[SDL_SCANCODE_D])
+        g_camera.position += glm::vec3 { -right.x, 0.0f, right.z } * camera_speed * static_cast<float>(d_delta);
+    if (keyboard_state[SDL_SCANCODE_A])
+        g_camera.position -= glm::vec3 { -right.x, 0.0f, right.z } * camera_speed * static_cast<float>(d_delta);
+    if (keyboard_state[SDL_SCANCODE_SPACE])
+        g_camera.position.y += camera_speed * static_cast<float>(d_delta);
+    if (keyboard_state[SDL_SCANCODE_LSHIFT])
+        g_camera.position.y -= camera_speed * static_cast<float>(d_delta);
+
     if (ImGui::Begin("Camera Controls")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);
         ImGui::SliderFloat("Near", &g_camera.near, 0.01, 1000.0f);

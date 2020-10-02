@@ -144,6 +144,9 @@ int main(int argc, char **argv)
     if (!window)
         show_error("Can't create main window: "s + SDL_GetError());
 
+    if (SDL_SetRelativeMouseMode(SDL_TRUE))
+        show_error("Can't set mouse to relative mode!"sv);
+
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 
     if (!gl_context)
