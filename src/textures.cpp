@@ -24,9 +24,7 @@ engine::Textures engine::load_textures()
     try {
         texture_pack = json::parse(fp, nullptr, true, true);
     } catch (std::exception &e) {
-        std::string str_error = "Error parsing file assets/texture_pack.json\n";
-        str_error += e.what();
-        utils::show_error(str_error);
+        utils::show_error("Error parsing file assets/texture_pack.json\n"s + e.what());
     }
 
     std::fclose(fp);
@@ -35,9 +33,7 @@ engine::Textures engine::load_textures()
     try {
         texture_pack.at("textures").get_to(textures);
     } catch (std::exception &e) {
-        std::string str_error = "Error obtaining textures\n";
-        str_error += e.what();
-        utils::show_error(str_error);
+        utils::show_error("Error obtaining textures\n"s + e.what());
     }
 
     int max_layers;
