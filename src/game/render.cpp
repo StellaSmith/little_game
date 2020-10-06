@@ -1,9 +1,9 @@
+#include "engine/camera.hpp"
 #include "engine/game.hpp"
 #include "utils/cache.hpp"
 #include "utils/error.hpp"
 #include "utils/file.hpp"
 #include "utils/timeit.hpp"
-#include "engine/camera.hpp"
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -15,7 +15,7 @@
 
 extern engine::Camera g_camera;
 
-using namespace std::literals::string_view_literals;
+using namespace std::literals;
 
 void engine::Game::setup_shader()
 {
@@ -83,8 +83,7 @@ void engine::Game::setup_shader()
         info_log.resize(info_log_size);
         glGetShaderInfoLog(vertex_shader, info_log_size, nullptr, info_log.data());
 
-        info_log = "OpenGL: Error compiling vertex shader:\n" + info_log;
-        utils::show_error(info_log);
+        utils::show_error("OpenGL Error."sv, "Couldn't compile vertex shader\n"s + info_log);
     }
 
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
@@ -94,8 +93,7 @@ void engine::Game::setup_shader()
         info_log.resize(info_log_size);
         glGetShaderInfoLog(fragment_shader, info_log_size, nullptr, info_log.data());
 
-        info_log = "OpenGL: Error compiling fragment shader:\n" + info_log;
-        utils::show_error(info_log);
+        utils::show_error("OpenGL Error."sv, "Couldn't compile fragment shader\n"s + info_log);
     }
 
     m_shader = glCreateProgram();
@@ -112,8 +110,7 @@ void engine::Game::setup_shader()
         info_log.resize(info_log_size);
         glGetProgramInfoLog(m_shader, info_log_size, nullptr, info_log.data());
 
-        info_log = "OpenGL: Error linking shader:\n" + info_log;
-        utils::show_error(info_log);
+        utils::show_error("OpenGL Error."sv, "Couldn't link shader\n"s + info_log);
     }
 
     glDeleteShader(vertex_shader);
