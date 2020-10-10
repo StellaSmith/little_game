@@ -29,5 +29,5 @@ if (NOT imgui_POPULATED)
 
     target_compile_definitions(imgui PRIVATE IMGUI_DISABLE_INCLUDE_IMCONFIG_H)
     target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
-    target_link_libraries(imgui PUBLIC glad SDL2-static)
+    target_link_libraries(imgui PUBLIC glad SDL2)
 endif()

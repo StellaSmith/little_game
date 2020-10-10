@@ -27,6 +27,13 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
     return indices;
 }
 #include <SDL.h>
+
+int g_render_distance_horizontal = 12;
+int g_render_distance_vertical = 4;
+
+#include <cstring>
+#include <tuple>
+
 void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {
     const double d_delta = std::chrono::duration<double>(delta).count();
@@ -36,9 +43,9 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
 
     const glm::vec3 right = -glm::cross(g_camera.up, g_camera.forward);
     if (keyboard_state[SDL_SCANCODE_W])
-        g_camera.position += glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z } * camera_speed * static_cast<float>(d_delta);
+        g_camera.position += glm::normalize(glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z }) * camera_speed * static_cast<float>(d_delta);
     if (keyboard_state[SDL_SCANCODE_S])
-        g_camera.position -= glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z } * camera_speed * static_cast<float>(d_delta);
+        g_camera.position -= glm::normalize(glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z }) * camera_speed * static_cast<float>(d_delta);
     if (keyboard_state[SDL_SCANCODE_D])
         g_camera.position += glm::vec3 { -right.x, 0.0f, right.z } * camera_speed * static_cast<float>(d_delta);
     if (keyboard_state[SDL_SCANCODE_A])
@@ -48,38 +55,34 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     if (keyboard_state[SDL_SCANCODE_LSHIFT])
         g_camera.position.y -= camera_speed * static_cast<float>(d_delta);
 
-    if (ImGui::Begin("Camera Controls")) {
+    if (ImGui::Begin("Camera")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);
         ImGui::SliderFloat("Near", &g_camera.near, 0.01, 1000.0f);
         ImGui::SliderFloat("Far", &g_camera.far, 0.01, 1000.0f);
+        ImGui::Text("Position: % .5f % .5f % .5f", g_camera.position.x, g_camera.position.y, g_camera.position.z);
+        ImGui::Text("Forward : % .5f % .5f % .5f", g_camera.forward.x, g_camera.forward.y, g_camera.forward.z);
 
         if (ImGui::Button("Reset"))
             g_camera = engine::Camera {};
     }
     ImGui::End();
     if (ImGui::Begin("Random Stuff")) {
-        static float col[3] { 0, 0, 0 };
-        if (ImGui::ColorPicker3("Colorful block color", col)) {
-            chunk_t &chunk = m_chunks.find(glm::i32vec4 { 0, 0, 0, 0 })->second;
-            chunk.modified = true;
-            chunk.blocks[0].data.u64 = math::pack_u32(col[0] * 255.0f, col[1] * 255.0f, col[2] * 255.0f);
-            ImGui::Text("Chunk Modified");
-        }
+        ImGui::Text("FPS: %.0f", 1 / d_delta);
+        ImGui::SliderInt("Horizotal render distance", &g_render_distance_horizontal, 1, 20);
+        ImGui::SliderInt("Vertical  render distance", &g_render_distance_vertical, 1, 20);
     }
     ImGui::End();
 
     std::vector<glm::i32vec4> to_delete;
     std::vector<chunk_t> to_add;
+
     for (auto &[k, chunk] : m_chunks) {
         if (chunk.modified) {
-            auto it = std::find_if(m_chunk_meshes.begin(), m_chunk_meshes.end(), [&pos = chunk.position](auto const &p) { return p.first == pos; });
-            //auto it = m_chunk_meshes.find(chunk.position);
+            auto it = m_chunk_meshes.find(chunk.position);
             if (it == m_chunk_meshes.end()) {
                 GLuint buffers[4];
                 glGenBuffers(std::size(buffers), buffers);
-
-                m_chunk_meshes.emplace_back(chunk.position, rendering::chunk_meshes { buffers[0], buffers[1], buffers[2], buffers[3], 0, 0 });
-                it = m_chunk_meshes.end() - 1;
+                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, rendering::chunk_meshes { buffers[0], buffers[1], buffers[2], buffers[3], 0, 0 });
             }
 
             auto const solid_mesh = generate_solid_mesh(*this, chunk);

@@ -14,6 +14,8 @@
 #include <string>
 
 extern engine::Camera g_camera;
+extern int g_render_distance_horizontal;
+extern int g_render_distance_vertical;
 
 using namespace std::literals;
 
@@ -168,9 +170,18 @@ void engine::Game::render()
     glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
     glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
 
+    glm::i32vec3 player_chunk = g_camera.position / static_cast<float>(chunk_t::chunk_size);
+
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
-    for (auto const &[p, meshes] : m_chunk_meshes) {
+    for (auto const &[position, meshes] : m_chunk_meshes) {
+        if (position.x < player_chunk.x - g_render_distance_horizontal
+            || position.x > player_chunk.x + g_render_distance_horizontal
+            || position.y < player_chunk.y - g_render_distance_vertical
+            || position.y > player_chunk.y + g_render_distance_vertical
+            || position.z < player_chunk.z - g_render_distance_horizontal
+            || position.z > player_chunk.z + g_render_distance_horizontal)
+            continue;
         glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
