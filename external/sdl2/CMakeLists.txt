@@ -3,11 +3,15 @@ message(STATUS "Setting up SDL2")
 FetchContent_Declare(sdl2
     URL https://www.libsdl.org/release/SDL2-2.0.12.tar.gz
 )
-
+set(SDL_STATIC FALSE CACHE BOOL "Build a static version of the library" FORCE)
 set(VIDEO_DUMMY OFF CACHE BOOL "" FORCE)
 set(VIDEO_DIRECTFB OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(sdl2)
+FetchContent_GetProperties(sdl2)
+if(NOT sdl2_POPULATED)
+    FetchContent_Populate(sdl2)
+    add_subdirectory(${sdl2_SOURCE_DIR} ${sdl2_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 
 # # these are mostly to reduce compile time, since we wont use them

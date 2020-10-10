@@ -25,10 +25,10 @@ void engine::Game::input(SDL_Event const &event)
         mouse_rot += glm::vec2 { event.motion.xrel, event.motion.yrel } * speed_multipler;
         mouse_rot.y = std::clamp(mouse_rot.y, -glm::pi<float>() / 2.0f, glm::pi<float>() / 2.0f);
 
-        g_camera.forward = glm::rotate(glm::vec3 { 0.0f, 0.0f, -1.0f }, mouse_rot.x, glm::vec3 { 0.0f, 1.0f, 0.0f });
-        auto kinda_right = glm::cross(glm::vec3 { g_camera.forward.x, 0.0f, g_camera.forward.z }, glm::vec3 { 0.0f, 1.0f, 0.0f });
-        g_camera.forward = glm::rotate(g_camera.forward, mouse_rot.y, kinda_right);
-        g_camera.up = glm::rotate(glm::vec3 { 0.0f, 1.0f, 0.0f }, mouse_rot.y, kinda_right);
+        g_camera.forward = glm::normalize(glm::rotate(glm::vec3 { 0.0f, 0.0f, -1.0f }, mouse_rot.x, glm::vec3 { 0.0f, 1.0f, 0.0f }));
+        auto kinda_right = glm::normalize(glm::cross(glm::vec3 { g_camera.forward.x, 0.0f, g_camera.forward.z }, glm::vec3 { 0.0f, 1.0f, 0.0f }));
+        g_camera.forward = glm::normalize(glm::rotate(g_camera.forward, mouse_rot.y, kinda_right));
+        g_camera.up = glm::normalize(glm::rotate(glm::vec3 { 0.0f, 1.0f, 0.0f }, mouse_rot.y, kinda_right));
     } else if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_ESCAPE)
             SDL_SetRelativeMouseMode(SDL_GetRelativeMouseMode() == SDL_TRUE ? SDL_FALSE : SDL_TRUE);

@@ -1,8 +1,7 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
 add_subdirectory(external)
-
 
 add_executable(little_game
     src/main.cpp
@@ -42,17 +41,49 @@ target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC GLM_FORCE_XYZW_ONLY)
 
 if(WIN32)
-target_link_libraries(little_game SDL2main)
+    target_link_libraries(little_game SDL2main)
 endif()
 if (MSVC)
-target_compile_options(little_game PUBLIC /std:c++latest)
+    target_compile_options(little_game PUBLIC /std:c++latest)
+    target_compile_definitions(little_game PUBLIC _CRT_SECURE_NO_WARNINGS)
 endif()
 
 if (ENABLE_WARNINGS)
-message(STATUS "Warnings enabled")
-target_compile_options(little_game PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-          -Wall -Wextra -pedantic>
-     $<$<CXX_COMPILER_ID:MSVC>:
-          /W4>)
+    message(STATUS "Warnings enabled")
+    target_compile_options(little_game PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+            -Wall -Wextra -pedantic>
+        $<$<CXX_COMPILER_ID:MSVC>:
+            /W4>)
 endif()
+
+if(UNIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/opt/${PROJECT_NAME}" CACHE PATH "" FORCE)
+endif()
+
+install(TARGETS little_game SDL2
+    RUNTIME
+        DESTINATION bin
+    LIBRARY
+        DESTINATION lib
+    ARCHIVE
+        DESTINATION lib/static
+)
+
+install(FILES run.sh run.bat
+    DESTINATION .
+    PERMISSIONS
+        OWNER_EXECUTE
+        GROUP_EXECUTE
+        WORLD_EXECUTE
+
+        OWNER_READ
+        GROUP_READ
+        WORLD_READ
+
+        OWNER_WRITE
+)
+
+install(DIRECTORY assets cfg
+    DESTINATION .
+)

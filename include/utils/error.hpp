@@ -25,7 +25,7 @@ public:
 
     std::string_view body() const noexcept
     {
-        return m_title;
+        return m_body;
     }
 
 private:
