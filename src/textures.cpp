@@ -63,7 +63,11 @@ engine::Textures engine::load_textures()
         auto *buf = stbi_load(path.string().c_str(), &x, &y, &c, 4);
         if (!buf) {
             std::string str_error = "Error loading image ";
+#if _WIN32
+            str_error += path.string();
+#else
             str_error += path;
+#endif
             str_error += '\n';
             str_error += stbi_failure_reason();
             utils::show_error(str_error);
