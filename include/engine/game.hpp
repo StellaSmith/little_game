@@ -58,7 +58,7 @@ namespace engine {
         engine::Textures m_textures;
 
         std::unordered_map<glm::i32vec4, chunk_t> m_chunks;
-        std::vector<std::pair<glm::i32vec4, rendering::chunk_meshes>> m_chunk_meshes;
+        std::unordered_map<glm::i32vec4, rendering::chunk_meshes> m_chunk_meshes;
         std::unordered_map<glm::i32vec4, chunk_mesh_data_t> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 
