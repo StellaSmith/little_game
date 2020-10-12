@@ -1,6 +1,8 @@
 # little_game
 A little project aimed to create a minecraft-like game.
 
+[![CI](https://github.com/StellaSmith/little_game/workflows/CI/badge.svg?event=push)](https://github.com/StellaSmith/little_game/actions?query=workflow%3ACI)
+
 ## Building
 ### Windows
 - Make sure you have [CMake](https://cmake.org/download/) and [Visual Studio](https://visualstudio.microsoft.com/) installed with the C++ desktop development tools.
