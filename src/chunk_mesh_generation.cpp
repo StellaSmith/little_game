@@ -421,8 +421,9 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::Game const &game, 
                 engine::chunk_mesh_data_t mesh = pfn_GetVertices(game, block, sides); // these are in block coords
                 assert(mesh.indices.size() % 3 == 0);
 
-                for (auto &vertex : mesh.vertices) // transform to world coords
-                    vertex.position += static_cast<glm::vec3>(chunk.position) + glm::vec3 { x, y, z };
+                for (auto &vertex : mesh.vertices) // transform to chunk coords
+                    vertex.position += glm::vec3 { x, y, z };
+
                 for (auto &index : mesh.indices)
                     index += result.vertices.size();
 
@@ -446,6 +447,9 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::Game const &game, 
         utils::TimeIt timer { "lights"sv };
         calculate_light(chunk, result);
     }
+
+    for (auto &vertex : result.vertices) // transform to world coords
+        vertex.position += static_cast<glm::vec3>(chunk.position) * static_cast<float>(chunk_size);
 
     return result;
 }
