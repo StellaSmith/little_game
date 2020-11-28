@@ -5,7 +5,7 @@
 
 namespace engine {
 
-    struct block_t {
+    struct Block {
         std::uint32_t id = 0;
         std::uint32_t subid = 0;
 

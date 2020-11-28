@@ -1,9 +1,9 @@
 #ifndef ENGINE_GAME_HPP
 #define ENGINE_GAME_HPP
 
+#include "engine/Chunk.hpp"
 #include "engine/chunk_mesh_generation.hpp"
-#include "engine/chunk_t.hpp"
-#include "engine/rendering/chunk.hpp"
+#include "engine/rendering/Mesh.hpp"
 #include "engine/textures.hpp"
 
 #include <glad/glad.h>
@@ -54,14 +54,15 @@ namespace engine {
 
         GLuint m_projection_uniform;
         GLuint m_view_uniform;
-        
+
         engine::Textures m_textures;
 
-        std::unordered_map<glm::i32vec4, chunk_t> m_chunks;
-        std::unordered_map<glm::i32vec4, rendering::chunk_meshes> m_chunk_meshes;
-        std::unordered_map<glm::i32vec4, chunk_mesh_data_t> m_translucent_mesh_data; // needed to sort indices when the camera moves
+        std::unordered_map<glm::i32vec4, Chunk> m_chunks;
+        std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
+        std::unordered_map<glm::i32vec4, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 
 } // namespace engine
 
 #endif
+da
