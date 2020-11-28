@@ -18,12 +18,12 @@ add_executable(little_game
     src/game/update.cpp
     src/game/render.cpp
 
-    include/engine/chunk_t.hpp
+    include/engine/Chunk.hpp
     include/engine/game.hpp
     include/engine/chunk_mesh_generation.hpp
-    include/engine/block_t.hpp
-    include/engine/rendering/chunk.hpp
-    include/engine/rendering/block.hpp
+    include/engine/Block.hpp
+    include/engine/rendering/Mesh.hpp
+    include/engine/rendering/Vertex.hpp
     include/glDebug.h
     include/math/fast.hpp
     include/math/bits.hpp
