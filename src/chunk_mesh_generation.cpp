@@ -1,10 +1,10 @@
 #include "engine/chunk_mesh_generation.hpp"
-#include "engine/chunk_t.hpp"
+#include "engine/Chunk.hpp"
 #include "engine/game.hpp"
-#include "engine/rendering/block.hpp"
 #include "math/bits.hpp"
 #include "math/constexpr.hpp"
 #include "utils/timeit.hpp"
+#include <engine/rendering/Mesh.hpp>
 
 #include <glad/glad.h>
 
@@ -35,7 +35,7 @@ enum Sides : std::uint8_t {
 };
 
 // return a flag set indicating which sides are solid
-static Sides is_solid(engine::block_t const &block)
+static Sides is_solid(engine::Block const &block)
 {
     switch (block.id) {
     case 0: // air
@@ -50,9 +50,9 @@ static Sides is_solid(engine::block_t const &block)
     }
 }
 
-constexpr auto chunk_size = engine::chunk_t::chunk_size;
+constexpr auto chunk_size = engine::Chunk::chunk_size;
 
-static Sides get_visible_sides(engine::chunk_t const &chunk, glm::u32vec3 block_pos)
+static Sides get_visible_sides(engine::Chunk const &chunk, glm::u32vec3 block_pos)
 {
     auto const [x, y, z] = block_pos;
     bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
@@ -75,10 +75,7 @@ static Sides get_visible_sides(engine::chunk_t const &chunk, glm::u32vec3 block_
     return sides;
 }
 
-using vertex = engine::rendering::block_vertex_t;
-using vertex_vector = std::vector<vertex>;
-using index_vector = std::vector<std::uint32_t>;
-using PFN_GetVertices = engine::chunk_mesh_data_t (*)(engine::Game const &, engine::block_t const &, Sides);
+using PFN_GetVertices = engine::rendering::Mesh (*)(engine::Game const &, engine::Block const &, Sides);
 
 // most blocks are very simple, like stone, dirt, rock, etc
 // might template on texture coordinates?
@@ -89,9 +86,11 @@ static std::vector<std::string_view> id_to_name = {
     "stone"sv,
     "dirt"sv
 };
-static engine::chunk_mesh_data_t GetVertices_Common(engine::Game const &game, engine::block_t const &block, Sides sides)
+static engine::rendering::Mesh GetVertices_Common(engine::Game const &game, engine::Block const &block, Sides sides)
 {
-    engine::chunk_mesh_data_t result;
+    using engine::rendering::Mesh;
+    using vertex = Mesh::vertex_t;
+    Mesh result;
     if (block.id >= id_to_name.size() || id_to_name[block.id].empty()) return result;
     auto const texture_name = id_to_name[block.id];
     int const texture_index = game.get_texture_index(texture_name);
@@ -170,10 +169,10 @@ static engine::chunk_mesh_data_t GetVertices_Common(engine::Game const &game, en
     return result;
 }
 
-static engine::chunk_mesh_data_t GetVertices_Colorful(engine::Game const &game, engine::block_t const &block, Sides sides)
+static engine::rendering::Mesh GetVertices_Colorful(engine::Game const &game, engine::Block const &block, Sides sides)
 {
     glm::u8vec4 color = math::unpack_u32(static_cast<std::uint32_t>(block.data.u64));
-    engine::chunk_mesh_data_t result = GetVertices_Common(game, block, sides);
+    engine::rendering::Mesh result = GetVertices_Common(game, block, sides);
     for (auto &vertex : result.vertices)
         vertex.color = glm::u8vec3 { color.x, color.y, color.z };
     return result;
@@ -183,10 +182,12 @@ static engine::chunk_mesh_data_t GetVertices_Colorful(engine::Game const &game, 
 //  bottom being the same as the base for dirt,
 //  top begin the green one,
 //  and for sides a green to dirt
-static engine::chunk_mesh_data_t GetVertices_Grass(engine::Game const &game, [[maybe_unused]] engine::block_t const &block, [[maybe_unused]] Sides sides)
+static engine::rendering::Mesh GetVertices_Grass(engine::Game const &game, [[maybe_unused]] engine::Block const &block, [[maybe_unused]] Sides sides)
 {
     // TODO!: return the vertices of a grass block
-    engine::chunk_mesh_data_t result;
+    using engine::rendering::Mesh;
+    using vertex = Mesh::vertex_t;
+    Mesh result;
     bool const top_visible = sides & Sides::TOP;
     bool const sides_visible = sides & (Sides::NORTH | Sides::SOUTH | Sides::EAST | Sides::WEST);
     bool const bottom_visible = sides & Sides::BOTTOM;
@@ -331,7 +332,7 @@ static std::vector<PFN_GetVertices> const block_vertices_table = {
     &GetVertices_Grass // grass
 };
 
-static glm::u8vec4 get_produced_light(engine::block_t const &block) // r, g, b, intensity
+static glm::u8vec4 get_produced_light(engine::Block const &block) // r, g, b, intensity
 {
     if (block.id == 1) {
         constexpr float default_intensity = 16.0f;
@@ -343,7 +344,7 @@ static glm::u8vec4 get_produced_light(engine::block_t const &block) // r, g, b, 
     return { 0, 0, 0, 0 };
 }
 
-static void remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_data)
+static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
 {
     assert(chunk_data.vertices.size() <= UINT32_MAX);
     if (chunk_data.vertices.empty()) [[unlikely]] return;
@@ -358,13 +359,13 @@ static void remove_duplicate_vertices(engine::chunk_mesh_data_t &chunk_data)
     }
 }
 
-static void calculate_light(engine::chunk_t const &chunk, engine::chunk_mesh_data_t &mesh_data)
+static void calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh &mesh_data)
 {
     for (std::uint32_t x = 0; x < chunk_size; ++x) {
         for (std::uint32_t y = 0; y < chunk_size; ++y) {
             for (std::uint32_t z = 0; z < chunk_size; ++z) {
                 if (!get_visible_sides(chunk, { x, y, z })) continue;
-                engine::block_t const &block = chunk.blocks.data()[cube_at<chunk_size>(x, y, z)];
+                engine::Block const &block = chunk.blocks.data()[cube_at<chunk_size>(x, y, z)];
                 glm::u8vec4 const produced_light = get_produced_light(block);
                 if (!produced_light.w) continue;
                 for (auto &vertex : mesh_data.vertices) {
@@ -381,7 +382,7 @@ static void calculate_light(engine::chunk_t const &chunk, engine::chunk_mesh_dat
     }
 }
 
-static void remove_unreferenced_vertices(engine::chunk_mesh_data_t &mesh_data)
+static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
 {
     // there shouldn't be that many anyways
     assert(mesh_data.vertices.size() <= std::numeric_limits<std::make_signed_t<std::size_t>>::max());
@@ -395,9 +396,9 @@ static void remove_unreferenced_vertices(engine::chunk_mesh_data_t &mesh_data)
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
 }
 
-engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::Game const &game, engine::chunk_t const &chunk)
+engine::rendering::Mesh engine::generate_solid_mesh(engine::Game const &game, engine::Chunk const &chunk)
 {
-    engine::chunk_mesh_data_t result;
+    engine::rendering::Mesh result;
 
     // avoid small allocations
     result.vertices.reserve(256);
@@ -406,7 +407,7 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::Game const &game, 
     for (std::uint32_t x = 0; x < chunk_size; ++x) {
         for (std::uint32_t y = 0; y < chunk_size; ++y) {
             for (std::uint32_t z = 0; z < chunk_size; ++z) {
-                engine::block_t const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
+                engine::Block const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
 
                 assert(block.id < block_vertices_table.size());
 
@@ -418,7 +419,7 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::Game const &game, 
                 Sides sides = get_visible_sides(chunk, { x, y, z });
                 if (!sides) continue; // no visible sides
 
-                engine::chunk_mesh_data_t mesh = pfn_GetVertices(game, block, sides); // these are in block coords
+                engine::rendering::Mesh mesh = pfn_GetVertices(game, block, sides); // these are in block coords
                 assert(mesh.indices.size() % 3 == 0);
 
                 for (auto &vertex : mesh.vertices) // transform to chunk coords
@@ -455,9 +456,9 @@ engine::chunk_mesh_data_t engine::generate_solid_mesh(engine::Game const &game, 
 }
 
 // will be called more frequently
-engine::chunk_mesh_data_t engine::generate_translucent_mesh(engine::Game const &game, engine::chunk_t const &chunk)
+engine::rendering::Mesh engine::generate_translucent_mesh(engine::Game const &game, engine::Chunk const &chunk)
 {
-    engine::chunk_mesh_data_t result;
+    engine::rendering::Mesh result;
 
     // avoid small allocations
     result.vertices.reserve(256);

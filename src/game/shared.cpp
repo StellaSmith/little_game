@@ -1,5 +1,5 @@
 #include "engine/camera.hpp"
-#include "engine/chunk_t.hpp"
+#include "engine/Chunk.hpp"
 #include "engine/game.hpp"
 #include "math/bits.hpp"
 
@@ -39,7 +39,7 @@ void engine::Game::start()
 
     int32_t const max_x = 10;
     for (std::int32_t x = 0; x < max_x; ++x) {
-        chunk_t chunk {};
+        Chunk chunk {};
 
         for (auto &block : chunk.blocks) {
             if ((block.id = id_dist(rd)) == 1)

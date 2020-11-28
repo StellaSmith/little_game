@@ -170,7 +170,7 @@ void engine::Game::render()
     glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
     glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
 
-    glm::i32vec3 player_chunk = g_camera.position / static_cast<float>(chunk_t::chunk_size);
+    glm::i32vec3 player_chunk = g_camera.position / static_cast<float>(Chunk::chunk_size);
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -182,33 +182,33 @@ void engine::Game::render()
             || position.z < player_chunk.z - g_render_distance_horizontal
             || position.z > player_chunk.z + g_render_distance_horizontal)
             continue;
-        glBindBuffer(GL_ARRAY_BUFFER, meshes.translucent_vertex_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.translucent_index_buffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
-        glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
-        glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
+        glBindBuffer(GL_ARRAY_BUFFER, meshes.second.vertex_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.second.index_buffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, position));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, uv));
+        glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, color));
+        glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, light));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
-        glDrawElements(GL_TRIANGLES, meshes.translucent_index_count, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, meshes.second.index_count, GL_UNSIGNED_INT, nullptr);
     }
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     for (auto const &[p, meshes] : m_chunk_meshes) {
-        glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_vertex_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_index_buffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, position));
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, uv));
-        glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, color));
-        glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::block_vertex_t), (void *)offsetof(rendering::block_vertex_t, light));
+        glBindBuffer(GL_ARRAY_BUFFER, meshes.first.vertex_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.first.index_buffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, position));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, uv));
+        glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, color));
+        glVertexAttribPointer(3, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, light));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
-        glDrawElements(GL_TRIANGLES, meshes.solid_index_count, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, meshes.first.index_count, GL_UNSIGNED_INT, nullptr);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -1,5 +1,6 @@
 #include "engine/camera.hpp"
 #include "engine/game.hpp"
+#include "engine/rendering/Mesh.hpp"
 #include "math/bits.hpp"
 
 #include <glad/glad.h>
@@ -10,13 +11,14 @@
 extern engine::Camera g_camera;
 static glm::vec3 previous_camera_position {};
 
-static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::rendering::block_vertex_t> const &vertices, std::vector<std::uint32_t> indices)
+static auto get_sorted_indices(engine::rendering::Mesh const &mesh)
 {
+    auto result = mesh.indices;
     using face_t = std::array<std::uint32_t, 3>;
-    auto begin = reinterpret_cast<face_t *>(indices.data());
-    auto end = reinterpret_cast<face_t *>(indices.data() + indices.size());
+    auto begin = reinterpret_cast<face_t *>(result.data());
+    auto end = reinterpret_cast<face_t *>(result.data() + result.size());
 
-    std::sort(begin, end, [&vertices](face_t const &lhs, face_t const &rhs) {
+    std::sort(begin, end, [&vertices = mesh.vertices](face_t const &lhs, face_t const &rhs) {
         auto const lhs_center = (vertices[lhs[0]].position + vertices[lhs[1]].position + vertices[lhs[2]].position) / 3.0f;
         auto const rhs_center = (vertices[rhs[0]].position + vertices[rhs[1]].position + vertices[rhs[2]].position) / 3.0f;
         auto const lhs_distance = glm::length(lhs_center - g_camera.position);
@@ -24,7 +26,7 @@ static std::vector<std::uint32_t> get_sorted_indices(std::vector<engine::renderi
         return lhs_distance < rhs_distance;
     });
 
-    return indices;
+    return result;
 }
 #include <SDL.h>
 
@@ -74,7 +76,7 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     ImGui::End();
 
     std::vector<glm::i32vec4> to_delete;
-    std::vector<chunk_t> to_add;
+    std::vector<Chunk> to_add;
 
     for (auto &[k, chunk] : m_chunks) {
         if (chunk.modified) {
@@ -82,27 +84,27 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
             if (it == m_chunk_meshes.end()) {
                 GLuint buffers[4];
                 glGenBuffers(std::size(buffers), buffers);
-                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, rendering::chunk_meshes { buffers[0], buffers[1], buffers[2], buffers[3], 0, 0 });
+                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, std::make_pair(rendering::MeshHandle { buffers[0], buffers[1], 0 }, rendering::MeshHandle { buffers[2], buffers[3], 0 }));
             }
 
             auto const solid_mesh = generate_solid_mesh(*this, chunk);
             auto const translucent_mesh = generate_translucent_mesh(*this, chunk);
 
-            auto const sorted_indices = get_sorted_indices(translucent_mesh.vertices, translucent_mesh.indices);
+            auto const sorted_indices = get_sorted_indices(translucent_mesh);
 
             // TODO: Vertex deduplication
 
-            glBindBuffer(GL_ARRAY_BUFFER, it->second.solid_vertex_buffer);
+            glBindBuffer(GL_ARRAY_BUFFER, it->second.first.vertex_buffer);
             glBufferData(GL_ARRAY_BUFFER, solid_mesh.vertices.size() * sizeof(*solid_mesh.vertices.data()), solid_mesh.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.solid_index_buffer);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.first.index_buffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, solid_mesh.indices.size() * sizeof(*solid_mesh.indices.data()), solid_mesh.indices.data(), GL_DYNAMIC_DRAW);
-            it->second.solid_index_count = solid_mesh.indices.size();
+            it->second.first.index_count = solid_mesh.indices.size();
 
-            glBindBuffer(GL_ARRAY_BUFFER, it->second.translucent_vertex_buffer);
+            glBindBuffer(GL_ARRAY_BUFFER, it->second.second.vertex_buffer);
             glBufferData(GL_ARRAY_BUFFER, translucent_mesh.vertices.size() * sizeof(*translucent_mesh.vertices.data()), translucent_mesh.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.translucent_index_buffer);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.second.index_buffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
-            it->second.translucent_index_count = sorted_indices.size();
+            it->second.second.index_count = sorted_indices.size();
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -114,11 +116,11 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
 
             chunk.modified = false;
         } else if (g_camera.position != previous_camera_position) {
-            auto p_mesh = std::find_if(m_chunk_meshes.begin(), m_chunk_meshes.end(), [&position = chunk.position](auto const &p) { return p.first == position; });
+            auto p_mesh = m_chunk_meshes.find(chunk.position);
             auto p_data = m_translucent_mesh_data.find(chunk.position);
             if (p_mesh != m_chunk_meshes.end() && p_data != m_translucent_mesh_data.end()) {
-                auto const sorted_indices = get_sorted_indices(p_data->second.vertices, p_data->second.indices);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.translucent_index_buffer);
+                auto const sorted_indices = get_sorted_indices(p_data->second);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.second.index_buffer);
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
             }
