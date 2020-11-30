@@ -44,7 +44,7 @@ namespace engine {
             if (GetRegisteredByName(block_type->name))
                 return -1;
             s_registeredBlockTypes.push_back(block_type);
-            return s_registeredBlockTypes.size() - 1;
+            return static_cast<std::int32_t>(s_registeredBlockTypes.size() - 1);
         }
 
         [[nodiscard]] static std::vector<BlockType *> GetRegistered()
@@ -59,7 +59,11 @@ namespace engine {
             auto *const ptr = std::find_if(start, stop, [name](BlockType *block_type) {
                 return block_type->name == name;
             });
-            return std::array { static_cast<BlockType *>(nullptr), *ptr }[ptr == stop];
+
+            if (ptr == stop)
+                return nullptr;
+
+            return *ptr;
         }
 
         [[nodiscard]] static BlockType *GetRegisteredById(std::uint32_t id) noexcept
