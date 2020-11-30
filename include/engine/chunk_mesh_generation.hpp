@@ -10,8 +10,8 @@ namespace engine {
     struct Chunk;
     class Game;
 
-    rendering::Mesh generate_solid_mesh(Game const &, Chunk const &);
-    rendering::Mesh generate_translucent_mesh(Game const &, Chunk const &);
+    rendering::Mesh generate_solid_mesh(Chunk const &);
+    rendering::Mesh generate_translucent_mesh(Chunk const &);
 
 } // namespace engine
 
