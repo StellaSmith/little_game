@@ -13,15 +13,24 @@ add_executable(little_game
     src/textures.cpp
     src/error.cpp
 
+    src/engine/BlockType.cpp
+
     src/game/shared.cpp
     src/game/input.cpp
     src/game/update.cpp
     src/game/render.cpp
 
+    src/game/blocks/Air.cpp
+    src/game/blocks/Colorful.cpp
+    src/game/blocks/Stone.cpp
+    src/game/blocks/Dirt.cpp
+    src/game/blocks/Grass.cpp
+
     include/engine/Chunk.hpp
     include/engine/game.hpp
     include/engine/chunk_mesh_generation.hpp
     include/engine/Block.hpp
+    include/engine/BlockType.hpp
     include/engine/rendering/Mesh.hpp
     include/engine/rendering/Vertex.hpp
     include/glDebug.h

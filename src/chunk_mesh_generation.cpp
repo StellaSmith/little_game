@@ -4,6 +4,7 @@
 #include "math/bits.hpp"
 #include "math/constexpr.hpp"
 #include "utils/timeit.hpp"
+#include <engine/BlockType.hpp>
 #include <engine/rendering/Mesh.hpp>
 
 #include <glad/glad.h>
@@ -12,6 +13,10 @@
 #include <cstring>
 #include <type_traits>
 #include <vector>
+
+#include <engine/Block.hpp>
+
+using engine::Sides;
 
 template <std::size_t D, typename First, typename... Rest, typename std::enable_if_t<std::is_integral_v<std::common_type_t<First, Rest...>>, std::nullptr_t> = nullptr>
 constexpr static std::size_t cube_at(First first, Rest... rest)
@@ -22,38 +27,16 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
         return first * math::c_ipow_v<D, sizeof...(Rest)> + cube_at<D>(rest...);
 }
 
-enum Sides : std::uint8_t {
-    NORTH = 1 << 0, // -z
-    SOUTH = 1 << 1, // +z
-    EAST = 1 << 2, // +x
-    WEST = 1 << 3, // -x
-    TOP = 1 << 4, // +y
-    BOTTOM = 1 << 5, // -y
-
-    NONE = 0,
-    ALL = NORTH | SOUTH | EAST | WEST | TOP | BOTTOM
-};
-
-// return a flag set indicating which sides are solid
-static Sides is_solid(engine::Block const &block)
-{
-    switch (block.id) {
-    case 0: // air
-        return Sides::NONE;
-    case 1: // colorful
-    case 2: // stone
-    case 3: // dirt
-    case 4: // grass
-        return Sides::ALL;
-    default:
-        return Sides::NONE; // we don't know
-    }
-}
-
 constexpr auto chunk_size = engine::Chunk::chunk_size;
 
-static Sides get_visible_sides(engine::Chunk const &chunk, glm::u32vec3 block_pos)
+static Sides get_visible_sides(engine::Chunk const &chunk, std::vector<engine::BlockType *> const &block_type_table, glm::u32vec3 block_pos)
 {
+    auto const is_solid = [block_type_table](engine::Block const &block) -> bool {
+        auto const block_type = block_type_table[block.id];
+        auto pfn_getSolidSides = block_type->getSolidSides;
+        if (!pfn_getSolidSides) return Sides::NONE;
+        return pfn_getSolidSides(block_type_table[block.id], &block);
+    };
     auto const [x, y, z] = block_pos;
     bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
     bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
@@ -74,263 +57,6 @@ static Sides get_visible_sides(engine::Chunk const &chunk, glm::u32vec3 block_po
     // clang-format on
     return sides;
 }
-
-using PFN_GetVertices = engine::rendering::Mesh (*)(engine::Game const &, engine::Block const &, Sides);
-
-// most blocks are very simple, like stone, dirt, rock, etc
-// might template on texture coordinates?
-using namespace std::literals;
-static std::vector<std::string_view> id_to_name = {
-    {},
-    "white"sv,
-    "stone"sv,
-    "dirt"sv
-};
-static engine::rendering::Mesh GetVertices_Common(engine::Game const &game, engine::Block const &block, Sides sides)
-{
-    using engine::rendering::Mesh;
-    using vertex = Mesh::vertex_t;
-    Mesh result;
-    if (block.id >= id_to_name.size() || id_to_name[block.id].empty()) return result;
-    auto const texture_name = id_to_name[block.id];
-    int const texture_index = game.get_texture_index(texture_name);
-
-    if (sides & Sides::TOP) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index } },
-                vertex { { -0.5f, +0.5f, +0.5f }, { 0.0f, 1.0f, texture_index } },
-                vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 1.0f, texture_index } },
-                vertex { { +0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index } },
-            });
-        result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-    }
-
-    if (sides & Sides::NORTH) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index } }, // 0
-                vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index } }, // 1
-                vertex { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, texture_index } }, // 2
-                vertex { { -0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index } }, // 3
-            });
-        result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-    }
-
-    if (sides & Sides::WEST) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index } }, // 0
-                vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index } }, // 1
-                vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index } }, // 2
-                vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index } }, // 3
-            });
-        result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-    }
-
-    if (sides & Sides::SOUTH) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f, texture_index } }, // 0
-                vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index } }, // 1
-                vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index } }, // 2
-                vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index } }, // 3
-            });
-        result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-    }
-
-    if (sides & Sides::EAST) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index } }, // 0
-                vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index } }, // 1
-                vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index } }, // 2
-                vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index } }, // 3
-            });
-        result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-    }
-
-    if (sides & Sides::BOTTOM) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, texture_index } }, // 0
-                vertex { { -0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index } }, // 1
-                vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index } }, // 2
-                vertex { { +0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, texture_index } }, // 3
-            });
-        result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-    }
-    return result;
-}
-
-static engine::rendering::Mesh GetVertices_Colorful(engine::Game const &game, engine::Block const &block, Sides sides)
-{
-    glm::u8vec4 color = math::unpack_u32(static_cast<std::uint32_t>(block.data.u64));
-    engine::rendering::Mesh result = GetVertices_Common(game, block, sides);
-    for (auto &vertex : result.vertices)
-        vertex.color = glm::u8vec3 { color.x, color.y, color.z };
-    return result;
-}
-
-// grass uses tree textures:
-//  bottom being the same as the base for dirt,
-//  top begin the green one,
-//  and for sides a green to dirt
-static engine::rendering::Mesh GetVertices_Grass(engine::Game const &game, [[maybe_unused]] engine::Block const &block, [[maybe_unused]] Sides sides)
-{
-    // TODO!: return the vertices of a grass block
-    using engine::rendering::Mesh;
-    using vertex = Mesh::vertex_t;
-    Mesh result;
-    bool const top_visible = sides & Sides::TOP;
-    bool const sides_visible = sides & (Sides::NORTH | Sides::SOUTH | Sides::EAST | Sides::WEST);
-    bool const bottom_visible = sides & Sides::BOTTOM;
-    glm::u8vec3 const color { 0x00, 0xFF, 0x55 };
-
-    int const texture_index_top = top_visible ? game.get_texture_index("grass_block_top") : -1; // grass top
-    int const texture_index_side1 = sides_visible ? game.get_texture_index("dirt" /*"grass_block_side1"*/) : -1; // dirt side
-    int const texture_index_side2 = sides_visible ? game.get_texture_index("grass_block_side2") : -1; // grass side
-    int const texture_index_bottom = bottom_visible ? game.get_texture_index("dirt") : -1; // dirt bottom
-
-    if (top_visible) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_top }, color }, // 0
-                vertex { { -0.5f, +0.5f, +0.5f }, { 0.0f, 1.0f, texture_index_top }, color }, // 1
-                vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_top }, color }, // 2
-                vertex { { +0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index_top }, color }, // 3
-            });
-
-        result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-    }
-
-    if (sides & Sides::NORTH) {
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
-                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
-                    vertex { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
-                    vertex { { -0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-        }
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { -0.5f, +0.5f, -0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-        }
-    }
-
-    if (sides & Sides::WEST) {
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
-                    vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
-                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
-                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-        }
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { -0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 0, offset + 1, offset + 3, offset + 3, offset + 1, offset + 2 });
-        }
-    }
-
-    if (sides & Sides::SOUTH) {
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
-                    vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
-                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
-                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-        }
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, +0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { +0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { -0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { -0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-        }
-    }
-    if (sides & Sides::EAST) {
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side2 }, color }, // 0
-                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side2 }, color }, // 1
-                    vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side2 }, color }, // 2
-                    vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side2 }, color }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-        }
-        {
-            auto offset = static_cast<std::uint32_t>(result.vertices.size());
-            result.vertices.insert(result.vertices.end(),
-                {
-                    vertex { { +0.5f, +0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_side1 } }, // 0
-                    vertex { { +0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, texture_index_side1 } }, // 1
-                    vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_side1 } }, // 2
-                    vertex { { +0.5f, +0.5f, +0.5f }, { 1.0f, 0.0f, texture_index_side1 } }, // 3
-                });
-            result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-        }
-    }
-
-    if (bottom_visible) {
-        auto offset = static_cast<std::uint32_t>(result.vertices.size());
-        result.vertices.insert(result.vertices.end(),
-            {
-                vertex { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, texture_index_bottom } }, // 0
-                vertex { { -0.5f, -0.5f, +0.5f }, { 0.0f, 1.0f, texture_index_bottom } }, // 1
-                vertex { { +0.5f, -0.5f, +0.5f }, { 1.0f, 1.0f, texture_index_bottom } }, // 2
-                vertex { { +0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, texture_index_bottom } }, // 3
-            });
-        result.indices.insert(result.indices.end(), { offset + 3, offset + 1, offset + 0, offset + 2, offset + 1, offset + 3 });
-    }
-    return result;
-}
-
-static std::vector<PFN_GetVertices> const block_vertices_table = {
-    nullptr, // id 0 is air, which has no vertices
-    &GetVertices_Colorful,
-    &GetVertices_Common, // stone
-    &GetVertices_Common, // dirt
-    &GetVertices_Grass // grass
-};
 
 static glm::u8vec4 get_produced_light(engine::Block const &block) // r, g, b, intensity
 {
@@ -364,7 +90,8 @@ static void calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh 
     for (std::uint32_t x = 0; x < chunk_size; ++x) {
         for (std::uint32_t y = 0; y < chunk_size; ++y) {
             for (std::uint32_t z = 0; z < chunk_size; ++z) {
-                if (!get_visible_sides(chunk, { x, y, z })) continue;
+                if (!get_visible_sides(chunk, engine::BlockType::GetRegistered(), { x, y, z }))
+                    continue;
                 engine::Block const &block = chunk.blocks.data()[cube_at<chunk_size>(x, y, z)];
                 glm::u8vec4 const produced_light = get_produced_light(block);
                 if (!produced_light.w) continue;
@@ -396,7 +123,7 @@ static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
 }
 
-engine::rendering::Mesh engine::generate_solid_mesh(engine::Game const &game, engine::Chunk const &chunk)
+engine::rendering::Mesh engine::generate_solid_mesh(engine::Chunk const &chunk)
 {
     engine::rendering::Mesh result;
 
@@ -404,22 +131,22 @@ engine::rendering::Mesh engine::generate_solid_mesh(engine::Game const &game, en
     result.vertices.reserve(256);
     result.indices.reserve(256);
 
+    std::vector<engine::BlockType *> const block_type_table = BlockType::GetRegistered();
+
     for (std::uint32_t x = 0; x < chunk_size; ++x) {
         for (std::uint32_t y = 0; y < chunk_size; ++y) {
             for (std::uint32_t z = 0; z < chunk_size; ++z) {
                 engine::Block const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
 
-                assert(block.id < block_vertices_table.size());
+                BlockType const *block_type = block_type_table[block.id];
+                if (block_type->generateSolidMesh == nullptr) continue;
+                if (block_type->getSolidSides == nullptr) continue;
+                if (block_type->getSolidSides(block_type, &block) == Sides::NONE) continue;
 
-                PFN_GetVertices const pfn_GetVertices = block_vertices_table[block.id];
-
-                if (!pfn_GetVertices) continue;
-                if (!is_solid(block)) continue;
-
-                Sides sides = get_visible_sides(chunk, { x, y, z });
+                Sides sides = get_visible_sides(chunk, block_type_table, { x, y, z });
                 if (!sides) continue; // no visible sides
 
-                engine::rendering::Mesh mesh = pfn_GetVertices(game, block, sides); // these are in block coords
+                engine::rendering::Mesh mesh = block_type->generateSolidMesh(block_type, &block, sides); // these are in block coords
                 assert(mesh.indices.size() % 3 == 0);
 
                 for (auto &vertex : mesh.vertices) // transform to chunk coords
@@ -456,7 +183,7 @@ engine::rendering::Mesh engine::generate_solid_mesh(engine::Game const &game, en
 }
 
 // will be called more frequently
-engine::rendering::Mesh engine::generate_translucent_mesh(engine::Game const &game, engine::Chunk const &chunk)
+engine::rendering::Mesh engine::generate_translucent_mesh(engine::Chunk const &chunk)
 {
     engine::rendering::Mesh result;
 
