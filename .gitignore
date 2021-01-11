@@ -1,6 +1,7 @@
-videos/
+install/
 build/
 .vscode/
 
 # Auto generated
 cfg/imgui.ini
+.cache/

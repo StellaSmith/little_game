@@ -1,21 +1,17 @@
 #ifndef ENGINE_CHUNK_MESH_GENERATION_HPP
 #define ENGINE_CHUNK_MESH_GENERATION_HPP
 
-#include "engine/rendering/block.hpp"
+#include "engine/rendering/Mesh.hpp"
 
 #include <cstdint>
 #include <vector>
 
 namespace engine {
-    struct chunk_t;
+    struct Chunk;
+    class Game;
 
-    struct chunk_mesh_data_t {
-        std::vector<rendering::block_vertex_t> vertices;
-        std::vector<std::uint32_t> indices;
-    };
-
-    chunk_mesh_data_t generate_solid_mesh(chunk_t const &);
-    chunk_mesh_data_t generate_translucent_mesh(chunk_t const &);
+    rendering::Mesh generate_solid_mesh(Chunk const &);
+    rendering::Mesh generate_translucent_mesh(Chunk const &);
 
 } // namespace engine
 

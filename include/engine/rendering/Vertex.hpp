@@ -6,11 +6,11 @@
 namespace engine {
     namespace rendering {
 
-        struct block_vertex_t {
-            glm::vec3 position;
-            glm::u32vec2 uv;
-            glm::u8vec3 color = { 0xFF, 0xFF, 0xFF };
-            glm::u8vec3 light = {};
+        struct Vertex {
+            glm::vec3 position {};
+            glm::vec3 uv {};
+            glm::u8vec3 color { 0xFF, 0xFF, 0xFF };
+            glm::u8vec3 light {};
         };
 
     } // namespace rendering

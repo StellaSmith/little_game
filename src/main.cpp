@@ -1,3 +1,8 @@
+#include "engine/Chunk.hpp"
+#include "engine/game.hpp"
+#include "glDebug.h"
+#include "utils/error.hpp"
+
 #include <SDL.h>
 #include <glad/glad.h>
 #include <imgui.h>
@@ -5,31 +10,21 @@
 #include <imgui_impl_sdl.h>
 #include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
-
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 
-#include "engine/chunk_t.hpp"
-#include "engine/game.hpp"
-#include "glDebug.h"
-
-[[noreturn]] static void show_error(std::string_view msg, SDL_Window *w = nullptr)
-{
-    if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR!", msg.data(), w) < 0)
-        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", msg.data());
-    std::exit(EXIT_FAILURE);
-}
+using json = nlohmann::json;
 
 json g_config_engine;
 
 bool g_verbose = false;
 
+static SDL_Window *s_window = nullptr;
+
 using namespace std::literals;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) try {
     constexpr int width = 640, height = 480;
 
     for (int i = 0; i < argc; ++i) {
@@ -49,23 +44,19 @@ int main(int argc, char **argv)
     }
 
     if (SDL_Init(0) < 0)
-        show_error("Error initializing SDL: "s + SDL_GetError());
+        utils::show_error("Error initializing SDL"sv, SDL_GetError());
 
     {
         char const *fname = "./cfg/engine.json";
         FILE *fp = std::fopen(fname, "r");
         if (!fp)
-            show_error("Error opening engine configuration file. ("s + fname + ")");
+            utils::show_error("Error opening engine configuration file. ("s + fname + ")");
 
         try {
             g_config_engine = json::parse(fp, nullptr, true, true);
         } catch (std::exception &e) {
-            std::string error_str = "Error parsing engine config file.\n"s + e.what();
             std::fclose(fp);
-            if (SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "EXCEPTION!", error_str.c_str(), nullptr) < 0)
-                SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "%s", error_str.c_str());
-
-            throw;
+            utils::show_error("Error parsing engine config file."sv, e.what());
         }
         std::fclose(fp);
     }
@@ -74,24 +65,24 @@ int main(int argc, char **argv)
         try {
             g_config_engine.at("/SDL/video_driver"_json_pointer).get_to(video_driver);
         } catch (json::type_error const &e) {
-            show_error("SDL Video Driver must be a string\n"s + e.what());
+            utils::show_error("SDL Video Driver must be a string.\n"s + e.what());
         } catch (json::out_of_range const &) {
             // do nothing
         }
         if (SDL_VideoInit(video_driver.empty() ? nullptr : video_driver.data()) < 0)
-            show_error("Error initializing SDL Video subsystem: "s + SDL_GetError());
+            utils::show_error("Error initializing SDL Video subsystem"sv, SDL_GetError());
     }
     {
         std::string audio_driver;
         try {
             g_config_engine.at("/SDL/audio_driver"_json_pointer).get_to(audio_driver);
         } catch (json::type_error const &e) {
-            show_error("SDL Audio Driver must be a string.\n"s + e.what());
+            utils::show_error("SDL Audio Driver must be a string.\n"s + e.what());
         } catch (json::out_of_range const &) {
             // do nothing
         }
         if (SDL_AudioInit(audio_driver.empty() ? nullptr : audio_driver.data()) < 0)
-            show_error("Error initializing SDL Audio subsystem: "s + SDL_GetError());
+            utils::show_error("Error initializing SDL Audio subsystem"sv, SDL_GetError());
     }
     {
         auto get_integer = [](json::json_pointer const &path, unsigned &i) {
@@ -101,7 +92,7 @@ int main(int argc, char **argv)
             } catch (json::out_of_range const &e) {
                 return; // use default if value is not present
             } catch (json::type_error const &e) {
-                show_error(path.to_string() + " isnt an unsigned integer.\n" + e.what());
+                utils::show_error(path.to_string() + " isn't an unsigned integer.\n" + e.what());
             }
         };
 
@@ -118,42 +109,45 @@ int main(int argc, char **argv)
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
         if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, red_bits) < 0)
-            show_error("Error setting SDL_GL_RED_SIZE to " + std::to_string(red_bits));
+            utils::show_error("Can't set SDL_GL_RED_SIZE to " + std::to_string(red_bits));
         if (SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, green_bits) < 0)
-            show_error("Error setting SDL_GL_GREEN_SIZE to " + std::to_string(green_bits));
+            utils::show_error("Can't set SDL_GL_GREEN_SIZE to " + std::to_string(green_bits));
         if (SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, blue_bits) < 0)
-            show_error("Error setting SDL_GL_BLUE_SIZE to " + std::to_string(blue_bits));
+            utils::show_error("Can't set SDL_GL_BLUE_SIZE to " + std::to_string(blue_bits));
         if (SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, alpha_bits) < 0)
-            show_error("Error setting SDL_GL_ALPHA_SIZE to " + std::to_string(alpha_bits));
+            utils::show_error("Can't set SDL_GL_ALPHA_SIZE to " + std::to_string(alpha_bits));
         if (SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depth_bits) < 0)
-            show_error("Error setting SDL_GL_DEPTH_SIZE to " + std::to_string(depth_bits));
+            utils::show_error("Can't set SDL_GL_DEPTH_SIZE to " + std::to_string(depth_bits));
         if (SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, stencil_bits) < 0)
-            show_error("Error setting SDL_GL_STENCIL_SIZE to" + std::to_string(stencil_bits));
+            utils::show_error("Can't set SDL_GL_STENCIL_SIZE to" + std::to_string(stencil_bits));
     }
 
 #ifndef NDEBUG
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
 
-    SDL_Window *window = SDL_CreateWindow(
+    s_window = SDL_CreateWindow(
         /*Title*/ "My little game",
         /*Position (x, y)*/ SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         /*Size (width, height)*/ width, height,
         /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
-    if (!window)
-        show_error("Can't create main window: "s + SDL_GetError());
+    if (!s_window)
+        utils::show_error("Can't create window."sv, SDL_GetError());
 
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
+    if (SDL_SetRelativeMouseMode(SDL_TRUE))
+        utils::show_error("Can't set mouse to relative mode!"sv);
+
+    SDL_GLContext gl_context = SDL_GL_CreateContext(s_window);
 
     if (!gl_context)
-        show_error("Can't create OpenGL 3.3 context: "s + SDL_GetError(), window);
+        utils::show_error("Can't create OpenGL 3.3 context"sv, SDL_GetError());
 
-    if (SDL_GL_MakeCurrent(window, gl_context) < 0)
-        show_error("Can't set OpenGL context current: "s + SDL_GetError(), window);
+    if (SDL_GL_MakeCurrent(s_window, gl_context) < 0)
+        utils::show_error("Can't set OpenGL context current."sv, SDL_GetError());
 
     if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
-        show_error("GLAD Error: Failed to initialize the OpenGL context.", window);
+        utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
 
     if (g_verbose) {
         int major, minor, r, g, b, a, d, s;
@@ -186,9 +180,9 @@ int main(int argc, char **argv)
                 std::puts("\tDebug output enabled.\n");
         }
     }
-
+    SDL_GL_SetSwapInterval(0);
     if (!IMGUI_CHECKVERSION())
-        show_error("ImGui version mismatch!\nYou may need to recompile the game.", window);
+        utils::show_error("ImGui version mismatch!\nYou may need to recompile the game."sv);
 
     ImGui::CreateContext();
     ImGuiIO &imgui_io = ImGui::GetIO();
@@ -200,7 +194,7 @@ int main(int argc, char **argv)
     // TODO: Make color scheme of imgui configurable
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context); // always returns true
+    ImGui_ImplSDL2_InitForOpenGL(s_window, gl_context); // always returns true
 
     // See imgui/examples/imgui_impl_opengl3.cpp
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
@@ -212,13 +206,13 @@ int main(int argc, char **argv)
             if (!imgui_io.Fonts->AddFontFromFileTTF(font_path.data(), 14)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", static_cast<int>(font_path.size()), font_path.data());
                 if (!imgui_io.Fonts->AddFontDefault())
-                    show_error("IMGUI: Can't load default font."sv, window);
+                    utils::show_error("IMGUI Error."sv, "Can't load default font."sv);
             }
         } catch (json::out_of_range const &e) {
             if (!imgui_io.Fonts->AddFontDefault())
-                show_error("IMGUI: Can't load default font!"sv, window);
+                utils::show_error("IMGUI Error."sv, "Can't load default font!"sv);
         } catch (json::type_error const &e) {
-            show_error("ImGui font_path must be a string.\n"s + e.what());
+            utils::show_error("ImGui font_path must be a string.\n"s + e.what());
         }
     }
 
@@ -244,7 +238,7 @@ int main(int argc, char **argv)
         }
 
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame(window);
+        ImGui_ImplSDL2_NewFrame(s_window);
         ImGui::NewFrame();
 
         game.update(delta);
@@ -256,7 +250,7 @@ int main(int argc, char **argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // swap the buffer (present to the window surface)
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(s_window);
     }
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -264,10 +258,21 @@ int main(int argc, char **argv)
     ImGui::DestroyContext();
 
     SDL_GL_DeleteContext(gl_context);
-    SDL_DestroyWindow(window);
-    SDL_AudioQuit(); // ERROR: Crashes when exiting pulseaudio, it tries to lock a (SDL) mutex, which are disabled.
+    SDL_DestroyWindow(s_window);
+    s_window = nullptr;
+    SDL_AudioQuit();
     SDL_VideoQuit();
     SDL_Quit();
-
-    return 0;
+} catch (utils::application_error const &e) {
+    if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window) < 0)
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", e.what());
+    std::exit(EXIT_FAILURE);
+} catch (std::exception const &e) {
+    if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), s_window) < 0)
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "EXCEPTION NOT HANDLED!!\n%s", e.what());
+    std::exit(EXIT_FAILURE);
+} catch (...) {
+    if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", s_window) < 0)
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", "UNKOWN EXCEPTION NOT HANDLED!!!");
+    std::exit(EXIT_FAILURE);
 }
