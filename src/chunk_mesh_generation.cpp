@@ -16,7 +16,11 @@
 
 #include <engine/Block.hpp>
 
-using engine::Sides;
+#if defined(__GNUC__) || defined(__clang__)
+#define OPTIMIZE __attribute__((optimize("Ofast")))
+#else
+#define OPTIMIZE
+#endif
 
 template <std::size_t D, typename First, typename... Rest, typename std::enable_if_t<std::is_integral_v<std::common_type_t<First, Rest...>>, std::nullptr_t> = nullptr>
 constexpr static std::size_t cube_at(First first, Rest... rest)
@@ -27,14 +31,15 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
         return first * math::c_ipow_v<D, sizeof...(Rest)> + cube_at<D>(rest...);
 }
 
-constexpr auto chunk_size = engine::Chunk::chunk_size;
-
-static Sides get_visible_sides(engine::Chunk const &chunk, std::vector<engine::BlockType *> const &block_type_table, glm::u32vec3 block_pos)
+static engine::Sides get_visible_sides(engine::Chunk const &chunk, std::vector<engine::BlockType *> const &block_type_table, glm::u32vec3 block_pos)
 {
+    using engine::Sides;
+    constexpr auto chunk_size = engine::Chunk::chunk_size;
+
     auto const is_solid = [block_type_table](engine::Block const &block) -> bool {
         auto const block_type = block_type_table[block.id];
         auto pfn_getSolidSides = block_type->getSolidSides;
-        if (!pfn_getSolidSides) return Sides::NONE;
+        if (!pfn_getSolidSides) return engine::Sides::NONE;
         return pfn_getSolidSides(block_type_table[block.id], &block);
     };
     auto const [x, y, z] = block_pos;
@@ -73,7 +78,8 @@ static glm::u8vec4 get_produced_light(engine::Block const &block) // r, g, b, in
 static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
 {
     assert(chunk_data.vertices.size() <= UINT32_MAX);
-    if (chunk_data.vertices.empty()) [[unlikely]] return;
+    if (chunk_data.vertices.empty()) [[unlikely]]
+        return;
     for (std::uint32_t i = 0; i < chunk_data.vertices.size() - 1; ++i) {
         auto it = std::find_if(chunk_data.vertices.data() + i + 1, chunk_data.vertices.data() + chunk_data.vertices.size(), [to_find = chunk_data.vertices.data() + i](auto const &vertex) {
             return std::memcmp(to_find, &vertex, sizeof(vertex)) == 0;
@@ -85,26 +91,40 @@ static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
     }
 }
 
-static void calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh &mesh_data)
+static void OPTIMIZE calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh &mesh_data)
 {
-    for (std::uint32_t x = 0; x < chunk_size; ++x) {
-        for (std::uint32_t y = 0; y < chunk_size; ++y) {
-            for (std::uint32_t z = 0; z < chunk_size; ++z) {
-                if (!get_visible_sides(chunk, engine::BlockType::GetRegistered(), { x, y, z }))
-                    continue;
-                engine::Block const &block = chunk.blocks.data()[cube_at<chunk_size>(x, y, z)];
-                glm::u8vec4 const produced_light = get_produced_light(block);
-                if (!produced_light.w) continue;
-                for (auto &vertex : mesh_data.vertices) {
-                    float const distance = std::max(glm::length(vertex.position - glm::vec3 { x, y, z } + static_cast<glm::vec3>(chunk.position)), 1.0f);
-                    if (distance > produced_light.w) continue;
+    struct LightData {
+        glm::vec3 position;
+        glm::u8vec4 light;
+    };
 
-                    glm::u8vec3 const light { produced_light.x / distance, produced_light.y / distance, produced_light.z / distance };
-                    vertex.light.x = std::max(light.x, vertex.light.x);
-                    vertex.light.y = std::max(light.y, vertex.light.y);
-                    vertex.light.z = std::max(light.z, vertex.light.z);
-                }
-            }
+    std::vector<LightData> lights;
+    lights.reserve(64);
+
+    constexpr auto chunk_size = engine::Chunk::chunk_size;
+    for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
+        std::uint_fast8_t const x = i >> 8 & 0xF;
+        std::uint_fast8_t const y = i >> 4 & 0xF;
+        std::uint_fast8_t const z = i >> 0 & 0xF;
+        if (!get_visible_sides(chunk, engine::BlockType::GetRegistered(), { x, y, z }))
+            continue;
+        engine::Block const &block = chunk.blocks.data()[i];
+        glm::u8vec4 const produced_light = get_produced_light(block);
+        if (!produced_light.w)
+            continue;
+
+        lights.push_back({ { x, y, z }, produced_light });
+    }
+
+    for (auto &vertex : mesh_data.vertices) {
+        for (auto const &light_data : lights) {
+            float const distance = std::max(glm::length(vertex.position - light_data.position), 1.0f);
+            if (distance > light_data.light.w) continue;
+
+            glm::u8vec3 const light { light_data.light.x / distance, light_data.light.y / distance, light_data.light.z / distance };
+            vertex.light.x = std::max(light.x, vertex.light.x);
+            vertex.light.y = std::max(light.y, vertex.light.y);
+            vertex.light.z = std::max(light.z, vertex.light.z);
         }
     }
 }
@@ -133,46 +153,51 @@ engine::rendering::Mesh engine::generate_solid_mesh(engine::Chunk const &chunk)
 
     std::vector<engine::BlockType *> const block_type_table = BlockType::GetRegistered();
 
-    for (std::uint32_t x = 0; x < chunk_size; ++x) {
-        for (std::uint32_t y = 0; y < chunk_size; ++y) {
-            for (std::uint32_t z = 0; z < chunk_size; ++z) {
-                engine::Block const &block = chunk.blocks[cube_at<chunk_size>(x, y, z)];
+    constexpr auto chunk_size = engine::Chunk::chunk_size;
+    for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
+        std::uint_fast8_t const x = i >> 8 & 0xF;
+        std::uint_fast8_t const y = i >> 4 & 0xF;
+        std::uint_fast8_t const z = i >> 0 & 0xF;
 
-                BlockType const *block_type = block_type_table[block.id];
-                if (block_type->generateSolidMesh == nullptr) continue;
-                if (block_type->getSolidSides == nullptr) continue;
-                if (block_type->getSolidSides(block_type, &block) == Sides::NONE) continue;
+        engine::Block const &block = chunk.blocks.data()[i];
 
-                Sides sides = get_visible_sides(chunk, block_type_table, { x, y, z });
-                if (!sides) continue; // no visible sides
+        BlockType const *block_type = block_type_table.data()[block.id];
+        if (block_type->generateSolidMesh == nullptr)
+            continue;
+        if (block_type->getSolidSides == nullptr)
+            continue;
+        if (block_type->getSolidSides(block_type, &block) == Sides::NONE)
+            continue;
 
-                engine::rendering::Mesh mesh = block_type->generateSolidMesh(block_type, &block, sides); // these are in block coords
-                assert(mesh.indices.size() % 3 == 0);
+        Sides sides = get_visible_sides(chunk, block_type_table, { x, y, z });
+        if (!sides) // no visible sides
+            continue;
 
-                for (auto &vertex : mesh.vertices) // transform to chunk coords
-                    vertex.position += glm::vec3 { x, y, z };
+        engine::rendering::Mesh mesh = block_type->generateSolidMesh(block_type, &block, sides); // these are in block coords
+        assert(mesh.indices.size() % 3 == 0);
 
-                for (auto &index : mesh.indices)
-                    index += result.vertices.size();
+        for (auto &vertex : mesh.vertices) // transform to chunk coords
+            vertex.position += glm::vec3 { x, y, z };
 
-                // vertices and indices are trivial so no need to move them
-                result.vertices.insert(result.vertices.end(), mesh.vertices.begin(), mesh.vertices.end());
-                result.indices.insert(result.indices.end(), mesh.indices.begin(), mesh.indices.end());
-            }
-        }
+        for (auto &index : mesh.indices)
+            index += result.vertices.size();
+
+        // vertices and indices are trivial so no need to move them
+        result.vertices.insert(result.vertices.end(), mesh.vertices.begin(), mesh.vertices.end());
+        result.indices.insert(result.indices.end(), mesh.indices.begin(), mesh.indices.end());
     }
 
     using namespace std::literals;
     // {
-    //     utils::TimeIt timer { "vertex duplication removal"sv };
+    //     utils::TimeIt timer { "solid vertex deduplication"sv };
     //     remove_duplicate_vertices(result);
     // }
     {
-        utils::TimeIt timer { "unreferenced vertex removal"sv };
+        utils::TimeIt timer { "solid unreferenced vertex removal"sv };
         remove_unreferenced_vertices(result);
     }
     {
-        utils::TimeIt timer { "lights"sv };
+        utils::TimeIt timer { "solid lights"sv };
         calculate_light(chunk, result);
     }
 
@@ -200,9 +225,19 @@ engine::rendering::Mesh engine::generate_translucent_mesh(engine::Chunk const &c
     // If block is not visible for any side, skip
     // Generate vertices
 
-    calculate_light(chunk, result);
-    remove_duplicate_vertices(result);
-    remove_unreferenced_vertices(result);
+    using namespace std::literals;
+    {
+        utils::TimeIt timer { "translucent vertex duplication removal"sv };
+        remove_duplicate_vertices(result);
+    }
+    {
+        utils::TimeIt timer { "translucent unreferenced vertex removal"sv };
+        remove_unreferenced_vertices(result);
+    }
+    {
+        utils::TimeIt timer { "translucent lights"sv };
+        calculate_light(chunk, result);
+    }
 
     return result;
 }
