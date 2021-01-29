@@ -19,24 +19,19 @@ namespace engine {
         std::string_view displayName;
 
         // default (null) does nothing
-        ALL_NONNULL
-        void (*initialize)(BlockType *, Game *) = nullptr;
+        void (*ALL_NONNULL initialize)(BlockType *, Game *) = nullptr;
 
         // default (null) returns empty
-        ALL_NONNULL
-        engine::rendering::Mesh (*generateSolidMesh)(BlockType const *, Block const *, engine::Sides) = nullptr;
+        engine::rendering::Mesh (*ALL_NONNULL generateSolidMesh)(BlockType const *, Block const *, engine::Sides) = nullptr;
 
         // default (null) returns empty
-        ALL_NONNULL
-        engine::rendering::Mesh (*generateTranslucentMesh)(BlockType const *, Block const *, engine::Sides) = nullptr;
+        engine::rendering::Mesh (*ALL_NONNULL generateTranslucentMesh)(BlockType const *, Block const *, engine::Sides) = nullptr;
 
         // default (null) returns NONE
-        ALL_NONNULL
-        engine::Sides (*getSolidSides)(BlockType const *, Block const *) = nullptr;
+        engine::Sides (*ALL_NONNULL getSolidSides)(BlockType const *, Block const *) = nullptr;
 
         // default (null) returns {0, 0, 0, 0}
-        ALL_NONNULL
-        glm::u8vec4 (*getProducedLight)(BlockType const *, Block const *) = nullptr;
+        glm::u8vec4 (*ALL_NONNULL getProducedLight)(BlockType const *, Block const *) = nullptr;
 
         ALL_NONNULL
         static std::int32_t Register(BlockType *block_type)
