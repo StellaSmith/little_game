@@ -1,7 +1,7 @@
 #ifndef GL_DEBUG_H
 #define GL_DEBUG_H
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #ifdef __cplusplus
 extern "C" {

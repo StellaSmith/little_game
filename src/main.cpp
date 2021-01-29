@@ -4,7 +4,7 @@
 #include "utils/error.hpp"
 
 #include <SDL.h>
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl.h>
@@ -146,7 +146,7 @@ int main(int argc, char **argv) try {
     if (SDL_GL_MakeCurrent(s_window, gl_context) < 0)
         utils::show_error("Can't set OpenGL context current."sv, SDL_GetError());
 
-    if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
+    if (!gladLoadGL(reinterpret_cast<GLADloadfunc>(&SDL_GL_GetProcAddress)))
         utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
 
     if (g_verbose) {

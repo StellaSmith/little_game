@@ -5,7 +5,7 @@
 #include "utils/file.hpp"
 #include "utils/timeit.hpp"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 

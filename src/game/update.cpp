@@ -3,7 +3,7 @@
 #include "engine/rendering/Mesh.hpp"
 #include "math/bits.hpp"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <imgui.h>
 
 #include <algorithm>

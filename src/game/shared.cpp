@@ -4,7 +4,7 @@
 #include "math/bits.hpp"
 #include <engine/BlockType.hpp>
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include <random>
 
