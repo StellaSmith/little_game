@@ -7,7 +7,7 @@
 #include <engine/BlockType.hpp>
 #include <engine/rendering/Mesh.hpp>
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include <algorithm>
 #include <cstring>

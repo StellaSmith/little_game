@@ -6,7 +6,7 @@
 #include "engine/rendering/Mesh.hpp"
 #include "engine/textures.hpp"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include <chrono>
 #include <string_view>
