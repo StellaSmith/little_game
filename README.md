@@ -1,7 +1,9 @@
 # little_game
 A little project aimed to create a minecraft-like game.
 
-[![CI](https://github.com/StellaSmith/little_game/workflows/CI/badge.svg?event=push)](https://github.com/StellaSmith/little_game/actions?query=workflow%3ACI)
+[![Build Win32](https://github.com/StellaSmith/little_game/workflows/Build%20Win32/badge.svg)](https://github.com/StellaSmith/little_game/actions?query=workflow%3A%22Build+Win32%22)
+[![Build MSYS2](https://github.com/StellaSmith/little_game/workflows/Build%20MSYS2/badge.svg)](https://github.com/StellaSmith/little_game/actions?query=workflow%3A%22Build+MSYS2%22)
+[![Build Linux](https://github.com/StellaSmith/little_game/workflows/Build%20Linux/badge.svg)](https://github.com/StellaSmith/little_game/actions?query=workflow%3A%22Build+Linux%22)
 
 ## Building
 ### Windows
