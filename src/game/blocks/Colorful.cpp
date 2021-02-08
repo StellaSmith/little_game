@@ -30,7 +30,11 @@ static engine::Sides ColorfulBlockType_GetSolidSides(engine::BlockType const *, 
 
 static glm::u8vec4 ColorfulBlockType_GetProducedLight(engine::BlockType const *, engine::Block const *block)
 {
-    glm::u8vec4 const color = math::unpack_u32(static_cast<std::uint32_t>(block->data.u64));
+    constexpr float default_intensity = 16.0f;
+    auto color = math::unpack_u32(static_cast<std::uint32_t>(block->data.u64));
+    float const intensity = glm::length(glm::vec3 { color.x, color.y, color.z } / 255.0f);
+    color.w = static_cast<std::uint8_t>(intensity * default_intensity);
+    return color;
     return { color.x, color.y, color.z, 16 };
 }
 

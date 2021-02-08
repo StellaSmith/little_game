@@ -63,23 +63,10 @@ static engine::Sides get_visible_sides(engine::Chunk const &chunk, std::vector<e
     return sides;
 }
 
-static glm::u8vec4 get_produced_light(engine::Block const &block) // r, g, b, intensity
-{
-    if (block.id == 1) {
-        constexpr float default_intensity = 16.0f;
-        auto color = math::unpack_u32(static_cast<std::uint32_t>(block.data.u64));
-        float const intensity = glm::length(glm::vec3 { color.x, color.y, color.z } / 255.0f);
-        color.w = static_cast<std::uint8_t>(intensity * default_intensity);
-        return color;
-    }
-    return { 0, 0, 0, 0 };
-}
-
 static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
 {
     assert(chunk_data.vertices.size() <= UINT32_MAX);
-    if (chunk_data.vertices.empty()) [[unlikely]]
-        return;
+    if (chunk_data.vertices.empty()) [[unlikely]] return;
     for (std::uint32_t i = 0; i < chunk_data.vertices.size() - 1; ++i) {
         auto it = std::find_if(chunk_data.vertices.data() + i + 1, chunk_data.vertices.data() + chunk_data.vertices.size(), [to_find = chunk_data.vertices.data() + i](auto const &vertex) {
             return std::memcmp(to_find, &vertex, sizeof(vertex)) == 0;
@@ -101,15 +88,17 @@ static void OPTIMIZE calculate_light(engine::Chunk const &chunk, engine::renderi
     std::vector<LightData> lights;
     lights.reserve(64);
 
+    auto const block_type_table = engine::BlockType::GetRegistered();
+
     constexpr auto chunk_size = engine::Chunk::chunk_size;
     for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
         std::uint_fast8_t const x = i >> 8 & 0xF;
         std::uint_fast8_t const y = i >> 4 & 0xF;
         std::uint_fast8_t const z = i >> 0 & 0xF;
-        if (!get_visible_sides(chunk, engine::BlockType::GetRegistered(), { x, y, z }))
+        if (!get_visible_sides(chunk, block_type_table, { x, y, z }))
             continue;
         engine::Block const &block = chunk.blocks.data()[i];
-        glm::u8vec4 const produced_light = get_produced_light(block);
+        glm::u8vec4 const produced_light = block_type_table.data()[block.id]->getProducedLight(block_type_table.data()[block.id], &block);
         if (!produced_light.w)
             continue;
 
