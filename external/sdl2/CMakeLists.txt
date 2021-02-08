@@ -1,7 +1,7 @@
 message(STATUS "Setting up SDL2")
 
 FetchContent_Declare(sdl2
-    URL https://www.libsdl.org/release/SDL2-2.0.12.tar.gz
+    URL https://libsdl.org/release/SDL2-2.0.14.tar.gz
 )
 set(SDL_STATIC FALSE CACHE BOOL "Build a static version of the library" FORCE)
 set(VIDEO_DUMMY OFF CACHE BOOL "" FORCE)
