@@ -1,0 +1,25 @@
+name: Build Win32
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-windows:
+    name: Building for ${{ matrix.build_type }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -S . -B build/ -DENABLE_WARNINGS:BOOL=ON
+
+    - name: Build
+      run: cmake --build build/ --config ${{ matrix.build_type }} --parallel 

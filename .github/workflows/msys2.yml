@@ -1,0 +1,41 @@
+name: Build MSYS2
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-msys2:
+    name: Building for ${{ matrix.build_type }} with ${{ matrix.compiler.c }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - c: gcc
+            cxx: g++
+          - c: clang
+            cxx: clang++
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setting up MSYS2 and build deps
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MSYS
+          install: >-
+            base-devel cmake ninja gcc clang 
+
+      - name: Configure
+        shell: msys2 {0}
+        env:
+          CC: ${{ matrix.compiler.c }}
+          CXX: ${{ matrix.compiler.cxx }}
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build/ --parallel
