@@ -25,9 +25,11 @@ jobs:
       - name: Setting up MSYS2 and build deps
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MSYS
           install: >-
-            base-devel cmake ninja gcc clang 
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-clang 
 
       - name: Configure
         shell: msys2 {0}
