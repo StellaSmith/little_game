@@ -8,63 +8,77 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }} for ${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
+  build-msys2:
+    name: Build on MSYS2 for ${{ matrix.build_type }} with ${{ matrix.compiler.c }}
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-latest, macOS-latest]
+        compiler:
+          - c: gcc
+            cxx: g++
+          - c: clang
+            cxx: clang++
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setting up MSYS2 and build deps
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MSYS
+          install: >-
+            base-devel cmake ninja gcc clang 
+
+      - name: Configure
+        shell: msys2 {0}
+        env:
+          CC: ${{ matrix.compiler.c }}
+          CXX: ${{ matrix.compiler.cxx }}
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build/ --parallel
+
+  build-ubuntu:
+    name: Build on ubuntu-18.04 for ${{ matrix.build_type }} with ${{ matrix.compiler.c }}
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - c: gcc-10
+            cxx: g++-10
+          - c: clang-9
+            cxx: clang++-9
         build_type: [Release, Debug]
 
     steps:
     - uses: actions/checkout@v2
-    
-    - name: Setup CMake
-      uses: lukka/get-cmake@latest
 
     - name: Configure
-      shell: cmake -P {0}
-      run: |
-        if ("${{ matrix.os }}" STREQUAL "windows-latest")
-          execute_process(
-            COMMAND ${CMAKE_COMMAND} -S . -B build/
-            RESULT_VARIABLE result
-          )
-        elseif("${{ matrix.os }}" STREQUAL "ubuntu-18.04")
-          set(ENV{CC} gcc-10)
-          set(ENV{CXX} g++-10)
-          execute_process(
-            COMMAND ${CMAKE_COMMAND} -S . -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-            RESULT_VARIABLE result
-          )
-          unset(ENV{CC})
-          unset(ENV{CXX})
-        else()
-          execute_process(
-            COMMAND ${CMAKE_COMMAND} -S . -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-            RESULT_VARIABLE result
-          )
-        endif()
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
+      env:
+        CC: ${{ matrix.compiler.c }}
+        CXX: ${{ matrix.compiler.cxx }}
+      run: cmake -S . -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
 
     - name: Build
-      shell: cmake -P {0}
-      run: |
-        if ("${{ matrix.os }}" STREQUAL "windows-latest")
-          execute_process(
-            COMMAND ${CMAKE_COMMAND} --build build/ --config ${{ matrix.build_type }} --parallel
-            RESULT_VARIABLE result
-          )
-        else()
-          execute_process(
-            COMMAND ${CMAKE_COMMAND} --build build/ --parallel
-            RESULT_VARIABLE result
-          )
-        endif()
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
+      run: cmake --build build/ --parallel
 
+  build-windows:
+    name: Build on windows-latest for ${{ matrix.build_type }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -S . -B build/ -DENABLE_WARNINGS:BOOL=ON
+
+    - name: Build
+      run: cmake --build build/ --config ${{ matrix.build_type }} --parallel 
