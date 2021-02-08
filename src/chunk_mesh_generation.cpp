@@ -66,7 +66,8 @@ static engine::Sides get_visible_sides(engine::Chunk const &chunk, std::vector<e
 static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
 {
     assert(chunk_data.vertices.size() <= UINT32_MAX);
-    if (chunk_data.vertices.empty()) [[unlikely]] return;
+    if (chunk_data.vertices.empty()) [[unlikely]]
+        return;
     for (std::uint32_t i = 0; i < chunk_data.vertices.size() - 1; ++i) {
         auto it = std::find_if(chunk_data.vertices.data() + i + 1, chunk_data.vertices.data() + chunk_data.vertices.size(), [to_find = chunk_data.vertices.data() + i](auto const &vertex) {
             return std::memcmp(to_find, &vertex, sizeof(vertex)) == 0;
@@ -98,11 +99,15 @@ static void OPTIMIZE calculate_light(engine::Chunk const &chunk, engine::renderi
         if (!get_visible_sides(chunk, block_type_table, { x, y, z }))
             continue;
         engine::Block const &block = chunk.blocks.data()[i];
-        glm::u8vec4 const produced_light = block_type_table.data()[block.id]->getProducedLight(block_type_table.data()[block.id], &block);
-        if (!produced_light.w)
-            continue;
 
-        lights.push_back({ { x, y, z }, produced_light });
+        auto const pfn_getProducedLight = block_type_table.data()[block.id]->getProducedLight;
+        if (pfn_getProducedLight != nullptr) {
+            glm::u8vec4 const produced_light = pfn_getProducedLight(block_type_table.data()[block.id], &block);
+            if (!produced_light.w)
+                continue;
+
+            lights.push_back({ { x, y, z }, produced_light });
+        }
     }
 
     for (auto &vertex : mesh_data.vertices) {
