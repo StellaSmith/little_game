@@ -2,8 +2,9 @@
 #define UTILS_TIMEIT_HPP
 
 #include <chrono>
-#include <iostream>
 #include <string_view>
+
+#include <spdlog/spdlog.h>
 
 namespace utils {
     struct TimeIt {
@@ -17,9 +18,9 @@ namespace utils {
 
         ~TimeIt()
         {
-            auto now = clock_type::now();
-            auto delta = static_cast<std::chrono::duration<double, std::milli>>(now - m_start);
-            std::clog << "TIME: " << m_name << " took " << delta.count() << "ms" << std::endl;
+            auto const now = clock_type::now();
+            auto const delta = static_cast<std::chrono::duration<double, std::milli>>(now - m_start);
+            spdlog::info("TIME: {} took {}ms", m_name, delta.count());
         }
 
         clock_type::time_point m_start;
