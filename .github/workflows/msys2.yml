@@ -28,8 +28,7 @@ jobs:
           install: >-
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-clang 
+            mingw-w64-x86_64-${{ matrix.compiler.c }}
 
       - name: Configure
         shell: msys2 {0}
