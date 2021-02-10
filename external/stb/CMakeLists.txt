@@ -1,3 +1,4 @@
+message(STATUS "Setting up stb")
 
 FetchContent_Declare(stb
     URL https://github.com/nothings/stb/archive/b42009b3b9d4ca35bc703f5310eedc74f584be58.tar.gz

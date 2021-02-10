@@ -1,4 +1,4 @@
-
+message(STATUS "Setting up GLAD")
 
 add_library(glad STATIC)
 target_sources(glad
