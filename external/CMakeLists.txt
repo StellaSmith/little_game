@@ -8,5 +8,7 @@ add_subdirectory(sdl2)
 add_subdirectory(glm)
 add_subdirectory(imgui)
 add_subdirectory(nlohmann_json)
+add_subdirectory(fmt)
+add_subdirectory(spdlog)
 
 message(STATUS "All dependencies set up.")
