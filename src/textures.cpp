@@ -8,12 +8,44 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <fmt/format.h>
+#include <memory_resource>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 using json = nlohmann::json;
 using namespace std::literals;
+
+namespace {
+    extern "C" FILE *_wfopen(wchar_t const *, wchar_t const *);
+    static FILE *open_path(std::filesystem::path const &p, char const *mode)
+    {
+        FILE *f;
+        if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>) {
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+            if (0 != fopen_s(&f, p.native().c_str(), mode))
+                f = 0;
+#else
+            f = fopen(p.native().c_str(), mode);
+#endif
+        } else {
+            wchar_t wMode[16] {};
+            {
+                int i = 0;
+                for (auto it = mode; *it; ++it)
+                    wMode[i++] = *it;
+            }
+#if _MSC_VER >= 1400
+            if (0 != _wfopen_s(&f, p.native().c_str(), wMode))
+                f = 0;
+#else
+            f = _wfopen((wchar_t const *)p.native().c_str(), wMode);
+#endif
+        }
+        return f;
+    }
+}
 
 engine::Textures engine::load_textures()
 {
@@ -24,11 +56,20 @@ engine::Textures engine::load_textures()
     try {
         texture_pack = json::parse(fp, nullptr, true, true);
     } catch (std::exception &e) {
+        std::fclose(fp);
         utils::show_error("Error parsing file assets/texture_pack.json\n"s + e.what());
     }
 
     std::fclose(fp);
-    std::unordered_map<std::string_view, std::string_view> textures;
+
+    int max_layers;
+    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &max_layers);
+
+    using map_type = std::pmr::unordered_map<std::string_view, std::string_view>;
+
+    auto buffer = std::make_unique<char[]>(std::min(max_layers, 1024) * sizeof(typename map_type::value_type));
+    std::pmr::monotonic_buffer_resource buffer_resource;
+    map_type textures(&buffer_resource);
 
     try {
         texture_pack.at("textures").get_to(textures);
@@ -36,14 +77,8 @@ engine::Textures engine::load_textures()
         utils::show_error("Error obtaining textures\n"s + e.what());
     }
 
-    int max_layers;
-    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &max_layers);
     if (textures.size() > static_cast<unsigned>(max_layers)) {
-        std::string str_error = "The maximun amount of textures in your system is ";
-        str_error += std::to_string(max_layers);
-        str_error += " but "sv;
-        str_error += std::to_string(textures.size());
-        str_error += " where specified."sv;
+        std::string str_error = fmt::format("The maximun amount of textures in your system is {} but {}  where specified.", max_layers, textures.size());
         utils::show_error(str_error);
     }
 
@@ -60,16 +95,23 @@ engine::Textures engine::load_textures()
         auto const path = std::filesystem::current_path() / "assets"sv / name_path;
 
         int x, y, c;
-        auto *buf = stbi_load(path.string().c_str(), &x, &y, &c, 4);
+        FILE *f = open_path(path, "rb");
+        if (!f) {
+            std::string str_error;
+            if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>)
+                str_error = fmt::format("Error openning image {}", path.native());
+            else
+                str_error = fmt::format("Error openning image {}", path.string());
+            utils::show_error(str_error);
+        }
+        stbi_uc *buf = stbi_load_from_file(f, &x, &y, &c, 4);
+        std::fclose(f);
         if (!buf) {
-            std::string str_error = "Error loading image ";
-#if _WIN32
-            str_error += path.string();
-#else
-            str_error += path;
-#endif
-            str_error += '\n';
-            str_error += stbi_failure_reason();
+            std::string str_error;
+            if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>)
+                str_error = fmt::format("Error loading image  {}\n{}", path.native(), stbi_failure_reason());
+            else
+                str_error = fmt::format("Error loading image  {}\n{}", path.string(), stbi_failure_reason());
             utils::show_error(str_error);
         }
 
