@@ -16,12 +16,6 @@
 
 #include <engine/Block.hpp>
 
-#if defined(__GNUC__) || defined(__clang__)
-#define OPTIMIZE __attribute__((optimize("Ofast")))
-#else
-#define OPTIMIZE
-#endif
-
 template <std::size_t D, typename First, typename... Rest, typename std::enable_if_t<std::is_integral_v<std::common_type_t<First, Rest...>>, std::nullptr_t> = nullptr>
 constexpr static std::size_t cube_at(First first, Rest... rest)
 {
@@ -79,7 +73,7 @@ static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
     }
 }
 
-static void OPTIMIZE calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh &mesh_data)
+static void calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh &mesh_data)
 {
     struct LightData {
         glm::vec3 position;
