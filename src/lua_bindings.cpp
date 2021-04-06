@@ -179,7 +179,7 @@ static int l_open_import(lua_State *L)
                 lua_newtable(L);
                 lua_pushvalue(L, 1);
                 lua_setfield(L, -2, "path");
-                if (luaL_loadfilex(L, abs_path.native().c_str(), "t"))
+                if (luaL_loadfilex(L, abs_path.string().c_str(), "t"))
                     return luaL_error(L, "%s", lua_tostring(L, -1));
 
                 int n = lua_gettop(L);
