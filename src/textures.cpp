@@ -17,34 +17,9 @@
 using json = nlohmann::json;
 using namespace std::literals;
 
-namespace {
-    extern "C" FILE *_wfopen(wchar_t const *, wchar_t const *);
-    static FILE *open_path(std::filesystem::path const &p, char const *mode)
-    {
-        FILE *f;
-        if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>) {
-#if defined(_MSC_VER) && _MSC_VER >= 1400
-            if (0 != fopen_s(&f, p.native().c_str(), mode))
-                f = 0;
-#else
-            f = fopen(p.native().c_str(), mode);
-#endif
-        } else {
-            wchar_t wMode[16] {};
-            {
-                int i = 0;
-                for (auto it = mode; *it; ++it)
-                    wMode[i++] = *it;
-            }
-#if _MSC_VER >= 1400
-            if (0 != _wfopen_s(&f, p.native().c_str(), wMode))
-                f = 0;
-#else
-            f = _wfopen((wchar_t const *)p.native().c_str(), wMode);
-#endif
-        }
-        return f;
-    }
+static FILE *open_path(std::filesystem::path const &p, char const *mode)
+{
+    return std::fopen(p.string().c_str(), mode);
 }
 
 engine::Textures engine::load_textures()
