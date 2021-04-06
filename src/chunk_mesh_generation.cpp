@@ -30,7 +30,7 @@ static engine::Sides get_visible_sides(engine::Chunk const &chunk, std::vector<e
     using engine::Sides;
     constexpr auto chunk_size = engine::Chunk::chunk_size;
 
-    auto const is_solid = [block_type_table](engine::Block const &block) -> bool {
+    auto const is_solid = [block_type_table](engine::Block const &block) -> Sides {
         auto const block_type = block_type_table[block.id];
         auto pfn_getSolidSides = block_type->getSolidSides;
         if (!pfn_getSolidSides) return engine::Sides::NONE;
