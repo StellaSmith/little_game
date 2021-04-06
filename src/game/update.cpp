@@ -75,6 +75,45 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     }
     ImGui::End();
 
+    if (ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+        static char line_buf[1024 * 8] {};
+        static bool enter = false;
+
+        if (std::exchange(enter, false))
+            ImGui::SetNextWindowFocus();
+
+        enter |= ImGui::InputText("##Input", line_buf, std::size(line_buf), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::SameLine();
+        enter |= ImGui::Button("Eval");
+
+        ImGui::SameLine();
+        if (ImGui::Button("Clear"))
+            m_console_text.clear();
+
+        if (enter) {
+            m_console_text.push_back(line_buf);
+            std::memset(line_buf, 0, sizeof(line_buf));
+        }
+
+        ImGui::BeginChild("Output", {}, true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_HorizontalScrollbar);
+        static float prev_scroll = 0;
+        static float prev_max_scroll = 0;
+
+        if (prev_scroll == prev_max_scroll)
+            ImGui::SetScrollY(ImGui::GetScrollMaxY());
+
+        for (std::string const &line : m_console_text) {
+            ImGui::TextUnformatted(line.data(), line.data() + line.size());
+        }
+
+        prev_scroll = ImGui::GetScrollY();
+        prev_max_scroll = ImGui::GetScrollMaxY();
+
+        ImGui::EndChild();
+    }
+    ImGui::End();
+
     std::vector<glm::i32vec4> to_delete;
     std::vector<Chunk> to_add;
 

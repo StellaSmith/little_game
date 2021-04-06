@@ -42,6 +42,8 @@ void engine::Game::start()
 
     std::uint32_t colorfulId = BlockType::GetRegisteredIdByName("colorful_block"sv);
 
+    setup_lua();
+
     running = true;
     std::random_device rd {};
     std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };

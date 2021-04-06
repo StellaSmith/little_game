@@ -25,6 +25,7 @@ add_executable(little_game
     src/game/blocks/Stone.cpp
     src/game/blocks/Dirt.cpp
     src/game/blocks/Grass.cpp
+    src/lua_bindings.cpp
 
     include/engine/Chunk.hpp
     include/engine/game.hpp
@@ -44,7 +45,9 @@ add_executable(little_game
     include/utils/error.hpp
     include/operators.hpp
 )
-target_link_libraries(little_game PRIVATE glad SDL2 glm stb imgui nlohmann_json fmt spdlog)
+
+target_link_libraries(little_game PRIVATE glad SDL2 glm stb imgui nlohmann_json fmt spdlog lua)
+
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC GLM_FORCE_XYZW_ONLY)
@@ -93,6 +96,6 @@ install(FILES run.sh run.bat
         OWNER_WRITE
 )
 
-install(DIRECTORY assets cfg
+install(DIRECTORY assets cfg lua
     DESTINATION .
 )
