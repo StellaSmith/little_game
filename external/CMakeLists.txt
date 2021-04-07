@@ -11,5 +11,7 @@ add_subdirectory(imgui)
 add_subdirectory(nlohmann_json)
 add_subdirectory(fmt)
 add_subdirectory(spdlog)
+add_subdirectory(entt)
+add_subdirectory(edyn)
 
 message(STATUS "All dependencies set up.")
