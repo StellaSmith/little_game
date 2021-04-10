@@ -5,5 +5,3 @@ FetchContent_Declare(edyn
 )
 
 FetchContent_MakeAvailable(edyn)
-
-
