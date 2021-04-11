@@ -2,7 +2,6 @@
 #define ENGINE_GAME_HPP
 
 #include "engine/Chunk.hpp"
-#include "engine/chunk_mesh_generation.hpp"
 #include "engine/rendering/Mesh.hpp"
 #include "engine/textures.hpp"
 
@@ -50,6 +49,9 @@ namespace engine {
         void setup_lua();
 
         static int l_print(lua_State *);
+
+        rendering::Mesh generate_solid_mesh(glm::i32vec4 coord);
+        rendering::Mesh generate_translucent_mesh(glm::i32vec4 coord);
 
     public:
         bool running;

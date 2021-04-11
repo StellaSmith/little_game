@@ -28,7 +28,6 @@ add_executable(little_game
 
     include/engine/Chunk.hpp
     include/engine/game.hpp
-    include/engine/chunk_mesh_generation.hpp
     include/engine/Block.hpp
     include/engine/BlockType.hpp
     include/engine/rendering/Mesh.hpp
