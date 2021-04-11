@@ -9,6 +9,7 @@
 #include <cmath>
 
 extern engine::Camera g_camera;
+extern float g_mouse_sensitivity;
 static glm::vec2 mouse_rot { 0, 0 };
 
 void engine::Game::input(SDL_Event const &event)
@@ -20,7 +21,7 @@ void engine::Game::input(SDL_Event const &event)
             glViewport(0, 0, event.window.data1, event.window.data2);
         }
     } else if (event.type == SDL_MOUSEMOTION) {
-        constexpr float speed_multipler = -0.01f;
+        float const speed_multipler = g_mouse_sensitivity * -0.01f;
 
         mouse_rot += glm::vec2 { event.motion.xrel, event.motion.yrel } * speed_multipler;
         mouse_rot.y = std::clamp(mouse_rot.y, -glm::pi<float>() / 2.0f, glm::pi<float>() / 2.0f);
