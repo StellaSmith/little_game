@@ -144,7 +144,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 coord)
     result.vertices.reserve(256);
     result.indices.reserve(256);
 
-    std::vector<engine::BlockType *> const block_type_table = BlockType::GetRegistered();
+    std::vector<engine::BlockType *> const &block_type_table = BlockType::GetRegistered();
 
     constexpr auto chunk_size = engine::Chunk::chunk_size;
     for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
