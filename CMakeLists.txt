@@ -46,7 +46,7 @@ add_executable(little_game
     include/operators.hpp
 )
 
-target_link_libraries(little_game PRIVATE glad SDL2 glm stb imgui nlohmann_json fmt spdlog lua)
+target_link_libraries(little_game PRIVATE glad SDL2 glm stb imgui nlohmann_json fmt spdlog lua Edyn)
 
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
