@@ -42,7 +42,7 @@ namespace engine {
             return static_cast<std::int32_t>(s_registeredBlockTypes.size() - 1);
         }
 
-        [[nodiscard]] static std::vector<BlockType *> GetRegistered()
+        [[nodiscard]] static std::vector<BlockType *> const &GetRegistered()
         {
             return s_registeredBlockTypes;
         }
