@@ -128,8 +128,8 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
                 std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, std::make_pair(rendering::MeshHandle { buffers[0], buffers[1], 0 }, rendering::MeshHandle { buffers[2], buffers[3], 0 }));
             }
 
-            auto const solid_mesh = generate_solid_mesh(chunk);
-            auto const translucent_mesh = generate_translucent_mesh(chunk);
+            auto const solid_mesh = generate_solid_mesh(k);
+            auto const translucent_mesh = generate_translucent_mesh(k);
 
             auto const sorted_indices = get_sorted_indices(translucent_mesh);
 

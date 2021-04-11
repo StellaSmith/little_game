@@ -1,4 +1,3 @@
-#include "engine/chunk_mesh_generation.hpp"
 #include "engine/Chunk.hpp"
 #include "engine/game.hpp"
 #include "math/bits.hpp"
@@ -131,9 +130,15 @@ static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
 }
 
-engine::rendering::Mesh engine::generate_solid_mesh(engine::Chunk const &chunk)
+engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 coord)
 {
     engine::rendering::Mesh result;
+
+    auto it = m_chunks.find(coord);
+    if (it == m_chunks.end())
+        return result;
+
+    auto const &chunk = it->second;
 
     // avoid small allocations
     result.vertices.reserve(256);
@@ -181,11 +186,11 @@ engine::rendering::Mesh engine::generate_solid_mesh(engine::Chunk const &chunk)
     //     remove_duplicate_vertices(result);
     // }
     {
-        utils::TimeIt timer { "solid unreferenced vertex removal"sv };
+        // utils::TimeIt timer { "solid unreferenced vertex removal"sv };
         remove_unreferenced_vertices(result);
     }
     {
-        utils::TimeIt timer { "solid lights"sv };
+        // utils::TimeIt timer { "solid lights"sv };
         calculate_light(chunk, result);
     }
 
@@ -196,9 +201,15 @@ engine::rendering::Mesh engine::generate_solid_mesh(engine::Chunk const &chunk)
 }
 
 // will be called more frequently
-engine::rendering::Mesh engine::generate_translucent_mesh(engine::Chunk const &chunk)
+engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 coord)
 {
     engine::rendering::Mesh result;
+
+    auto it = m_chunks.find(coord);
+    if (it == m_chunks.end())
+        return result;
+
+    auto const &chunk = it->second;
 
     // avoid small allocations
     result.vertices.reserve(256);
@@ -215,15 +226,15 @@ engine::rendering::Mesh engine::generate_translucent_mesh(engine::Chunk const &c
 
     using namespace std::literals;
     {
-        utils::TimeIt timer { "translucent vertex duplication removal"sv };
+        // utils::TimeIt timer { "translucent vertex duplication removal"sv };
         remove_duplicate_vertices(result);
     }
     {
-        utils::TimeIt timer { "translucent unreferenced vertex removal"sv };
+        // utils::TimeIt timer { "translucent unreferenced vertex removal"sv };
         remove_unreferenced_vertices(result);
     }
     {
-        utils::TimeIt timer { "translucent lights"sv };
+        // utils::TimeIt timer { "translucent lights"sv };
         calculate_light(chunk, result);
     }
 
