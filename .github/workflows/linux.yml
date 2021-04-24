@@ -9,15 +9,15 @@ on:
 jobs:
   build-ubuntu:
     name: Building for ${{ matrix.build_type }} with ${{ matrix.compiler.c }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         compiler:
           - c: gcc-10
             cxx: g++-10
-          - c: clang-9
-            cxx: clang++-9
+          - c: clang-11
+            cxx: clang++-11
         build_type: [Release, Debug]
 
     steps:
