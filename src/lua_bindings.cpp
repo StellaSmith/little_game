@@ -1,12 +1,11 @@
 
 
+#include <fmt/format.h>
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
 #include <nlohmann/json.hpp>
-
-#include <cinttypes>
-#include <iostream>
+#include <spdlog/spdlog.h>
 #include <string>
 
 #include "engine/game.hpp"
@@ -64,7 +63,7 @@ int engine::Game::l_print(lua_State *L)
             line += "nil"sv;
             break;
         case LUA_TNUMBER:
-            line += std::to_string(lua_tointeger(L, i));
+            fmt::format_to(std::back_inserter(line), "{}", lua_tonumber(L, i));
             break;
 
         default:
@@ -85,27 +84,23 @@ int engine::Game::l_print(lua_State *L)
             }
 
             default: {
-                char const *type_name = luaL_typename(L, i);
-                auto address = reinterpret_cast<std::uintptr_t>(lua_topointer(L, i));
-                constexpr char const *fmt = []() {
+                char const *const type_name = luaL_typename(L, i);
+                auto const address = reinterpret_cast<std::uintptr_t>(lua_topointer(L, i));
+                constexpr std::string_view fmt = []() {
                     if constexpr (sizeof(void *) == 8)
-                        return "<%s at 0x%016" PRIXPTR ">";
+                        return "<{} at 0x{:016}>"sv;
                     else
-                        return "<%s at 0x%08" PRIXPTR ">";
+                        return "<{} at 0x{:08}>"sv;
                 }();
-
-                int len = std::snprintf(nullptr, 0, fmt, type_name, address) + 1;
-                line.resize(line.size() + len);
-                std::snprintf(line.data() + line.size() - len, len, fmt, type_name, address);
-                line.pop_back(); // the nul terminator added by snprintf
-
+                fmt::format_to(std::back_inserter(line), fmt, type_name, address);
             } break;
             };
         }
         line += '\t';
     }
 
-    line.pop_back();
+    if (n)
+        line.pop_back();
 
     self->m_console_text.emplace_back(std::move(line));
     while (self->m_console_text.size() > max_lines)
@@ -233,10 +228,10 @@ void engine::Game::setup_lua()
     try {
         g_config_engine.at("/Terminal/max_lines"_json_pointer).get_to(max_lines);
         if (max_lines > std::numeric_limits<lua_Integer>::max())
-            throw std::range_error("/Terminal/max_lines cant be bigger than "s + std::to_string(std::numeric_limits<lua_Integer>::max()));
+            throw std::range_error(fmt::format("/Terminal/max_lines cant be bigger than {}", std::numeric_limits<lua_Integer>::max()));
     } catch (std::exception &e) {
         if (g_verbose)
-            std::clog << "Error: Can't obtain /Terminal/max_lines, using the default of " << max_lines << "\n\t" << e.what() << std::endl;
+            spdlog::error("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}\n", max_lines, e.what());
     }
 
     luaopen_base(m_lua);
@@ -277,14 +272,10 @@ void engine::Game::setup_lua()
     int ret;
 
     ret = luaL_loadfilex(m_lua, "lua/sv_init.lua", "t") || docall(m_lua, 0, 0);
-    if (ret) {
-        std::cout << "Can't init server lua:\n"
-                  << lua_tostring(m_lua, -1) << std::endl;
-    }
+    if (ret)
+        spdlog::error("Can't init server lua: {}\n", lua_tostring(m_lua, -1));
 
     ret = luaL_loadfilex(m_lua, "lua/cl_init.lua", "t") || docall(m_lua, 0, 0);
-    if (ret) {
-        std::cout << "Can't init client lua:\n"
-                  << lua_tostring(m_lua, -1) << std::endl;
-    }
+    if (ret)
+        spdlog::error("Can't init client lua: {}\n", lua_tostring(m_lua, -1));
 }
