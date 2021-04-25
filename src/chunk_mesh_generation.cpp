@@ -1,9 +1,9 @@
-#include "engine/Chunk.hpp"
 #include "engine/game.hpp"
 #include "math/bits.hpp"
 #include "math/constexpr.hpp"
 #include "utils/timeit.hpp"
 #include <engine/BlockType.hpp>
+#include <engine/components/ChunkData.hpp>
 #include <engine/rendering/Mesh.hpp>
 
 #include <glad/gl.h>
@@ -12,8 +12,6 @@
 #include <cstring>
 #include <type_traits>
 #include <vector>
-
-#include <engine/Block.hpp>
 
 template <std::size_t D, typename First, typename... Rest, typename std::enable_if_t<std::is_integral_v<std::common_type_t<First, Rest...>>, std::nullptr_t> = nullptr>
 constexpr static std::size_t cube_at(First first, Rest... rest)
@@ -24,10 +22,10 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
         return first * math::c_ipow_v<D, sizeof...(Rest)> + cube_at<D>(rest...);
 }
 
-static engine::Sides get_visible_sides(engine::Chunk const &chunk, std::vector<engine::BlockType *> const &block_type_table, glm::u32vec3 block_pos)
+static engine::Sides get_visible_sides(engine::C_ChunkData const &chunk, std::vector<engine::BlockType *> const &block_type_table, glm::u32vec3 block_pos)
 {
     using engine::Sides;
-    constexpr auto chunk_size = engine::Chunk::chunk_size;
+    constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
 
     auto const is_solid = [block_type_table](engine::Block const &block) -> Sides {
         auto const block_type = block_type_table[block.id];
@@ -72,7 +70,7 @@ static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
     }
 }
 
-static void calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh &mesh_data)
+static void calculate_light(engine::C_ChunkData const &chunk, engine::rendering::Mesh &mesh_data)
 {
     struct LightData {
         glm::vec3 position;
@@ -84,14 +82,14 @@ static void calculate_light(engine::Chunk const &chunk, engine::rendering::Mesh 
 
     auto const block_type_table = engine::BlockType::GetRegistered();
 
-    constexpr auto chunk_size = engine::Chunk::chunk_size;
+    constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
     for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
         std::uint_fast8_t const x = i >> 8 & 0xF;
         std::uint_fast8_t const y = i >> 4 & 0xF;
         std::uint_fast8_t const z = i >> 0 & 0xF;
         if (!get_visible_sides(chunk, block_type_table, { x, y, z }))
             continue;
-        engine::Block const &block = chunk.blocks.data()[i];
+        engine::Block const &block = chunk.blocks[i];
 
         auto const pfn_getProducedLight = block_type_table.data()[block.id]->getProducedLight;
         if (pfn_getProducedLight != nullptr) {
@@ -130,15 +128,16 @@ static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
 }
 
-engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 coord)
+engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 chunk_position)
 {
     engine::rendering::Mesh result;
 
-    auto it = m_chunks.find(coord);
+    auto it = m_chunks.find(chunk_position);
     if (it == m_chunks.end())
         return result;
 
-    auto const &chunk = it->second;
+    entt::entity const chunk = it->second;
+    auto const &chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
 
     // avoid small allocations
     result.vertices.reserve(256);
@@ -146,13 +145,13 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 coord)
 
     std::vector<engine::BlockType *> const &block_type_table = BlockType::GetRegistered();
 
-    constexpr auto chunk_size = engine::Chunk::chunk_size;
+    constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
     for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
         std::uint_fast8_t const x = i >> 8 & 0xF;
         std::uint_fast8_t const y = i >> 4 & 0xF;
         std::uint_fast8_t const z = i >> 0 & 0xF;
 
-        engine::Block const &block = chunk.blocks.data()[i];
+        engine::Block const &block = chunk_data.blocks[i];
 
         BlockType const *block_type = block_type_table.data()[block.id];
         if (block_type->generateSolidMesh == nullptr)
@@ -162,7 +161,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 coord)
         if (block_type->getSolidSides(block_type, &block) == Sides::NONE)
             continue;
 
-        Sides sides = get_visible_sides(chunk, block_type_table, { x, y, z });
+        Sides sides = get_visible_sides(chunk_data, block_type_table, { x, y, z });
         if (!sides) // no visible sides
             continue;
 
@@ -191,25 +190,26 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 coord)
     }
     {
         // utils::TimeIt timer { "solid lights"sv };
-        calculate_light(chunk, result);
+        calculate_light(chunk_data, result);
     }
 
     for (auto &vertex : result.vertices) // transform to world coords
-        vertex.position += static_cast<glm::vec3>(chunk.position) * static_cast<float>(chunk_size);
+        vertex.position += static_cast<glm::vec3>(chunk_position) * static_cast<float>(chunk_size);
 
     return result;
 }
 
 // will be called more frequently
-engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 coord)
+engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 chunk_position)
 {
     engine::rendering::Mesh result;
 
-    auto it = m_chunks.find(coord);
+    auto it = m_chunks.find(chunk_position);
     if (it == m_chunks.end())
         return result;
 
-    auto const &chunk = it->second;
+    entt::entity const chunk = it->second;
+    auto const& chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
 
     // avoid small allocations
     result.vertices.reserve(256);
@@ -235,7 +235,7 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 coo
     }
     {
         // utils::TimeIt timer { "translucent lights"sv };
-        calculate_light(chunk, result);
+        calculate_light(chunk_data, result);
     }
 
     return result;

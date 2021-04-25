@@ -27,7 +27,6 @@ add_executable(little_game
     src/game/blocks/Grass.cpp
     src/lua_bindings.cpp
 
-    include/engine/Chunk.hpp
     include/engine/game.hpp
     include/engine/Block.hpp
     include/engine/BlockType.hpp

@@ -1,10 +1,10 @@
 #ifndef ENGINE_GAME_HPP
 #define ENGINE_GAME_HPP
 
-#include "engine/Chunk.hpp"
 #include "engine/rendering/Mesh.hpp"
 #include "engine/textures.hpp"
 
+#include <entt/entt.hpp>
 #include <glad/gl.h>
 
 #include <chrono>
@@ -38,6 +38,7 @@ namespace engine {
         void update(clock_type::duration);
         void render();
         void input(SDL_Event const &);
+        void cleanup();
 
         int get_texture_index(std::string_view) const noexcept;
 
@@ -49,6 +50,9 @@ namespace engine {
         void setup_lua();
 
         static int l_print(lua_State *);
+
+        void on_chunk_construct(entt::registry &, entt::entity chunk);
+        void on_chunk_destroy(entt::registry &, entt::entity chunk);
 
         rendering::Mesh generate_solid_mesh(glm::i32vec4 coord);
         rendering::Mesh generate_translucent_mesh(glm::i32vec4 coord);
@@ -68,7 +72,9 @@ namespace engine {
 
         engine::Textures m_textures;
 
-        std::unordered_map<glm::i32vec4, Chunk> m_chunks;
+        entt::registry m_entity_registry;
+        std::unordered_map<glm::i32vec4, entt::entity> m_chunks;
+
         std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
         std::unordered_map<glm::i32vec4, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
