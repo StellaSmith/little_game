@@ -254,6 +254,8 @@ int main(int argc, char **argv)
             SDL_GL_SwapWindow(s_window);
         }
 
+        game.cleanup();
+
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();

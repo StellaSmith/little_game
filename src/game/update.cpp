@@ -37,6 +37,10 @@ float g_mouse_sensitivity = 1;
 #include <cstring>
 #include <tuple>
 
+#include <engine/components/ChunkData.hpp>
+#include <engine/components/ChunkPosition.hpp>
+#include <engine/components/Dirty.hpp>
+
 void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {
     const double d_delta = std::chrono::duration<double>(delta).count();
@@ -77,20 +81,60 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     }
     ImGui::End();
 
-    std::vector<glm::i32vec4> to_delete;
-    std::vector<Chunk> to_add;
+    if (ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+        static char line_buf[1024 * 8] {};
+        static bool enter = false;
 
-    for (auto &[k, chunk] : m_chunks) {
-        if (chunk.modified) {
-            auto it = m_chunk_meshes.find(chunk.position);
+        if (std::exchange(enter, false))
+            ImGui::SetNextWindowFocus();
+
+        enter |= ImGui::InputText("##Input", line_buf, std::size(line_buf), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::SameLine();
+        enter |= ImGui::Button("Eval");
+
+        ImGui::SameLine();
+        if (ImGui::Button("Clear"))
+            m_console_text.clear();
+
+        if (enter) {
+            m_console_text.push_back(line_buf);
+            std::memset(line_buf, 0, sizeof(line_buf));
+        }
+
+        ImGui::BeginChild("Output", {}, true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_HorizontalScrollbar);
+        static float prev_scroll = 0;
+        static float prev_max_scroll = 0;
+
+        if (prev_scroll == prev_max_scroll)
+            ImGui::SetScrollY(ImGui::GetScrollMaxY());
+
+        for (std::string const &line : m_console_text) {
+            ImGui::TextUnformatted(line.data(), line.data() + line.size());
+        }
+
+        prev_scroll = ImGui::GetScrollY();
+        prev_max_scroll = ImGui::GetScrollMaxY();
+
+        ImGui::EndChild();
+    }
+    ImGui::End();
+
+    std::vector<decltype(m_entity_registry)::entity_type> to_delete;
+    // std::vector<Chunk> to_add;
+
+    for (entt::entity chunk : m_entity_registry.view<engine::C_ChunkPosition, engine::C_ChunkData>()) {
+        auto const &[chunk_position, chunk_data] = m_entity_registry.get<engine::C_ChunkPosition, engine::C_ChunkData>(chunk);
+        if (m_entity_registry.has<engine::C_Dirty>(chunk)) {
+            auto it = m_chunk_meshes.find(chunk_position);
             if (it == m_chunk_meshes.end()) {
                 GLuint buffers[4];
                 glGenBuffers(std::size(buffers), buffers);
-                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk.position, std::make_pair(rendering::MeshHandle { buffers[0], buffers[1], 0 }, rendering::MeshHandle { buffers[2], buffers[3], 0 }));
+                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk_position, std::make_pair(rendering::MeshHandle { buffers[0], buffers[1], 0 }, rendering::MeshHandle { buffers[2], buffers[3], 0 }));
             }
 
-            auto const solid_mesh = generate_solid_mesh(k);
-            auto const translucent_mesh = generate_translucent_mesh(k);
+            auto const solid_mesh = generate_solid_mesh(chunk_position);
+            auto const translucent_mesh = generate_translucent_mesh(chunk_position);
 
             auto const sorted_indices = get_sorted_indices(translucent_mesh);
 
@@ -111,15 +155,15 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-            if (auto mesh_data = m_translucent_mesh_data.find(chunk.position); mesh_data != m_translucent_mesh_data.end())
+            if (auto mesh_data = m_translucent_mesh_data.find(chunk_position); mesh_data != m_translucent_mesh_data.end())
                 mesh_data->second = std::move(translucent_mesh);
             else
-                m_translucent_mesh_data.emplace(chunk.position, std::move(translucent_mesh));
+                m_translucent_mesh_data.emplace(chunk_position, std::move(translucent_mesh));
 
-            chunk.modified = false;
+            m_entity_registry.remove<engine::C_Dirty>(chunk);
         } else if (g_camera.position != previous_camera_position) {
-            auto p_mesh = m_chunk_meshes.find(chunk.position);
-            auto p_data = m_translucent_mesh_data.find(chunk.position);
+            auto p_mesh = m_chunk_meshes.find(chunk_position);
+            auto p_data = m_translucent_mesh_data.find(chunk_position);
             if (p_mesh != m_chunk_meshes.end() && p_data != m_translucent_mesh_data.end()) {
                 auto const sorted_indices = get_sorted_indices(p_data->second);
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.second.index_buffer);
@@ -129,18 +173,13 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
         }
     }
 
-    for (auto position : to_delete) {
-        m_chunks.erase(position);
-        m_translucent_mesh_data.erase(position);
-        auto p_mesh = std::find_if(m_chunk_meshes.begin(), m_chunk_meshes.end(), [position](auto const &p) { return p.first == position; });
-        if (p_mesh != m_chunk_meshes.end())
-            m_chunk_meshes.erase(p_mesh);
+    for (entt::entity chunk : to_delete) {
+        auto const &chunk_position = m_entity_registry.get<engine::C_ChunkPosition>(chunk);
+        m_chunks.erase(chunk_position);
+        m_translucent_mesh_data.erase(chunk_position);
+        m_chunk_meshes.erase(chunk_position);
     }
-
-    for (auto &chunk : to_add) {
-        chunk.modified = true; // will generate the meshes next iteration
-        m_chunks.emplace(chunk.position, std::move(chunk));
-    }
+    m_entity_registry.destroy(to_delete.cbegin(), to_delete.cend());
 
     previous_camera_position = g_camera.position;
 }
