@@ -19,7 +19,7 @@ engine::rendering::Mesh GetVertices_Common(Sides sides, int texture_index, glm::
 static engine::rendering::Mesh ColorfulBlockType_GenerateSolidMesh(engine::BlockType const *block_type, engine::Block const *block, Sides visible_sides)
 {
     auto *self = reinterpret_cast<ColorfulBlockType const *>(block_type);
-    glm::u8vec4 color = math::unpack_u32(static_cast<std::uint32_t>(block->data.u64));
+    glm::u8vec4 color = math::unpack_u32(block->subid);
     return GetVertices_Common(visible_sides, self->textureIndex, { color.x, color.y, color.z });
 }
 
@@ -31,7 +31,7 @@ static engine::Sides ColorfulBlockType_GetSolidSides(engine::BlockType const *, 
 static glm::u8vec4 ColorfulBlockType_GetProducedLight(engine::BlockType const *, engine::Block const *block)
 {
     constexpr float default_intensity = 16.0f;
-    auto color = math::unpack_u32(static_cast<std::uint32_t>(block->data.u64));
+    auto color = math::unpack_u32(block->subid);
     float const intensity = glm::length(glm::vec3 { color.x, color.y, color.z } / 255.0f);
     color.w = static_cast<std::uint8_t>(intensity * default_intensity);
     return color;

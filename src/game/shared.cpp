@@ -53,7 +53,7 @@ void engine::Game::start()
 
         for (auto &block : chunk.blocks) {
             if ((block.id = id_dist(rd)) == colorfulId)
-                block.data.u64 = math::pack_u32(dist(rd), dist(rd), dist(rd));
+                block.subid = math::pack_u32(dist(rd), dist(rd), dist(rd));
         }
 
         chunk.modified = true;
