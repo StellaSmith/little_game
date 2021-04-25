@@ -1,4 +1,3 @@
-#include "engine/Chunk.hpp"
 #include "engine/game.hpp"
 #include "glDebug.h"
 #include "utils/error.hpp"

@@ -1,6 +1,7 @@
 #ifndef ENGINE_BLOCKTYPE_HPP
 #define ENGINE_BLOCKTYPE_HPP
 
+#include <engine/Sides.hpp>
 #include <engine/Block.hpp>
 #include <engine/rendering/Mesh.hpp>
 
@@ -22,16 +23,16 @@ namespace engine {
         void (*ALL_NONNULL initialize)(BlockType *, Game *) = nullptr;
 
         // default (null) returns empty
-        engine::rendering::Mesh (*ALL_NONNULL generateSolidMesh)(BlockType const *, Block const *, engine::Sides) = nullptr;
+        engine::rendering::Mesh (*ALL_NONNULL generateSolidMesh)(BlockType const *, engine::Block const *, engine::Sides) = nullptr;
 
         // default (null) returns empty
-        engine::rendering::Mesh (*ALL_NONNULL generateTranslucentMesh)(BlockType const *, Block const *, engine::Sides) = nullptr;
+        engine::rendering::Mesh (*ALL_NONNULL generateTranslucentMesh)(BlockType const *, engine::Block const *, engine::Sides) = nullptr;
 
         // default (null) returns NONE
-        engine::Sides (*ALL_NONNULL getSolidSides)(BlockType const *, Block const *) = nullptr;
+        engine::Sides (*ALL_NONNULL getSolidSides)(BlockType const *, engine::Block const *) = nullptr;
 
         // default (null) returns {0, 0, 0, 0}
-        glm::u8vec4 (*ALL_NONNULL getProducedLight)(BlockType const *, Block const *) = nullptr;
+        glm::u8vec4 (*ALL_NONNULL getProducedLight)(BlockType const *, engine::Block const *) = nullptr;
 
         ALL_NONNULL
         static std::int32_t Register(BlockType *block_type)
