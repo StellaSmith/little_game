@@ -89,7 +89,7 @@ void engine::Game::stop()
 #include <lua.h>
 void engine::Game::cleanup()
 {
-    assert(!m_running);
+    assert(!running);
     lua_close(m_lua);
     {
         std::vector<entt::entity> const to_delete(m_entity_registry.data(), m_entity_registry.data() + m_entity_registry.size());
