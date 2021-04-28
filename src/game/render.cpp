@@ -4,6 +4,7 @@
 #include "utils/error.hpp"
 #include "utils/file.hpp"
 #include "utils/timeit.hpp"
+#include <engine/components/ChunkData.hpp>
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -151,7 +152,6 @@ void engine::Game::setup_texture()
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
-#include <engine/components/ChunkData.hpp>
 
 void engine::Game::render()
 {
@@ -164,7 +164,7 @@ void engine::Game::render()
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    glm::mat4 const projection_matrix = glm::perspective(glm::radians(g_camera.fov), viewport[2] / (float)viewport[3], g_camera.near, g_camera.far);
+    glm::mat4 const projection_matrix = glm::perspective(glm::radians(g_camera.fov), viewport[2] / static_cast<float>(viewport[3]), g_camera.near, g_camera.far);
     glm::vec3 const actual_position = glm::vec3 { -g_camera.position.x, g_camera.position.y, g_camera.position.z };
     glm::mat4 const view_matrix = glm::lookAt(actual_position, actual_position + g_camera.forward, g_camera.up);
 
