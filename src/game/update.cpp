@@ -1,4 +1,4 @@
-#include "engine/camera.hpp"
+#include <engine/Camera.hpp>
 #include "engine/game.hpp"
 #include "engine/rendering/Mesh.hpp"
 #include "math/bits.hpp"
@@ -65,8 +65,8 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     if (ImGui::Begin("Camera")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);
         ImGui::SliderFloat("Mouse speed", &g_mouse_sensitivity, 0.1f, 10.0f);
-        ImGui::SliderFloat("Near", &g_camera.near, 0.01, 1000.0f);
-        ImGui::SliderFloat("Far", &g_camera.far, 0.01, 1000.0f);
+        ImGui::SliderFloat("Near", &g_camera.near_plane, 0.01, 1000.0f);
+        ImGui::SliderFloat("Far", &g_camera.far_plane, 0.01, 1000.0f);
         ImGui::Text("Position: % .5f % .5f % .5f", g_camera.position.x, g_camera.position.y, g_camera.position.z);
         ImGui::Text("Forward : % .5f % .5f % .5f", g_camera.forward.x, g_camera.forward.y, g_camera.forward.z);
 

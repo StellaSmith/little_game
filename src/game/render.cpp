@@ -1,9 +1,9 @@
-#include "engine/camera.hpp"
 #include "engine/game.hpp"
 #include "utils/cache.hpp"
 #include "utils/error.hpp"
 #include "utils/file.hpp"
 #include "utils/timeit.hpp"
+#include <engine/Camera.hpp>
 #include <engine/components/ChunkData.hpp>
 
 #include <glad/gl.h>
@@ -13,8 +13,6 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-
-#include "engine/camera.hpp" // include last, it undefs near and far
 
 extern engine::Camera g_camera;
 extern int g_render_distance_horizontal;
@@ -166,7 +164,7 @@ void engine::Game::render()
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    glm::mat4 const projection_matrix = glm::perspective(glm::radians(g_camera.fov), viewport[2] / static_cast<float>(viewport[3]), g_camera.near, g_camera.far);
+    glm::mat4 const projection_matrix = glm::perspective(glm::radians(g_camera.fov), viewport[2] / static_cast<float>(viewport[3]), g_camera.near_plane, g_camera.far_plane);
     glm::vec3 const actual_position = glm::vec3 { -g_camera.position.x, g_camera.position.y, g_camera.position.z };
     glm::mat4 const view_matrix = glm::lookAt(actual_position, actual_position + g_camera.forward, g_camera.up);
 

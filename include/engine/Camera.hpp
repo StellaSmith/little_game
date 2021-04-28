@@ -1,13 +1,6 @@
-#ifndef ENGINE_CAMERA_HPP
-#define ENGINE_CAMERA_HPP
+#pragma once
 
 #include <glm/vec3.hpp>
-#ifdef near
-#undef near
-#endif
-#ifdef far
-#undef far
-#endif
 
 namespace engine {
     struct Camera {
@@ -15,9 +8,7 @@ namespace engine {
         glm::vec3 forward = glm::vec3 { 0.0f, 0.0f, 1.0f };
         glm::vec3 up = glm::vec3 { 0.0f, 1.0f, 0.0f };
         float fov = 60.0f;
-        float near = 0.1f;
-        float far = 100.0f;
+        float near_plane = 0.1f;
+        float far_plane = 100.0f;
     };
 } // namespace engine
-
-#endif
