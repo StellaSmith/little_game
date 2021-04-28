@@ -1,7 +1,7 @@
 
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-#include <Windows.h>
+#include <windows.h>
 #else
 #include <KHR/khrplatform.h>
 // X11

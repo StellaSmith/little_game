@@ -1,4 +1,6 @@
 
+find_package(SDL2 REQUIRED)
+
 FetchContent_Declare(imgui
     URL https://github.com/ocornut/imgui/archive/v1.80.tar.gz
 )
@@ -30,5 +32,5 @@ if (NOT imgui_POPULATED)
 
     target_compile_definitions(imgui PRIVATE IMGUI_DISABLE_INCLUDE_IMCONFIG_H)
     target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<glad/gl.h>)
-    target_link_libraries(imgui PUBLIC glad SDL2)
+    target_link_libraries(imgui PUBLIC glad SDL2::SDL2)
 endif()

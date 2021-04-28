@@ -38,7 +38,8 @@ jobs:
           python -m pip install -U conan;
           mkdir build;
           cd build;
-          conan install ..;
+          conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan;
+          conan install .. --build=missing;
 
       - name: Configure
         shell: msys2 {0}
