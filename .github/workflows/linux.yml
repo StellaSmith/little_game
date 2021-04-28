@@ -24,6 +24,8 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Build dependencies
+      env:
+        CONAN_SYSREQUIRES_MODE: enabled
       run: |
         set -e;
         pip install -U conan;
