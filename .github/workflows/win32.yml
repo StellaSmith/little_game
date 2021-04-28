@@ -18,8 +18,19 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Build dependencies
+      run: |
+        pip install -U conan;
+        mkdir build;
+        cd build;
+        conan install ..;
+
     - name: Configure
-      run: cmake -S . -B build/ -DENABLE_WARNINGS:BOOL=ON
+      run: |
+        build/activate.ps1;
+        cmake -S . -B build/ -DENABLE_WARNINGS:BOOL=ON;
 
     - name: Build
-      run: cmake --build build/ --config ${{ matrix.build_type }} --parallel 
+      run: |
+        build/activate.ps1;
+        cmake --build build/ --config ${{ matrix.build_type }} --parallel;

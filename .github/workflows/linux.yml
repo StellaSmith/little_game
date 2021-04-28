@@ -23,11 +23,25 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Build dependencies
+      run: |
+        set -e;
+        pip install -U conan;
+        mkdir build;
+        cd build;
+        conan install ..;
+
     - name: Configure
       env:
         CC: ${{ matrix.compiler.c }}
         CXX: ${{ matrix.compiler.cxx }}
-      run: cmake -S . -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
+      run: |
+        set -e;
+        source build/activate.sh;
+        cmake -S . -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
 
     - name: Build
-      run: cmake --build build/ --parallel
+      run: |
+        set -e;
+        source build/activate.sh;
+        cmake --build build/ --parallel
