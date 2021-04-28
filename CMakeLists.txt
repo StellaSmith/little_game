@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
+include(${CMAKE_BINARY_DIR}/conan_paths.cmake OPTIONAL)
+
+find_package(luajit REQUIRED)
+find_package(glm REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(EnTT REQUIRED)
+
 add_subdirectory(external)
 
 add_executable(little_game
@@ -43,7 +52,7 @@ add_executable(little_game
     include/operators.hpp
 )
 
-target_link_libraries(little_game PRIVATE glad SDL2 glm stb imgui nlohmann_json fmt spdlog lua EnTT)
+target_link_libraries(little_game PRIVATE glad SDL2 glm::glm stb imgui nlohmann_json::nlohmann_json fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT)
 
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)

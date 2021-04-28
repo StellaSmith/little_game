@@ -1,14 +1,11 @@
-
+#include "engine/game.hpp"
 
 #include <fmt/format.h>
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
+#include <lua.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
-#include <string>
 
-#include "engine/game.hpp"
+#include <string>
 
 using json = nlohmann::json;
 using namespace std::literals;
@@ -28,15 +25,19 @@ static void l_pack(lua_State *L, int n) noexcept
     int t = lua_gettop(L);
     lua_createtable(L, n, 0);
     for (int i = 1; i <= t; ++i)
-        lua_seti(L, t - n, i);
+        lua_rawseti(L, t - n, i);
 }
+
+#define lua_absindex(L, idx) lua_
 
 static int l_unpack(lua_State *L, int idx) noexcept
 {
-    idx = lua_absindex(L, idx);
+    if (idx < 0)
+        idx = lua_gettop(L) + idx + 1;
     int n = 0;
     for (int i = 1;; ++i) {
-        if (lua_geti(L, idx, i) == LUA_TNIL) break;
+        lua_rawgeti(L, idx, i);
+        if (lua_type(L, -1) == LUA_TNIL) break;
     }
     lua_pop(L, 1);
     return n - 1;
@@ -146,6 +147,7 @@ static int docall(lua_State *L, int narg, int nres)
 
 #include <filesystem>
 
+#if 0
 static int l_open_import(lua_State *L)
 {
     int n = lua_gettop(L);
@@ -213,6 +215,7 @@ static int l_open_import(lua_State *L)
     lua_settop(L, n);
     return 0;
 }
+#endif
 
 void engine::Game::setup_lua()
 {
@@ -236,21 +239,23 @@ void engine::Game::setup_lua()
 
     luaopen_base(m_lua);
 
-    l_open_import(m_lua);
+    // l_open_import(m_lua);
 
     luaopen_math(m_lua);
     lua_setglobal(m_lua, "math");
-    luaopen_string(m_lua);
 
+    luaopen_string(m_lua);
     lua_pushnil(m_lua);
     lua_setfield(m_lua, -2, "dump");
     lua_setglobal(m_lua, "string");
 
+#if 0
     luaopen_utf8(m_lua);
     lua_setglobal(m_lua, "utf8");
 
     luaopen_coroutine(m_lua);
     lua_setglobal(m_lua, "coroutine");
+#endif
 
     luaopen_table(m_lua);
     lua_setglobal(m_lua, "table");
