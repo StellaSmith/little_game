@@ -1,7 +1,7 @@
-#include "engine/camera.hpp"
 #include "engine/game.hpp"
 #include "math/bits.hpp"
 #include <engine/BlockType.hpp>
+#include <engine/Camera.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/components/Dirty.hpp>

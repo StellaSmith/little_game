@@ -1,4 +1,4 @@
-#include "engine/camera.hpp"
+#include <engine/Camera.hpp>
 #include "engine/game.hpp"
 
 #include <SDL.h>
