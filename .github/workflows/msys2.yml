@@ -35,7 +35,7 @@ jobs:
         shell: msys2 {0}
         run: |
           set -e;
-          pip install -U conan;
+          python -m pip install -U conan;
           mkdir build;
           cd build;
           conan install ..;
