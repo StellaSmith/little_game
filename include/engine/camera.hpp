@@ -2,6 +2,12 @@
 #define ENGINE_CAMERA_HPP
 
 #include <glm/vec3.hpp>
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
 
 namespace engine {
     struct Camera {

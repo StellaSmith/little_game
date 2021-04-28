@@ -14,6 +14,8 @@
 #include <memory>
 #include <string>
 
+#include "engine/camera.hpp" // include last, it undefs near and far
+
 extern engine::Camera g_camera;
 extern int g_render_distance_horizontal;
 extern int g_render_distance_vertical;
@@ -164,11 +166,7 @@ void engine::Game::render()
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    glm::mat4 const projection_matrix = glm::perspective(
-        glm::radians(g_camera.fov),
-        viewport[2] / static_cast<float>(viewport[3]),
-        g_camera.near,
-        g_camera.far);
+    glm::mat4 const projection_matrix = glm::perspective(glm::radians(g_camera.fov), viewport[2] / static_cast<float>(viewport[3]), g_camera.near, g_camera.far);
     glm::vec3 const actual_position = glm::vec3 { -g_camera.position.x, g_camera.position.y, g_camera.position.z };
     glm::mat4 const view_matrix = glm::lookAt(actual_position, actual_position + g_camera.forward, g_camera.up);
 
