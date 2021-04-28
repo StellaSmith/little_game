@@ -22,21 +22,37 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setting up MSYS2 and build deps
+      - name: Setting up MSYS2
         uses: msys2/setup-msys2@v2
         with:
           install: >-
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-python
             mingw-w64-x86_64-${{ matrix.compiler.c }}
+
+      - name: Build dependencies
+        shell: msys2 {0}
+        run: |
+          set -e;
+          pip install -U conan;
+          mkdir build;
+          cd build;
+          conan install ..;
 
       - name: Configure
         shell: msys2 {0}
         env:
           CC: ${{ matrix.compiler.c }}
           CXX: ${{ matrix.compiler.cxx }}
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
+        run: |
+          set -e;
+          source build/activate.sh;
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
 
       - name: Build
         shell: msys2 {0}
-        run: cmake --build build/ --parallel
+        run: |
+          set -e;
+          source build/activate.sh;
+          cmake --build build/ --parallel
