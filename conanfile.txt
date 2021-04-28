@@ -5,6 +5,7 @@ spdlog/1.8.5
 nlohmann_json/3.9.1
 entt/3.6.0
 luajit/2.0.5
+sdl2/2.0.14@bincrafters/stable
 
 [build_requires]
 cmake/3.20.1

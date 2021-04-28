@@ -9,6 +9,7 @@ find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(EnTT REQUIRED)
+find_package(SDL2 REQUIRED)
 
 add_subdirectory(external)
 
@@ -52,14 +53,14 @@ add_executable(little_game
     include/operators.hpp
 )
 
-target_link_libraries(little_game PRIVATE glad SDL2 glm::glm stb imgui nlohmann_json::nlohmann_json fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT)
+target_link_libraries(little_game PRIVATE glad SDL2::SDL2 glm::glm stb imgui nlohmann_json::nlohmann_json fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT)
 
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC GLM_FORCE_XYZW_ONLY)
 
 if(WIN32)
-    target_link_libraries(little_game PRIVATE SDL2main)
+    target_link_libraries(little_game PRIVATE SDL2::SDL2main)
 endif()
 if (MSVC)
     target_compile_options(little_game PUBLIC /std:c++latest)
@@ -79,7 +80,7 @@ if(UNIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/opt/${PROJECT_NAME}" CACHE PATH "" FORCE)
 endif()
 
-install(TARGETS little_game SDL2
+install(TARGETS little_game
     RUNTIME
         DESTINATION bin
     LIBRARY
