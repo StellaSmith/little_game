@@ -1,14 +1,13 @@
 #include "engine/textures.hpp"
-
 #include "utils/error.hpp"
 
+#include <fmt/format.h>
 #include <glad/gl.h>
 #include <nlohmann/json.hpp>
 #include <stb_image.h>
 
 #include <cstdio>
 #include <filesystem>
-#include <fmt/format.h>
 #include <memory_resource>
 #include <string>
 #include <string_view>

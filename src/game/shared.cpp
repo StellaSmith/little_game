@@ -2,16 +2,16 @@
 #include "engine/game.hpp"
 #include "math/bits.hpp"
 #include <engine/BlockType.hpp>
-
-#include <glad/gl.h>
-
-#include <random>
-
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/components/Dirty.hpp>
 
 #include <entt/entt.hpp>
+#include <glad/gl.h>
+#include <lua.hpp>
+
+#include <random>
+
 using namespace std::literals;
 
 engine::Camera g_camera;
@@ -88,7 +88,7 @@ void engine::Game::stop()
 {
     running = false;
 }
-#include <lua.h>
+
 void engine::Game::cleanup()
 {
     assert(!running);
