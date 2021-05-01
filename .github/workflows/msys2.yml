@@ -44,7 +44,7 @@ jobs:
           mkdir build;
           cd build;
           conan profile new --detect detect-${{ matrix.compiler.c }};
-          conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan;
+          conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/conan;
           conan install -pr detect-${{ matrix.compiler.c }} .. --build=missing;
 
       - name: Configure
