@@ -1,8 +1,8 @@
 #include "engine/game.hpp"
 
 #include <fmt/format.h>
-#include <lua.hpp>
 #include <nlohmann/json.hpp>
+#include <sol/sol.hpp>
 #include <spdlog/spdlog.h>
 
 #include <string>
@@ -13,218 +13,39 @@ using namespace std::literals;
 extern json g_config_engine;
 extern bool g_verbose;
 
-static std::string_view l_tostring(lua_State *L, int n) noexcept
-{
-    size_t len;
-    char const *buf = lua_tolstring(L, n, &len);
-    return { buf, len };
-}
-
-static void l_pack(lua_State *L, int n) noexcept
-{
-    int t = lua_gettop(L);
-    lua_createtable(L, n, 0);
-    for (int i = 1; i <= t; ++i)
-        lua_rawseti(L, t - n, i);
-}
-
-#define lua_absindex(L, idx) lua_
-
-static int l_unpack(lua_State *L, int idx) noexcept
-{
-    if (idx < 0)
-        idx = lua_gettop(L) + idx + 1;
-    int n = 0;
-    for (int i = 1;; ++i) {
-        lua_rawgeti(L, idx, i);
-        if (lua_type(L, -1) == LUA_TNIL) break;
-    }
-    lua_pop(L, 1);
-    return n - 1;
-}
-
-int engine::Game::l_print(lua_State *L)
-{
-    auto self = reinterpret_cast<engine::Game *>(lua_touserdata(L, lua_upvalueindex(1)));
-    std::uint32_t max_lines = lua_tointeger(L, lua_upvalueindex(2));
-
-    std::string line;
-
-    int n = lua_gettop(L);
-
-    for (int i = 1; i <= n; ++i) {
-        switch (lua_type(L, i)) {
-        case LUA_TSTRING:
-            line += l_tostring(L, i);
-            break;
-        case LUA_TBOOLEAN:
-            line += lua_toboolean(L, i) ? "true"sv : "false"sv;
-            break;
-        case LUA_TNIL:
-            line += "nil"sv;
-            break;
-        case LUA_TNUMBER:
-            fmt::format_to(std::back_inserter(line), "{}", lua_tonumber(L, i));
-            break;
-
-        default:
-            switch (luaL_getmetafield(L, i, "__tostring")) {
-            case LUA_TSTRING:
-                line += l_tostring(L, -1);
-                lua_pop(L, 1);
-                break;
-            case LUA_TFUNCTION: {
-                lua_pushvalue(L, i);
-                lua_pcall(L, 1, 1, 0);
-                if (lua_type(L, -1) == LUA_TSTRING) {
-                    line += l_tostring(L, -1);
-                    break;
-                } else
-                    lua_pop(L, 1);
-                [[fallthrough]];
-            }
-
-            default: {
-                char const *const type_name = luaL_typename(L, i);
-                auto const address = reinterpret_cast<std::uintptr_t>(lua_topointer(L, i));
-                constexpr std::string_view fmt = []() {
-                    if constexpr (sizeof(void *) == 8)
-                        return "<{} at 0x{:016}>"sv;
-                    else
-                        return "<{} at 0x{:08}>"sv;
-                }();
-                fmt::format_to(std::back_inserter(line), fmt, type_name, address);
-            } break;
-            };
-        }
-        line += '\t';
-    }
-
-    if (n)
-        line.pop_back();
-
-    self->m_console_text.emplace_back(std::move(line));
-    while (self->m_console_text.size() > max_lines)
-        self->m_console_text.pop_front();
-    return 0;
-}
-
-/*
-** Message handler used to run all chunks
-*/
-static int msghandler(lua_State *L)
-{
-    const char *msg = lua_tostring(L, 1);
-    if (msg == NULL) { /* is error object not a string? */
-        if (luaL_callmeta(L, 1, "__tostring") && /* does it have a metamethod */
-            lua_type(L, -1) == LUA_TSTRING) /* that produces a string? */
-            return 1; /* that is the message */
-        else
-            msg = lua_pushfstring(L, "(error object is a %s value)",
-                luaL_typename(L, 1));
-    }
-    luaL_traceback(L, L, msg, 1); /* append a standard traceback */
-    return 1; /* return the traceback */
-}
-
-/*
-** Interface to 'lua_pcall', which sets appropriate message function
-** and C-signal handler. Used to run all chunks.
-*/
-static int docall(lua_State *L, int narg, int nres)
-{
-    int status;
-    int base = lua_gettop(L) - narg; /* function index */
-    lua_pushcfunction(L, msghandler); /* push message handler */
-    lua_insert(L, base); /* put it under function and args */
-    // globalL = L; /* to be available to 'laction' */
-    // signal(SIGINT, laction); /* set C-signal handler */
-    status = lua_pcall(L, narg, nres, base);
-    // signal(SIGINT, SIG_DFL); /* reset C-signal handler */
-    lua_remove(L, base); /* remove message handler from the stack */
-    return status;
-}
-
-#include <filesystem>
-
-#if 0
-static int l_open_import(lua_State *L)
-{
-    int n = lua_gettop(L);
-
-    lua_newtable(L); // modules table
-    lua_newuserdatauv(L, 1, 1); // use userdata, so users can't modify the metatable
-    lua_newtable(L);
-
-    lua_pushvalue(L, -2);
-    lua_pushcclosure(
-        L, [](lua_State *L) -> int {
-            luaL_checktype(L, 1, LUA_TSTRING);
-
-            auto rel_path = l_tostring(L, 1);
-            auto current_path = std::filesystem::current_path();
-            auto abs_path = std::filesystem::absolute(current_path / rel_path);
-            if (abs_path.native().find(current_path.native()) != 0) {
-                auto s1 = abs_path.string();
-                auto s2 = current_path.string();
-                return luaL_error(L, "Can't import %s: %s is outside %s", rel_path.data(), s1.c_str(), s2.c_str());
-            }
-
-            lua_getiuservalue(L, lua_upvalueindex(1), 1);
-            int t = lua_getfield(L, -1, abs_path.string().c_str());
-            if (t == LUA_TNIL) {
-                lua_newtable(L);
-                lua_pushvalue(L, 1);
-                lua_setfield(L, -2, "path");
-                if (luaL_loadfilex(L, abs_path.string().c_str(), "t"))
-                    return luaL_error(L, "%s", lua_tostring(L, -1));
-
-                int n = lua_gettop(L);
-                lua_call(L, 0, LUA_MULTRET);
-                n = lua_gettop(L) - n;
-                l_pack(L, n);
-
-                lua_pushvalue(L, -1);
-                lua_setfield(L, -3, "values");
-
-                return l_unpack(L, -1);
-            } else if (t == LUA_TTABLE) {
-                lua_getfield(L, -1, "values");
-                return l_unpack(L, -1);
-            } else
-                return luaL_error(L, "Module table for %s is of type %s, table or nil expected", abs_path.string().c_str(), lua_typename(L, t));
-        },
-        1);
-    lua_setfield(L, -2, "__call");
-
-    lua_pushvalue(L, -2);
-    lua_pushcclosure(
-        L, [](lua_State *L) -> int {
-            if (lua_type(L, 1) == LUA_TSTRING && l_tostring(L, 1) == "modules"sv) {
-                lua_getiuservalue(L, lua_upvalueindex(1), 1);
-                return 1;
-            }
-            return 0;
-        },
-        1);
-    lua_setfield(L, -2, "__index");
-
-    lua_setmetatable(L, -2);
-    lua_setglobal(L, "import");
-
-    lua_settop(L, n);
-    return 0;
-}
+#if __has_include(<cxxabi.h>)
+#include <cxxabi.h>
+#define HAS_CXXABI_H
 #endif
+
+static std::string unmangled_name(std::type_info const &ti)
+{
+#ifdef HAS_CXXABI_H
+    std::size_t length;
+    int status;
+    char *n = abi::__cxa_demangle(ti.name(), nullptr, &length, &status);
+    std::string result { n, length };
+    free(n);
+    return result;
+#else
+    return ti.name();
+#endif
+}
+
+static int exception_handler(lua_State *L, sol::optional<std::exception const &> e, sol::string_view desc) noexcept
+{
+    if (e.has_value())
+        spdlog::error("[sol2] Unhandled C++ exception; typeid={} what=\"{}\" desc=\"{}\"", unmangled_name(typeid(e.value())), e.value().what(), desc);
+    else
+        spdlog::error("[sol2] Unhandled C++ exception; desc=\"{}\"", desc);
+    return sol::stack::push(L, desc);
+}
 
 void engine::Game::setup_lua()
 {
-    if (m_lua)
-        lua_close(m_lua);
-    m_lua = luaL_newstate();
-
-    lua_pushboolean(m_lua, g_verbose);
-    lua_setglobal(m_lua, "_VERBOSE");
+    m_lua = sol::state {};
+    m_lua.set_exception_handler(&exception_handler);
+    m_lua.globals().raw_set("_VERBOSE"sv, g_verbose);
 
     std::uint32_t max_lines = 5000;
 
@@ -234,53 +55,99 @@ void engine::Game::setup_lua()
             throw std::range_error(fmt::format("/Terminal/max_lines cant be bigger than {}", std::numeric_limits<lua_Integer>::max()));
     } catch (std::exception &e) {
         if (g_verbose)
-            spdlog::error("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}\n", max_lines, e.what());
+            spdlog::warn("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}\n", max_lines, e.what());
     }
 
-    luaopen_base(m_lua);
+    m_lua.open_libraries(sol::lib::base);
+    // m_lua.open_libraries(sol::lib::package); disabled
+    m_lua.open_libraries(sol::lib::coroutine);
+    m_lua.open_libraries(sol::lib::string);
+    // m_lua.open_libraries(sol::lib::os); disabled
+    m_lua.open_libraries(sol::lib::math);
+    m_lua.open_libraries(sol::lib::table);
+    // m_lua.open_libraries(sol::lib::debug); disabled
+    m_lua.open_libraries(sol::lib::bit32);
+    // m_lua.open_libraries(sol::lib::io); disabled
+    // m_lua.open_libraries(sol::lib:ffi); disabled (might enable some functionality later)
+    // m_lua.open_libraries(sol::lib::jit); disabled (might enable some functionality later)
+    m_lua.open_libraries(sol::lib::utf8);
 
-    // l_open_import(m_lua);
-
-    luaopen_math(m_lua);
-    lua_setglobal(m_lua, "math");
-
-    luaopen_string(m_lua);
-    lua_pushnil(m_lua);
-    lua_setfield(m_lua, -2, "dump");
-    lua_setglobal(m_lua, "string");
-
-#if 0
-    luaopen_utf8(m_lua);
-    lua_setglobal(m_lua, "utf8");
-
-    luaopen_coroutine(m_lua);
-    lua_setglobal(m_lua, "coroutine");
-#endif
-
-    luaopen_table(m_lua);
-    lua_setglobal(m_lua, "table");
-
-    // debug, os, io, and package are disabled
-
-    // override print
-    lua_pushlightuserdata(m_lua, this);
-    lua_pushinteger(m_lua, max_lines);
-    lua_pushcclosure(m_lua, l_print, 2);
-    lua_setglobal(m_lua, "print");
+    // disable string.dump
+    m_lua.globals().raw_get<sol::table>("string"sv).raw_set("dump"sv, sol::nil);
 
     // disable these globals
-    for (auto f : { "collectgarbage", "dofile", "load", "loadfile" }) {
-        lua_pushnil(m_lua);
-        lua_setglobal(m_lua, f);
+    for (auto f : { "collectgarbage"sv, "dofile"sv, "load"sv, "loadfile"sv })
+        m_lua.globals().raw_set(f, sol::nil);
+
+    // override print
+    m_lua.globals().set_function("print"sv, [max_lines, &console_text = this->m_console_text](sol::variadic_args args, sol::this_state L) {
+        std::string line;
+        for (auto arg : args) {
+            bool got_tostring = false;
+            if (auto mt = arg.get<sol::optional<sol::metatable>>(); mt.has_value()) {
+                if (auto f = mt.value().raw_get<sol::optional<sol::safe_function>>(sol::to_string(sol::meta_method::to_string)); f.has_value()) {
+                    if (auto sv = f.value().call<sol::optional<std::string_view>>(arg); sv.has_value()) {
+                        got_tostring = true;
+                        line += sv.value();
+                    }
+                }
+            }
+            if (!got_tostring) {
+                if (arg.get_type() == sol::type::string)
+                    line += arg.as<std::string_view>();
+                else if (arg.get_type() == sol::type::boolean)
+                    line += arg.as<bool>() ? "true"sv : "false"sv;
+                else if (arg.get_type() == sol::type::number)
+                    fmt::format_to(std::back_inserter(line), "{}"sv, arg.as<lua_Number>());
+                else {
+                    std::string const &type_name = sol::type_name(L, arg.get_type());
+                    auto address = reinterpret_cast<std::uintptr_t>(arg.as<sol::reference>().pointer());
+                    fmt::format_to(std::back_inserter(line), "<{} at 0x{:016X}>"sv, type_name, address);
+                }
+            }
+            line += '\t';
+        }
+        line.pop_back();
+
+        console_text.emplace_back(std::move(line));
+        while (console_text.size() > max_lines)
+            console_text.pop_front();
+        return 0;
+    });
+
+    sol::environment sv_env(m_lua, sol::create, m_lua.globals());
+    sol::environment cl_env(m_lua, sol::create, m_lua.globals());
+
+    if (auto result = m_lua.load_file("lua/sv_init.lua"s, sol::load_mode::text); !result.valid()) {
+        sol::error error = result;
+        spdlog::error("Failed to load server script: {} {}", sol::to_string(result.status()), error.what());
+    } else {
+        sol::protected_function func = result;
+        sv_env.set_on(func);
+        if (auto function_result = func.call(); !function_result.valid()) {
+            try {
+                sol::error e = function_result.get<sol::error>();
+                spdlog::error("Failed to run server script: {} {}", sol::to_string(function_result.status()), e.what());
+            } catch (sol::error &e) {
+                spdlog::error("Failed to run server script: {} {}", sol::to_string(function_result.status()), e.what());
+            }
+        }
     }
 
-    int ret;
-
-    ret = luaL_loadfilex(m_lua, "lua/sv_init.lua", "t") || docall(m_lua, 0, 0);
-    if (ret)
-        spdlog::error("Can't init server lua: {}\n", lua_tostring(m_lua, -1));
-
-    ret = luaL_loadfilex(m_lua, "lua/cl_init.lua", "t") || docall(m_lua, 0, 0);
-    if (ret)
-        spdlog::error("Can't init client lua: {}\n", lua_tostring(m_lua, -1));
+    if (auto result = m_lua.load_file("lua/cl_init.lua"s, sol::load_mode::text); !result.valid()) {
+        sol::error error = result;
+        spdlog::error("Can't load client script: {}", error.what());
+    } else {
+        sol::protected_function func = result;
+        sol::stack::push(m_lua, &sol::default_traceback_error_handler);
+        cl_env.set_on(func);
+        if (auto function_result = func.call(); !function_result.valid()) {
+            try {
+                sol::error e = function_result.get<sol::error>();
+                spdlog::error("Failed to run client script: {} {}", sol::to_string(function_result.status()), e.what());
+            } catch (sol::error &e) {
+                spdlog::error("Failed to run client script: {} {}", sol::to_string(function_result.status()), e.what());
+            }
+        }
+    }
 }

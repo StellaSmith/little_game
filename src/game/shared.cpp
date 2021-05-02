@@ -90,7 +90,6 @@ void engine::Game::stop()
 void engine::Game::cleanup()
 {
     assert(!running);
-    lua_close(m_lua);
     {
         std::vector<entt::entity> const to_delete(m_entity_registry.data(), m_entity_registry.data() + m_entity_registry.size());
         m_entity_registry.destroy(to_delete.cbegin(), to_delete.cend());

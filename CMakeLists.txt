@@ -10,6 +10,7 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(EnTT REQUIRED)
 find_package(SDL2 REQUIRED)
+find_package(sol2 REQUIRED)
 
 add_subdirectory(external)
 
@@ -53,11 +54,16 @@ add_executable(little_game
     include/operators.hpp
 )
 
-target_link_libraries(little_game PRIVATE glad SDL2::SDL2 glm::glm stb imgui nlohmann_json::nlohmann_json fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT)
+target_link_libraries(little_game
+PRIVATE
+    glad SDL2::SDL2 glm::glm stb imgui nlohmann_json::nlohmann_json
+    fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT sol2::sol2)
 
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
-target_compile_definitions(little_game PUBLIC GLM_FORCE_XYZW_ONLY)
+target_compile_definitions(little_game PUBLIC
+    GLM_FORCE_XYZW_ONLY
+    SOL_LUAJIT SOL_ALL_SAFETIES_ON)
 
 if(WIN32)
     target_link_libraries(little_game PRIVATE SDL2::SDL2main)

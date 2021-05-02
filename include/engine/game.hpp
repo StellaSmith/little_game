@@ -6,6 +6,7 @@
 
 #include <entt/entt.hpp>
 #include <glad/gl.h>
+#include <sol/state.hpp>
 
 #include <chrono>
 #include <deque>
@@ -25,8 +26,6 @@ namespace std {
         }
     };
 } // namespace std
-
-struct lua_State;
 
 namespace engine {
     class Game {
@@ -61,7 +60,7 @@ namespace engine {
         bool running;
 
     private:
-        lua_State *m_lua = nullptr;
+        sol::state m_lua;
         std::deque<std::string> m_console_text;
 
         GLuint m_vao;
