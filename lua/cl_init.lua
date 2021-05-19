@@ -1,8 +1,5 @@
-
 print "Initializing client side"
-print("print:", print)
-print("_G:", _G)
-print("pairs:", pairs)
 
+local my_tbl = setmetatable({}, {__tostring = function(self) return "owo" end})
 
-for k, v in pairs(_G) do print(k, v) end
+print("my_tbl:", my_tbl)
