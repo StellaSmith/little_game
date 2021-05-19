@@ -9,7 +9,7 @@ sdl2/2.0.14@bincrafters/stable
 sol2/3.2.3
 
 [build_requires]
-cmake/3.20.1
+cmake/[>=3.14]
 
 [generators]
 virtualenv
