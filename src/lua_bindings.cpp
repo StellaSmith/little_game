@@ -120,7 +120,7 @@ void engine::Game::setup_lua()
             throw std::range_error(fmt::format("/Terminal/max_lines cant be bigger than {}", std::numeric_limits<lua_Integer>::max()));
     } catch (std::exception &e) {
         if (g_verbose)
-            spdlog::warn("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}\n", max_lines, e.what());
+            spdlog::warn("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}", max_lines, e.what());
     }
 
     m_lua.open_libraries(sol::lib::base);
