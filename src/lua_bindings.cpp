@@ -5,7 +5,9 @@
 #include <sol/sol.hpp>
 #include <spdlog/spdlog.h>
 
+#include <exception>
 #include <string>
+#include <system_error>
 
 using json = nlohmann::json;
 using namespace std::literals;
@@ -32,14 +34,77 @@ static std::string unmangled_name(std::type_info const &ti)
 #endif
 }
 
-static int exception_handler(lua_State *L, sol::optional<std::exception const &> e, sol::string_view desc) noexcept
+static int exception_handler(lua_State *L, sol::optional<std::exception const &> possible_exception, sol::string_view description) noexcept
 {
-    if (e.has_value())
-        spdlog::error("[sol2] Unhandled C++ exception; typeid={} what=\"{}\" desc=\"{}\"", unmangled_name(typeid(e.value())), e.value().what(), desc);
-    else
-        spdlog::error("[sol2] Unhandled C++ exception; desc=\"{}\"", desc);
-    return sol::stack::push(L, desc);
+    if (possible_exception) {
+        std::exception const &exception = *possible_exception;
+        if (typeid(exception) == typeid(std::system_error)) {
+            auto const &system_error = dynamic_cast<std::system_error const &>(exception);
+            spdlog::error("[sol2] Unhandled C++ system_error; category={} message=\"{}\" desc=\"{}\"",
+                system_error.code().category().name(),
+                system_error.code().message(),
+                description);
+        } else {
+            spdlog::error("[sol2] Unhandled C++ exception; typeid={} what=\"{}\" desc=\"{}\"",
+                unmangled_name(typeid(exception)),
+                exception.what(),
+                description);
+        }
+    } else {
+        spdlog::error("[sol2] Unhandled C++ exception; desc=\"{}\"", description);
+    }
+    return sol::stack::push(L, description);
 }
+
+namespace {
+    struct Printer {
+        std::uint32_t max_lines;
+        std::deque<std::string> &console_text;
+        void operator()(sol::variadic_args args, sol::this_state L)
+        {
+            // this looks ugly
+            std::string line;
+            for (auto arg : args) {
+                bool got_string = false;
+                if (auto mt = arg.get<sol::optional<sol::metatable>>(); mt.has_value()) {
+                    if (auto to_string = mt->raw_get<sol::optional<sol::stack_proxy>>("__tostring"sv); to_string.has_value()) {
+                        if (to_string->get_type() == sol::type::function) {
+                            if (auto results = to_string->as<sol::function>().call(arg); results.valid()) {
+                                if (auto s = results.get<sol::optional<std::string_view>>(); s.has_value()) {
+                                    line += *s;
+                                    got_string = true;
+                                }
+                            }
+                        } else if (to_string->get_type() == sol::type::string) {
+                            line += to_string->as<std::string_view>();
+                            got_string = true;
+                        }
+                    }
+                }
+                if (!got_string) {
+                    if (arg.get_type() == sol::type::string)
+                        line += arg.as<std::string_view>();
+                    else if (arg.get_type() == sol::type::boolean)
+                        line += arg.as<bool>() ? "true"sv : "false"sv;
+                    else if (arg.get_type() == sol::type::number)
+                        fmt::format_to(std::back_inserter(line), "{}"sv, arg.as<lua_Number>());
+                    else {
+                        std::string const &type_name = sol::type_name(L, arg.get_type());
+                        auto address = reinterpret_cast<std::uintptr_t>(arg.as<sol::reference>().pointer());
+                        fmt::format_to(std::back_inserter(line), "<{0} at 0x{1:0{2}X}>"sv, type_name, address, sizeof(address) * 2);
+                    }
+                }
+                line += '\t';
+            }
+
+            line.pop_back();
+
+            console_text.emplace_back(std::move(line));
+            while (console_text.size() > max_lines)
+                console_text.pop_front();
+        }
+    };
+} // namespace
 
 void engine::Game::setup_lua()
 {
@@ -80,40 +145,7 @@ void engine::Game::setup_lua()
         m_lua.globals().raw_set(f, sol::nil);
 
     // override print
-    m_lua.globals().set_function("print"sv, [max_lines, &console_text = this->m_console_text](sol::variadic_args args, sol::this_state L) {
-        std::string line;
-        for (auto arg : args) {
-            bool got_tostring = false;
-            if (auto mt = arg.get<sol::optional<sol::metatable>>(); mt.has_value()) {
-                if (auto f = mt.value().raw_get<sol::optional<sol::safe_function>>(sol::to_string(sol::meta_method::to_string)); f.has_value()) {
-                    if (auto sv = f.value().call<sol::optional<std::string_view>>(arg); sv.has_value()) {
-                        got_tostring = true;
-                        line += sv.value();
-                    }
-                }
-            }
-            if (!got_tostring) {
-                if (arg.get_type() == sol::type::string)
-                    line += arg.as<std::string_view>();
-                else if (arg.get_type() == sol::type::boolean)
-                    line += arg.as<bool>() ? "true"sv : "false"sv;
-                else if (arg.get_type() == sol::type::number)
-                    fmt::format_to(std::back_inserter(line), "{}"sv, arg.as<lua_Number>());
-                else {
-                    std::string const &type_name = sol::type_name(L, arg.get_type());
-                    auto address = reinterpret_cast<std::uintptr_t>(arg.as<sol::reference>().pointer());
-                    fmt::format_to(std::back_inserter(line), "<{} at 0x{:016X}>"sv, type_name, address);
-                }
-            }
-            line += '\t';
-        }
-        line.pop_back();
-
-        console_text.emplace_back(std::move(line));
-        while (console_text.size() > max_lines)
-            console_text.pop_front();
-        return 0;
-    });
+    m_lua.globals().set_function("print"sv, Printer { max_lines, this->m_console_text });
 
     sol::environment sv_env(m_lua, sol::create, m_lua.globals());
     sol::environment cl_env(m_lua, sol::create, m_lua.globals());
