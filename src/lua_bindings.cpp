@@ -98,6 +98,7 @@ namespace {
             }
 
             line.pop_back();
+            spdlog::info("[{}lua{}] {}", "\033[36m" /* cyan */, "\033[m" /* reset */, line);
 
             console_text.emplace_back(std::move(line));
             while (console_text.size() > max_lines)
