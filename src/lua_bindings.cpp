@@ -116,8 +116,6 @@ void engine::Game::setup_lua()
 
     try {
         g_config_engine.at("/Terminal/max_lines"_json_pointer).get_to(max_lines);
-        if (max_lines > std::numeric_limits<lua_Integer>::max())
-            throw std::range_error(fmt::format("/Terminal/max_lines cant be bigger than {}", std::numeric_limits<lua_Integer>::max()));
     } catch (std::exception &e) {
         if (g_verbose)
             spdlog::warn("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}", max_lines, e.what());
