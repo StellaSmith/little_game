@@ -1,9 +1,10 @@
 #ifndef MATH_FAST_HPP
 #define MATH_FAST_HPP
 
+#include <glm/ext/scalar_constants.hpp>
+
 #include <array>
 #include <cmath>
-#include <glm/ext/scalar_constants.hpp>
 
 namespace math {
 

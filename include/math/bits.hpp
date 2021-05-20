@@ -56,8 +56,9 @@ namespace math {
 #undef HAS_LIB_BITOPS
 #endif
 
-#include <cstdint>
 #include <glm/glm.hpp>
+
+#include <cstdint>
 
 namespace math {
     constexpr std::uint32_t pack_u32(std::uint8_t x, std::uint8_t y, std::uint8_t z, std::uint8_t w = 0) noexcept

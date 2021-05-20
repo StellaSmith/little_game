@@ -1,12 +1,18 @@
 #include <engine/Camera.hpp>
 #include <engine/Game.hpp>
+#include <engine/components/ChunkData.hpp>
+#include <engine/components/ChunkPosition.hpp>
+#include <engine/components/Dirty.hpp>
 #include <engine/rendering/Mesh.hpp>
 #include <math/bits.hpp>
 
+#include <SDL.h>
 #include <glad/gl.h>
 #include <imgui.h>
 
 #include <algorithm>
+#include <cstring>
+#include <tuple>
 
 extern engine::Camera g_camera;
 static glm::vec3 previous_camera_position {};
@@ -28,18 +34,10 @@ static auto get_sorted_indices(engine::rendering::Mesh const &mesh)
 
     return result;
 }
-#include <SDL.h>
 
 int g_render_distance_horizontal = 12;
 int g_render_distance_vertical = 4;
 float g_mouse_sensitivity = 1;
-
-#include <cstring>
-#include <tuple>
-
-#include <engine/components/ChunkData.hpp>
-#include <engine/components/ChunkPosition.hpp>
-#include <engine/components/Dirty.hpp>
 
 void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {

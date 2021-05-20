@@ -1,10 +1,10 @@
 #ifndef UTILS_TIMEIT_HPP
 #define UTILS_TIMEIT_HPP
 
+#include <spdlog/spdlog.h>
+
 #include <chrono>
 #include <string_view>
-
-#include <spdlog/spdlog.h>
 
 namespace utils {
     struct TimeIt {

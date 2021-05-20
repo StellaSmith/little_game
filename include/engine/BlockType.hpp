@@ -1,16 +1,16 @@
 #ifndef ENGINE_BLOCKTYPE_HPP
 #define ENGINE_BLOCKTYPE_HPP
 
-#include <engine/Sides.hpp>
 #include <engine/Block.hpp>
+#include <engine/Sides.hpp>
 #include <engine/rendering/Mesh.hpp>
+#include <macros.h>
+
+#include <glm/vec4.hpp>
 
 #include <algorithm>
-#include <glm/vec4.hpp>
 #include <string_view>
 #include <vector>
-
-#include <macros.h>
 
 namespace engine {
     class Game;

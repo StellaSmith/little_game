@@ -1,6 +1,8 @@
 #ifndef MATH_CONSTEXPR_HPP
 #define MATH_CONSTEXPR_HPP
 
+#include <cstdint>
+
 namespace math {
     // constexpr integer power
     template <std::int64_t v, std::uint64_t x>

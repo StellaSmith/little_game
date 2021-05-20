@@ -10,8 +10,6 @@
 #include <thread>
 #include <variant>
 
-#include <iostream>
-
 namespace utils {
     template <typename Ret, typename... Args>
     class thread_pool {
@@ -55,7 +53,7 @@ namespace utils {
 
     private:
         template <typename... Ts>
-        static std::vector<std::thread> init_vec(std::uint32_t threads, Ts &&... args)
+        static std::vector<std::thread> init_vec(std::uint32_t threads, Ts &&...args)
         {
             std::vector<std::thread> result;
             result.reserve(threads);
@@ -70,7 +68,7 @@ namespace utils {
         thread_pool &operator=(thread_pool const &) = delete;
         thread_pool &operator=(thread_pool &&) = delete;
 
-        std::future<Ret> submit(Args &&... args)
+        std::future<Ret> submit(Args &&...args)
         {
             std::future<Ret> future;
             {
