@@ -7,6 +7,7 @@ entt/3.6.0
 luajit/2.0.5
 sdl2/2.0.14@bincrafters/stable
 sol2/3.2.3
+openssl/1.1.1k
 
 [build_requires]
 cmake/[>=3.14]
