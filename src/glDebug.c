@@ -1,4 +1,5 @@
-#include "glDebug.h"
+#include <glDebug.h>
+
 #include <stdio.h>
 
 void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, char const *message, void const *userParam)

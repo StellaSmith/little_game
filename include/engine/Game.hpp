@@ -1,8 +1,8 @@
 #ifndef ENGINE_GAME_HPP
 #define ENGINE_GAME_HPP
 
-#include "engine/rendering/Mesh.hpp"
-#include "engine/textures.hpp"
+#include <engine/rendering/Mesh.hpp>
+#include <engine/textures.hpp>
 
 #include <entt/entt.hpp>
 #include <glad/gl.h>

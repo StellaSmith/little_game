@@ -1,7 +1,7 @@
 #include <engine/Game.hpp>
-#include "math/bits.hpp"
-#include "math/constexpr.hpp"
-#include "utils/timeit.hpp"
+#include <math/bits.hpp>
+#include <math/constexpr.hpp>
+#include <utils/timeit.hpp>
 #include <engine/BlockType.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/rendering/Mesh.hpp>

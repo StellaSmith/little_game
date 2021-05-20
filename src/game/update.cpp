@@ -1,7 +1,7 @@
 #include <engine/Camera.hpp>
 #include <engine/Game.hpp>
-#include "engine/rendering/Mesh.hpp"
-#include "math/bits.hpp"
+#include <engine/rendering/Mesh.hpp>
+#include <math/bits.hpp>
 
 #include <glad/gl.h>
 #include <imgui.h>

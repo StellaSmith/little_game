@@ -1,4 +1,4 @@
-#include "math/fast.hpp"
+#include <math/fast.hpp>
 
 template <typename std::size_t N>
 static std::array<double, N> calculate_sin_array()

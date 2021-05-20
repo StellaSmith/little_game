@@ -1,6 +1,6 @@
 #include <engine/Game.hpp>
-#include "glDebug.h"
-#include "utils/error.hpp"
+#include <glDebug.h>
+#include <utils/error.hpp>
 
 #include <SDL.h>
 #include <glad/gl.h>
