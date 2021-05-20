@@ -1,5 +1,5 @@
 #include <engine/BlockType.hpp>
-#include <engine/game.hpp>
+#include <engine/Game.hpp>
 
 struct StoneBlockType : engine::BlockType {
     int textureIndex = -1;

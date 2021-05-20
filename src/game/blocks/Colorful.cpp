@@ -1,5 +1,5 @@
 #include <engine/BlockType.hpp>
-#include <engine/game.hpp>
+#include <engine/Game.hpp>
 #include <math/bits.hpp>
 
 struct ColorfulBlockType : engine::BlockType {

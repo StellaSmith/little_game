@@ -1,5 +1,5 @@
 #include <engine/BlockType.hpp>
-#include <engine/game.hpp>
+#include <engine/Game.hpp>
 
 struct GrassBlockType : engine::BlockType {
     int dirtTextureIndex = -1;

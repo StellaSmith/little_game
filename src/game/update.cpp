@@ -1,5 +1,5 @@
 #include <engine/Camera.hpp>
-#include "engine/game.hpp"
+#include <engine/Game.hpp>
 #include "engine/rendering/Mesh.hpp"
 #include "math/bits.hpp"
 

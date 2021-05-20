@@ -41,7 +41,7 @@ add_executable(little_game
     src/game/blocks/Dirt.cpp
     src/game/blocks/Grass.cpp
 
-    include/engine/game.hpp
+    include/engine/Game.hpp
     include/engine/Block.hpp
     include/engine/BlockType.hpp
     include/engine/rendering/Mesh.hpp

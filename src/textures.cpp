@@ -109,7 +109,7 @@ engine::Textures engine::load_textures()
     return result;
 }
 
-#include "engine/game.hpp"
+#include <engine/Game.hpp>
 
 int engine::Game::get_texture_index(std::string_view name) const noexcept
 {

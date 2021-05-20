@@ -1,4 +1,4 @@
-#include "engine/game.hpp"
+#include <engine/Game.hpp>
 #include "glDebug.h"
 #include "utils/error.hpp"
 

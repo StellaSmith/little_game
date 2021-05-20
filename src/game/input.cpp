@@ -1,5 +1,5 @@
 #include <engine/Camera.hpp>
-#include "engine/game.hpp"
+#include <engine/Game.hpp>
 
 #include <SDL.h>
 #include <glm/glm.hpp>
