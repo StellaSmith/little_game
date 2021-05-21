@@ -266,6 +266,7 @@ int main(int argc, char **argv)
         SDL_AudioQuit();
         SDL_VideoQuit();
         SDL_Quit();
+        return 0;
     } catch (utils::application_error const &e) {
         if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window) < 0)
             SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", e.what());
@@ -279,4 +280,5 @@ int main(int argc, char **argv)
             SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", "UNKOWN EXCEPTION NOT HANDLED!!!");
         std::exit(EXIT_FAILURE);
     }
+    return -1;
 }
