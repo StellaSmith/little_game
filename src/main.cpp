@@ -3,6 +3,7 @@
 #include <utils/error.hpp>
 
 #include <SDL.h>
+#include <fmt/format.h>
 #include <glad/gl.h>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
@@ -12,6 +13,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+
+#ifdef __linux__
+#include <unistd.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 using json = nlohmann::json;
 
@@ -26,6 +37,50 @@ using namespace std::literals;
 int main(int argc, char **argv)
 {
     try {
+#if defined(__linux__)
+        {
+#if PATH_MAX > 1024
+            auto buf_p = std::make_unique<char[]>(PATH_MAX + 1);
+            char *buf = buf_p.get();
+#else
+            char buf[PATH_MAX + 1] {};
+#endif
+            int len;
+            if ((len = readlink("/proc/self/exe", buf, PATH_MAX)) < 0)
+                utils::show_error("Can't readlink /proc/self/exe\nIs the proc filesystem mounted?");
+            char sep = '/';
+            *std::strrchr(buf, '/') = '\0';
+            if (chdir(buf) < 0)
+                utils::show_error(fmt::format("Couldn't change current working directory to  {}", +buf));
+        }
+#elif defined(_WIN32)
+        {
+            std::vector<wchar_t> buf(MAX_PATH);
+            DWORD err;
+            while (true) {
+                DWORD len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
+                if ((err = GetLastError()) == ERROR_INSUFFICIENT_BUFFER || len == buf.size()) {
+                    buf.resize(buf.size() * 2);
+                } else {
+                    break;
+                }
+            }
+
+            if (err)
+                throw std::system_error(err, std::system_category(),
+                    "GetModuleFileNameW failed: Couldn't get executable path");
+
+            *(wcsrchr(buf.data(), L'\\') + 1) = L'\0';
+            auto len = std::wcslen(buf.data());
+            if (SetCurrentDirectoryW(buf.data()) == 0) {
+                err = GetLastError();
+                auto narrow_buf = std::make_unique<char[]>(len * 4 + 1);
+                WideCharToMultiByte(CP_ACP, 0, buf.data(), -1, narrow_buf.get(), len * 4 + 1, nullptr, nullptr);
+                throw std::system_error(err, std::system_category(),
+                    fmt::format("SetCurrentDirectoryW failed: Couldn't change current working directory to {}", narrow_buf.get()));
+            }
+        }
+#endif
         constexpr int width = 640, height = 480;
 
         for (int i = 0; i < argc; ++i) {
