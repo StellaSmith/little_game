@@ -104,6 +104,9 @@ install(TARGETS little_game
         DESTINATION lib/static
 )
 
+install(DIRECTORY ${CONAN_SDL2_ROOT}/lib DESTINATION .) # .so
+install(DIRECTORY ${CONAN_SDL2_ROOT}/bin DESTINATION .) # .dll
+
 install(FILES run.sh run.bat
     DESTINATION .
     PERMISSIONS
