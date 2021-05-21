@@ -69,7 +69,7 @@ target_compile_definitions(little_game PUBLIC
     GLM_FORCE_XYZW_ONLY
     SOL_LUAJIT SOL_ALL_SAFETIES_ON)
 
-if(WIN32)
+if(WIN32 OR MINGW)
     target_link_libraries(little_game PRIVATE SDL2::SDL2main)
 endif()
 if (MSVC)
