@@ -90,6 +90,11 @@ if(UNIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/opt/${PROJECT_NAME}" CACHE PATH "" FORCE)
 endif()
 
+if (NOT (WIN32 OR MINGW))
+    set_target_properties(little_game PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
+endif()
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
 install(TARGETS little_game
     RUNTIME
         DESTINATION bin
