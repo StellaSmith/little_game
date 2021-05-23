@@ -1,36 +1,14 @@
 
 find_package(SDL2 REQUIRED)
+find_package(imgui REQUIRED)
 
-FetchContent_Declare(imgui
-    URL https://github.com/ocornut/imgui/archive/v1.80.tar.gz
-)
+file(COPY ${imgui_RES_DIRS}/bindings/imgui_impl_sdl.cpp DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_library(imgui_impl_sdl OBJECT ${CMAKE_CURRENT_BINARY_DIR}/imgui_impl_sdl.cpp)
+target_include_directories(imgui_impl_sdl PUBLIC ${imgui_RES_DIRS}/bindings/)
+target_link_libraries(imgui_impl_sdl PUBLIC imgui::imgui PRIVATE SDL2::SDL2)
 
-FetchContent_GetProperties(imgui)
-if (NOT imgui_POPULATED)
-    FetchContent_Populate(imgui)
-    add_library(imgui)
-    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
-    target_sources(imgui
-    PRIVATE
-        ${imgui_SOURCE_DIR}/imgui.cpp
-        ${imgui_SOURCE_DIR}/imgui_demo.cpp
-        ${imgui_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-        ${imgui_SOURCE_DIR}/imgui_internal.h
-    PUBLIC
-        ${imgui_SOURCE_DIR}/imgui.h
-
-    # Bindings
-    PRIVATE
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl.cpp
-    PUBLIC
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl.h
-    )
-
-    target_compile_definitions(imgui PRIVATE IMGUI_DISABLE_INCLUDE_IMCONFIG_H)
-    target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<glad/gl.h>)
-    target_link_libraries(imgui PUBLIC glad SDL2::SDL2)
-endif()
+file(COPY ${imgui_RES_DIRS}/bindings/imgui_impl_opengl3.cpp DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_library(imgui_impl_opengl3 OBJECT ${CMAKE_CURRENT_BINARY_DIR}/imgui_impl_opengl3.cpp)
+target_include_directories(imgui_impl_opengl3 PUBLIC ${imgui_RES_DIRS}/bindings/)
+target_link_libraries(imgui_impl_opengl3 PUBLIC imgui::imgui PRIVATE glad)
+target_compile_definitions(imgui_impl_opengl3 PUBLIC IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<glad/gl.h>)
