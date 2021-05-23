@@ -1,17 +1,10 @@
-message(STATUS "Setting up stb")
 
-FetchContent_Declare(stb
-    URL https://github.com/StellaSmith/stb/archive/78625bbb7c7af00e59b5a52484fa9ec0168dd1cf.zip
-)
-FetchContent_GetProperties(stb)
+find_package(stb REQUIRED)
 
-if (NOT stb_POPULATED)
-    FetchContent_Populate(stb)
-    add_library(stb)
-    target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
-    target_sources(stb
-    PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}/image.c
-        ${CMAKE_CURRENT_LIST_DIR}/utils.c
-    )
-endif()
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/stb_image.c "#define STB_IMAGE_IMPLEMENTATION\n#include <stb_image.h>")
+add_library(stb_image OBJECT ${CMAKE_CURRENT_BINARY_DIR}/stb_image.c)
+target_link_libraries(stb_image PUBLIC stb::stb)
+
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/stb_utils.c "#define STB_DEFINE\n#include <stb.h>")
+add_library(stb_utils OBJECT ${CMAKE_CURRENT_BINARY_DIR}/stb_utils.c)
+target_link_libraries(stb_utils PUBLIC stb::stb)

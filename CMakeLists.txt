@@ -61,7 +61,7 @@ add_executable(little_game
 
 target_link_libraries(little_game
 PRIVATE
-    glad SDL2::SDL2 glm::glm stb imgui_impl_opengl3 imgui_impl_sdl nlohmann_json::nlohmann_json
+    glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl nlohmann_json::nlohmann_json
     fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT sol2::sol2)
 
 target_compile_features(little_game PUBLIC cxx_std_17)

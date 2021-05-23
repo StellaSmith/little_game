@@ -9,6 +9,7 @@ sdl2/2.0.14@bincrafters/stable
 sol2/3.2.3
 openssl/1.1.1k
 imgui/1.82
+stb/20200203
 
 [build_requires]
 cmake/[>=3.14]
