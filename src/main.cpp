@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <system_error>
 
 #ifdef __linux__
 #include <unistd.h>
@@ -34,53 +35,13 @@ static SDL_Window *s_window = nullptr;
 
 using namespace std::literals;
 
+static void fix_current_directory();
+
 int main(int argc, char **argv)
 {
     try {
-#if defined(__linux__)
-        {
-#if PATH_MAX > 1024
-            auto buf_p = std::make_unique<char[]>(PATH_MAX + 1);
-            char *buf = buf_p.get();
-#else
-            char buf[PATH_MAX + 1] {};
-#endif
-            int len;
-            if ((len = readlink("/proc/self/exe", buf, PATH_MAX)) < 0)
-                utils::show_error("Can't readlink /proc/self/exe\nIs the proc filesystem mounted?");
-            char sep = '/';
-            *std::strrchr(buf, '/') = '\0';
-            if (chdir(buf) < 0)
-                utils::show_error(fmt::format("Couldn't change current working directory to  {}", +buf));
-        }
-#elif defined(_WIN32)
-        {
-            std::vector<wchar_t> buf(MAX_PATH);
-            DWORD err;
-            while (true) {
-                DWORD len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
-                if ((err = GetLastError()) == ERROR_INSUFFICIENT_BUFFER || len == buf.size()) {
-                    buf.resize(buf.size() * 2);
-                } else {
-                    break;
-                }
-            }
+        fix_current_directory();
 
-            if (err)
-                throw std::system_error(err, std::system_category(),
-                    "GetModuleFileNameW failed: Couldn't get executable path");
-
-            *(wcsrchr(buf.data(), L'\\') + 1) = L'\0';
-            auto len = std::wcslen(buf.data());
-            if (SetCurrentDirectoryW(buf.data()) == 0) {
-                err = GetLastError();
-                auto narrow_buf = std::make_unique<char[]>(len * 4 + 1);
-                WideCharToMultiByte(CP_ACP, 0, buf.data(), -1, narrow_buf.get(), len * 4 + 1, nullptr, nullptr);
-                throw std::system_error(err, std::system_category(),
-                    fmt::format("SetCurrentDirectoryW failed: Couldn't change current working directory to {}", narrow_buf.get()));
-            }
-        }
-#endif
         constexpr int width = 640, height = 480;
 
         for (int i = 0; i < argc; ++i) {
@@ -336,4 +297,61 @@ int main(int argc, char **argv)
         std::exit(EXIT_FAILURE);
     }
     return -1;
+}
+
+static void fix_current_directory()
+{
+#if defined(__linux__)
+    {
+#if PATH_MAX > 1024
+        auto buf_p = std::make_unique<char[]>(PATH_MAX + 1);
+        char *buf = buf_p.get();
+#else
+        char buf[PATH_MAX + 1] {};
+#endif
+        int len;
+        if ((len = readlink("/proc/self/exe", buf, PATH_MAX)) < 0) {
+            int const err = errno;
+            std::string const err_str = std::system_category().message(err);
+            utils::show_error("Couldn't readlink", "Couldn't read link /proc/self/exe\nIs the proc filesystem mounted?\n" + err_str);
+        }
+        *std::strrchr(buf, '/') = '\0';
+        if (chdir(buf) < 0) {
+            int const err = errno;
+            std::string const err_str = std::system_category().message(err);
+            utils::show_error("Couldn't chdir", fmt::format("Coudln't change current working directory to {}\n{}", +buf, err_str));
+        }
+    }
+#elif defined(_WIN32)
+    {
+        std::vector<wchar_t> buf(MAX_PATH);
+        DWORD err;
+        while (true) {
+            DWORD len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
+            if ((err = GetLastError()) == ERROR_INSUFFICIENT_BUFFER || len == buf.size()) {
+                buf.resize(buf.size() * 2);
+            } else {
+                break;
+            }
+        }
+
+        if (err)
+            throw std::system_error(err, std::system_category(),
+                "GetModuleFileNameW failed: Couldn't get executable path");
+
+        *(wcsrchr(buf.data(), L'\\') + 1) = L'\0';
+        auto len = std::wcslen(buf.data());
+        if (SetCurrentDirectoryW(buf.data()) == 0) {
+            err = GetLastError();
+            auto narrow_buf = std::make_unique<char[]>(len * 4 + 1);
+            WideCharToMultiByte(CP_ACP, 0, buf.data(), -1, narrow_buf.get(), len * 4 + 1, nullptr, nullptr);
+            throw std::system_error(err, std::system_category(),
+                fmt::format("SetCurrentDirectoryW failed: Couldn't change current working directory to {}", narrow_buf.get()));
+        }
+    }
+#else
+#error Unsupported OS.\
+Please add a way to change the current directory to the executable installation path here for your OS\
+and do a pull request.
+#endif
 }
