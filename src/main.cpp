@@ -99,8 +99,8 @@ int main(int argc, char **argv)
             }
         }
 
-    if (SDL_Init(0) < 0)
-        show_error("Error initializing SDL: "s + SDL_GetError());
+        if (SDL_Init(0) < 0)
+            utils::show_error("Error initializing SDL: "s + SDL_GetError());
 
         {
             char const *fname = "./cfg/engine.json";
