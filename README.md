@@ -63,6 +63,7 @@ A little project aimed to create a minecraft-like game.
   # Configure the project
   cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=Release
   # And finally, building
+  # If this fails to link in Arch (/usr/bin/ld: cannot find -laudio), install aur/nas
   cmake --build build/ --target little_game --parallel
   # Install on default destination (/opt/little_game)
   sudo cmake --install build/
