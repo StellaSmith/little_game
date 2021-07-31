@@ -1,7 +1,7 @@
 [requires]
 glm/0.9.9.8
-fmt/7.1.3
-spdlog/1.8.5
+fmt/8.0.1
+spdlog/1.9.1
 rapidjson/cci.20200410
 entt/3.6.0
 luajit/2.0.5
