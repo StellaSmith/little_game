@@ -10,7 +10,7 @@ include(${CMAKE_BINARY_DIR}/conan_paths.cmake OPTIONAL)
 
 find_package(luajit REQUIRED)
 find_package(glm REQUIRED)
-find_package(nlohmann_json REQUIRED)
+find_package(RapidJSON REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(EnTT REQUIRED)
@@ -30,6 +30,7 @@ add_executable(little_game
     src/error.cpp
 
     src/engine/BlockType.cpp
+    src/engine/Config.cpp
 
     src/game/shared.cpp
     src/game/input.cpp
@@ -47,6 +48,7 @@ add_executable(little_game
     include/engine/BlockType.hpp
     include/engine/rendering/Mesh.hpp
     include/engine/rendering/Vertex.hpp
+    include/engine/Config.hpp
     include/glDebug.h
     include/math/fast.hpp
     include/math/bits.hpp
@@ -61,7 +63,7 @@ add_executable(little_game
 
 target_link_libraries(little_game
 PRIVATE
-    glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl nlohmann_json::nlohmann_json
+    glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
     fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT sol2::sol2)
 
 target_compile_features(little_game PUBLIC cxx_std_17)

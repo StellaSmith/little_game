@@ -3,7 +3,9 @@
 
 #include <fmt/format.h>
 #include <glad/gl.h>
-#include <nlohmann/json.hpp>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/pointer.h>
 #include <stb_image.h>
 
 #include <cstdio>
@@ -13,7 +15,6 @@
 #include <string_view>
 #include <unordered_map>
 
-using json = nlohmann::json;
 using namespace std::literals;
 
 static FILE *open_path(std::filesystem::path const &p, char const *mode)
@@ -26,29 +27,57 @@ engine::Textures engine::load_textures()
     std::FILE *fp = std::fopen("assets/texture_pack.json", "r");
     if (!fp)
         utils::show_error("Can't open file assets/texture_pack.json");
-    json texture_pack;
-    try {
-        texture_pack = json::parse(fp, nullptr, true, true);
-    } catch (std::exception &e) {
-        std::fclose(fp);
-        utils::show_error("Error parsing file assets/texture_pack.json\n"s + e.what());
-    }
-
+    std::fseek(fp, 0, SEEK_END);
+    std::size_t filesize = std::ftell(fp);
+    std::fseek(fp, 0, SEEK_SET);
+    auto content = std::make_unique<char[]>(filesize + 1);
+    std::fread(content.get(), 1, filesize, fp);
     std::fclose(fp);
+
+    rapidjson::Document texture_pack;
+    {
+        using namespace rapidjson;
+        texture_pack.ParseInsitu<kParseInsituFlag | kParseCommentsFlag | kParseTrailingCommasFlag | kParseNanAndInfFlag>(content.get());
+    }
+    if (texture_pack.HasParseError()) {
+        auto error = texture_pack.GetParseError();
+        auto offset = texture_pack.GetErrorOffset();
+        char const *message = rapidjson::GetParseError_En(error);
+
+        std::size_t lineno = 0;
+        std::size_t lineat = 0;
+
+        for (std::size_t i = 0; i < offset; ++i) {
+            if (content[i] == '\n') {
+                lineno = 0;
+                lineat = i;
+            }
+        }
+
+        utils::show_error("Error parsing file assets/texture_pack.json\n"sv,
+            fmt::format("Error at line {} column {}: {}"sv, lineno + 1, offset - lineat, message));
+    }
 
     int max_layers;
     glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &max_layers);
 
     using map_type = std::pmr::unordered_map<std::string_view, std::string_view>;
 
-    auto buffer = std::make_unique<char[]>(std::min(max_layers, 1024) * sizeof(typename map_type::value_type));
     std::pmr::monotonic_buffer_resource buffer_resource;
     map_type textures(&buffer_resource);
 
-    try {
-        texture_pack.at("textures").get_to(textures);
-    } catch (std::exception &e) {
-        utils::show_error("Error obtaining textures\n"s + e.what());
+    if (auto *value = rapidjson::Pointer("/textures").Get(texture_pack); value && value->IsObject()) {
+        for (auto const &[name_v, path_v] : value->GetObject()) {
+            auto const name = std::string_view { name_v.GetString(), name_v.GetStringLength() };
+            if (!path_v.IsString())
+                utils::show_error("Error loading textures pack."sv, fmt::format("/textures/{} must be an string"));
+            auto const path = std::string_view { path_v.GetString(), path_v.GetStringLength() };
+            textures.emplace(name, path);
+        }
+    } else if (value) {
+        utils::show_error("Error loading textures pack."sv, "/textures must be an object");
+    } else {
+        utils::show_error("Error loading textures pack."sv, "Can't obtain /textures");
     }
 
     if (textures.size() > static_cast<unsigned>(max_layers)) {
@@ -83,9 +112,9 @@ engine::Textures engine::load_textures()
         if (!buf) {
             std::string str_error;
             if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>)
-                str_error = fmt::format("Error loading image  {}\n{}", path.native(), stbi_failure_reason());
+                str_error = fmt::format("Error loading image {}\n{}", path.native(), stbi_failure_reason());
             else
-                str_error = fmt::format("Error loading image  {}\n{}", path.string(), stbi_failure_reason());
+                str_error = fmt::format("Error loading image {}\n{}", path.string(), stbi_failure_reason());
             utils::show_error(str_error);
         }
 

@@ -1,3 +1,4 @@
+#include <engine/Config.hpp>
 #include <engine/Game.hpp>
 #include <glDebug.h>
 #include <utils/error.hpp>
@@ -8,7 +9,6 @@
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl.h>
-#include <nlohmann/json.hpp>
 
 #include <cstdio>
 #include <cstdlib>
@@ -24,10 +24,6 @@
 #endif
 #include <windows.h>
 #endif
-
-using json = nlohmann::json;
-
-json g_config_engine;
 
 bool g_verbose = false;
 
@@ -63,81 +59,31 @@ int main(int argc, char **argv)
         if (SDL_Init(0) < 0)
             utils::show_error("Error initializing SDL: "s + SDL_GetError());
 
-        {
-            char const *fname = "./cfg/engine.json";
-            FILE *fp = std::fopen(fname, "r");
-            if (!fp)
-                utils::show_error("Error opening engine configuration file. ("s + fname + ")");
+        auto &config = engine::load_engine_config();
 
-            try {
-                g_config_engine = json::parse(fp, nullptr, true, true);
-            } catch (std::exception &e) {
-                std::fclose(fp);
-                utils::show_error("Error parsing engine config file."sv, e.what());
-            }
-            std::fclose(fp);
-        }
-        {
-            std::string video_driver;
-            try {
-                g_config_engine.at("/SDL/video_driver"_json_pointer).get_to(video_driver);
-            } catch (json::type_error const &e) {
-                utils::show_error("SDL Video Driver must be a string.\n"s + e.what());
-            } catch (json::out_of_range const &) {
-                // do nothing
-            }
-            if (SDL_VideoInit(video_driver.empty() ? nullptr : video_driver.data()) < 0)
-                utils::show_error("Error initializing SDL Video subsystem"sv, SDL_GetError());
-        }
-        {
-            std::string audio_driver;
-            try {
-                g_config_engine.at("/SDL/audio_driver"_json_pointer).get_to(audio_driver);
-            } catch (json::type_error const &e) {
-                utils::show_error("SDL Audio Driver must be a string.\n"s + e.what());
-            } catch (json::out_of_range const &) {
-                // do nothing
-            }
-            if (SDL_AudioInit(audio_driver.empty() ? nullptr : audio_driver.data()) < 0)
-                utils::show_error("Error initializing SDL Audio subsystem"sv, SDL_GetError());
-        }
-        {
-            auto get_integer = [](json::json_pointer const &path, unsigned &i) {
-                try {
-                    json::const_reference node = g_config_engine.at(path);
-                    node.get_to(i);
-                } catch (json::out_of_range const &e) {
-                    return; // use default if value is not present
-                } catch (json::type_error const &e) {
-                    utils::show_error(path.to_string() + " isn't an unsigned integer.\n" + e.what());
-                }
-            };
+        if (SDL_VideoInit(config.sdl.video_driver.empty() ? nullptr : config.sdl.video_driver.data()) < 0)
+            utils::show_error("Error initializing SDL Video subsystem"sv, SDL_GetError());
 
-            unsigned red_bits = 3, green_bits = 3, blue_bits = 2, alpha_bits = 0, depth_bits = 24, stencil_bits = 0;
-            get_integer("/SDL/OpenGL/red_bits"_json_pointer, red_bits);
-            get_integer("/SDL/OpenGL/green_bits"_json_pointer, green_bits);
-            get_integer("/SDL/OpenGL/blue_bits"_json_pointer, blue_bits);
-            get_integer("/SDL/OpenGL/alpha_bits"_json_pointer, alpha_bits);
-            get_integer("/SDL/OpenGL/depth_bits"_json_pointer, depth_bits);
-            get_integer("/SDL/OpenGL/stencil_bits"_json_pointer, stencil_bits);
+        if (SDL_AudioInit(config.sdl.audio_driver.empty() ? nullptr : config.sdl.audio_driver.data()) < 0)
+            utils::show_error("Error initializing SDL Audio subsystem"sv, SDL_GetError());
 
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-            if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, red_bits) < 0)
-                utils::show_error("Can't set SDL_GL_RED_SIZE to " + std::to_string(red_bits));
-            if (SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, green_bits) < 0)
-                utils::show_error("Can't set SDL_GL_GREEN_SIZE to " + std::to_string(green_bits));
-            if (SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, blue_bits) < 0)
-                utils::show_error("Can't set SDL_GL_BLUE_SIZE to " + std::to_string(blue_bits));
-            if (SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, alpha_bits) < 0)
-                utils::show_error("Can't set SDL_GL_ALPHA_SIZE to " + std::to_string(alpha_bits));
-            if (SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depth_bits) < 0)
-                utils::show_error("Can't set SDL_GL_DEPTH_SIZE to " + std::to_string(depth_bits));
-            if (SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, stencil_bits) < 0)
-                utils::show_error("Can't set SDL_GL_STENCIL_SIZE to" + std::to_string(stencil_bits));
-        }
+#define SET_GL_ATTRIBUTE(attribute, value)                                           \
+    if (value != -1) {                                                               \
+        if (SDL_GL_SetAttribute(attribute, value) < 0)                               \
+            utils::show_error(fmt::format("Can't set " #attribute " to {}", value)); \
+    }
+        SET_GL_ATTRIBUTE(SDL_GL_RED_SIZE, config.opengl.red_bits);
+        SET_GL_ATTRIBUTE(SDL_GL_GREEN_SIZE, config.opengl.green_bits);
+        SET_GL_ATTRIBUTE(SDL_GL_BLUE_SIZE, config.opengl.blue_bits);
+        SET_GL_ATTRIBUTE(SDL_GL_ALPHA_SIZE, config.opengl.alpha_bits);
+        SET_GL_ATTRIBUTE(SDL_GL_DEPTH_SIZE, config.opengl.depth_bits);
+        SET_GL_ATTRIBUTE(SDL_GL_STENCIL_SIZE, config.opengl.stencil_bits);
+
+#undef SET_GL_ATTRIBUTE
 
 #ifndef NDEBUG
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -216,21 +162,15 @@ int main(int argc, char **argv)
         // See imgui/examples/imgui_impl_opengl3.cpp
         ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
 
-        {
-            try {
-                auto const font_path = g_config_engine.at("/ImGui/font_path"_json_pointer).get<std::string>();
-
-                if (!imgui_io.Fonts->AddFontFromFileTTF(font_path.data(), 14)) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", static_cast<int>(font_path.size()), font_path.data());
-                    if (!imgui_io.Fonts->AddFontDefault())
-                        utils::show_error("IMGUI Error."sv, "Can't load default font."sv);
-                }
-            } catch (json::out_of_range const &e) {
+        if (!config.imgui.font_path.empty()) {
+            if (!imgui_io.Fonts->AddFontFromFileTTF(config.imgui.font_path.data(), 14)) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", static_cast<int>(config.imgui.font_path.size()), config.imgui.font_path.data());
                 if (!imgui_io.Fonts->AddFontDefault())
-                    utils::show_error("IMGUI Error."sv, "Can't load default font!"sv);
-            } catch (json::type_error const &e) {
-                utils::show_error("ImGui font_path must be a string.\n"s + e.what());
+                    utils::show_error("IMGUI Error."sv, "Can't load default font."sv);
             }
+        } else {
+            if (!imgui_io.Fonts->AddFontDefault())
+                utils::show_error("IMGUI Error."sv, "Can't load default font!"sv);
         }
 
         engine::Game game;

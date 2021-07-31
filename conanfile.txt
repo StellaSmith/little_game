@@ -2,7 +2,7 @@
 glm/0.9.9.8
 fmt/7.1.3
 spdlog/1.8.5
-nlohmann_json/3.9.1
+rapidjson/cci.20200410
 entt/3.6.0
 luajit/2.0.5
 sdl2/2.0.14@bincrafters/stable
@@ -13,6 +13,7 @@ stb/20200203
 
 [build_requires]
 cmake/[>=3.14]
+ninja/[>=1.9]
 
 [generators]
 virtualenv
