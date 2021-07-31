@@ -3,7 +3,7 @@ glm/0.9.9.8
 fmt/8.0.1
 spdlog/1.9.1
 rapidjson/cci.20200410
-entt/3.6.0
+entt/3.8.0
 luajit/2.0.5
 sdl2/2.0.14@bincrafters/stable
 sol2/3.2.3

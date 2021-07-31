@@ -123,7 +123,7 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
 
     for (entt::entity chunk : m_entity_registry.view<engine::C_ChunkPosition, engine::C_ChunkData>()) {
         auto const &[chunk_position, chunk_data] = m_entity_registry.get<engine::C_ChunkPosition, engine::C_ChunkData>(chunk);
-        if (m_entity_registry.has<engine::C_Dirty>(chunk)) {
+        if (m_entity_registry.any_of<engine::C_Dirty>(chunk)) {
             auto it = m_chunk_meshes.find(chunk_position);
             if (it == m_chunk_meshes.end()) {
                 GLuint buffers[4];
