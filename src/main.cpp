@@ -303,6 +303,7 @@ static void fix_current_directory()
 {
 #if defined(__linux__)
     {
+        // dont wanna fill up the stack
 #if PATH_MAX > 1024
         auto buf_p = std::make_unique<char[]>(PATH_MAX + 1);
         char *buf = buf_p.get();
@@ -315,11 +316,20 @@ static void fix_current_directory()
             std::string const err_str = std::system_category().message(err);
             utils::show_error("Couldn't readlink", "Couldn't read link /proc/self/exe\nIs the proc filesystem mounted?\n" + err_str);
         }
+        // starts with something like "/opt/little_game/bin/little_game\0" ... more \0 follows
+        // the double strrchr is essentially /opt/little_game/bin/little_game/../..
+        // which transforms the path to "/opt/little_game/\0in/little_game\0" ... more \0 follows
+        // if for some reason the executable is directly under root (/little_game) this would read up the stack
         *std::strrchr(buf, '/') = '\0';
+        if (auto *p = std::strrchr(buf, '/'); p) {
+            *p = '\0';
+        } else {
+            utils::show_error("Couldn't chdir", "Couldn't change current working above root");
+        }
         if (chdir(buf) < 0) {
             int const err = errno;
             std::string const err_str = std::system_category().message(err);
-            utils::show_error("Couldn't chdir", fmt::format("Coudln't change current working directory to {}\n{}", +buf, err_str));
+            utils::show_error("Couldn't chdir", fmt::format("Couldn't change current working directory to {}\n{}", +buf, err_str));
         }
     }
 #elif defined(_WIN32)
@@ -339,7 +349,13 @@ static void fix_current_directory()
             throw std::system_error(err, std::system_category(),
                 "GetModuleFileNameW failed: Couldn't get executable path");
 
-        *(wcsrchr(buf.data(), L'\\') + 1) = L'\0';
+        *wcsrchr(buf.data(), L'\\') = L'\0';
+        if (auto *p = wcsrchr(buf.data(), L'\\'); p) {
+            *p = L'\0';
+        } else {
+            utils::show_error("Couldn't chdir", "Couldn't change current working above root");
+        }
+
         auto len = std::wcslen(buf.data());
         if (SetCurrentDirectoryW(buf.data()) == 0) {
             err = GetLastError();
