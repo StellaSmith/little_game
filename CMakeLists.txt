@@ -16,6 +16,7 @@ find_package(spdlog REQUIRED)
 find_package(EnTT REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
+find_package(glad REQUIRED)
 
 add_subdirectory(external)
 
@@ -63,7 +64,7 @@ add_executable(little_game
 
 target_link_libraries(little_game
 PRIVATE
-    glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
+    glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
     fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT sol2::sol2)
 
 target_compile_features(little_game PUBLIC cxx_std_17)

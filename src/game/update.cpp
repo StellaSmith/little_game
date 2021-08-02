@@ -7,7 +7,7 @@
 #include <math/bits.hpp>
 
 #include <SDL.h>
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include <imgui.h>
 
 #include <algorithm>

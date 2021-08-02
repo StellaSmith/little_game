@@ -1,7 +1,7 @@
 #ifndef GL_DEBUG_H
 #define GL_DEBUG_H
 
-#include <glad/gl.h>
+#include <glad/glad.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,6 +12,5 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenu
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif // !GL_DEBUG

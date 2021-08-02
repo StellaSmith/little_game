@@ -1,13 +1,13 @@
-#include <engine/Game.hpp>
-#include <math/bits.hpp>
 #include <engine/BlockType.hpp>
 #include <engine/Camera.hpp>
+#include <engine/Game.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/components/Dirty.hpp>
+#include <math/bits.hpp>
 
 #include <entt/entt.hpp>
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include <lua.hpp>
 
 #include <random>

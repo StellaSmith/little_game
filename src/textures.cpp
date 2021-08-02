@@ -2,7 +2,7 @@
 #include <utils/error.hpp>
 
 #include <fmt/format.h>
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/pointer.h>

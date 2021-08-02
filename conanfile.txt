@@ -10,6 +10,7 @@ sol2/3.2.3
 openssl/1.1.1k
 imgui/1.83
 stb/20200203
+glad/0.1.34
 
 [build_requires]
 cmake/[>=3.14]
@@ -24,3 +25,6 @@ cmake_find_package
 spdlog:header_only=True
 fmt:header_only=True
 sdl2:shared=True
+glad:gl_profile=core
+glad:gl_version=3.3
+glad:extensions=GL_ARB_get_program_binary,GL_KHR_debug

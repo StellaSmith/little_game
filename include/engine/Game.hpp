@@ -5,7 +5,7 @@
 #include <engine/textures.hpp>
 
 #include <entt/entt.hpp>
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include <sol/state.hpp>
 
 #include <chrono>

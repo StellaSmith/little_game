@@ -1,12 +1,12 @@
+#include <engine/Camera.hpp>
 #include <engine/Game.hpp>
+#include <engine/components/ChunkData.hpp>
 #include <utils/cache.hpp>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
 #include <utils/timeit.hpp>
-#include <engine/Camera.hpp>
-#include <engine/components/ChunkData.hpp>
 
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 

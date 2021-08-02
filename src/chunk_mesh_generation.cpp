@@ -1,12 +1,12 @@
+#include <engine/BlockType.hpp>
 #include <engine/Game.hpp>
+#include <engine/components/ChunkData.hpp>
+#include <engine/rendering/Mesh.hpp>
 #include <math/bits.hpp>
 #include <math/constexpr.hpp>
 #include <utils/timeit.hpp>
-#include <engine/BlockType.hpp>
-#include <engine/components/ChunkData.hpp>
-#include <engine/rendering/Mesh.hpp>
 
-#include <glad/gl.h>
+#include <glad/glad.h>
 
 #include <algorithm>
 #include <cstring>
@@ -209,7 +209,7 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 chu
         return result;
 
     entt::entity const chunk = it->second;
-    auto const& chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
+    auto const &chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
 
     // avoid small allocations
     result.vertices.reserve(256);
