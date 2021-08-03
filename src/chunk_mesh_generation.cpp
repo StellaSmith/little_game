@@ -128,16 +128,9 @@ static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
 }
 
-engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 chunk_position)
+engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPosition const &chunk_position, engine::C_ChunkData const &chunk_data)
 {
     engine::rendering::Mesh result;
-
-    auto it = m_chunks.find(chunk_position);
-    if (it == m_chunks.end())
-        return result;
-
-    entt::entity const chunk = it->second;
-    auto const &chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
 
     // avoid small allocations
     result.vertices.reserve(256);
@@ -194,7 +187,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(glm::i32vec4 chunk_pos
     }
 
     for (auto &vertex : result.vertices) // transform to world coords
-        vertex.position += static_cast<glm::vec3>(chunk_position) * static_cast<float>(chunk_size);
+        vertex.position += static_cast<glm::vec3>(static_cast<glm::ivec4>(chunk_position)) * static_cast<float>(chunk_size);
 
     return result;
 }
