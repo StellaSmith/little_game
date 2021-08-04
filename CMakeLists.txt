@@ -30,6 +30,7 @@ add_executable(little_game
     src/textures.cpp
     src/error.cpp
 
+    src/engine/BlockRegistry.cpp
     src/engine/BlockType.cpp
     src/engine/Config.cpp
 
@@ -38,11 +39,11 @@ add_executable(little_game
     src/game/update.cpp
     src/game/render.cpp
 
-    src/game/blocks/Air.cpp
-    src/game/blocks/Colorful.cpp
-    src/game/blocks/Stone.cpp
-    src/game/blocks/Dirt.cpp
-    src/game/blocks/Grass.cpp
+    # src/game/blocks/Air.cpp
+    # src/game/blocks/Colorful.cpp
+    # src/game/blocks/Stone.cpp
+    # src/game/blocks/Dirt.cpp
+    # src/game/blocks/Grass.cpp
 
     include/engine/Game.hpp
     include/engine/Block.hpp

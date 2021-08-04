@@ -1,10 +1,15 @@
-#pragma once
-
-#include <cstdint>
+#ifndef ENGINE_BLOCK_HPP
+#define ENGINE_BLOCK_HPP
 
 namespace engine {
+
+    struct BlockType;
+
     struct Block {
-        std::uint32_t id {};
-        std::uint32_t subid {};
+        engine::BlockType *type;
+        void *data;
     };
+
 } // namespace engine
+
+#endif

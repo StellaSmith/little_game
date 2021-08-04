@@ -10,6 +10,7 @@
 #include <glad/glad.h>
 #include <lua.hpp>
 
+#include <cstdint>
 #include <random>
 
 using namespace std::literals;
@@ -42,17 +43,17 @@ void engine::Game::start()
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
 
-    auto registered_blocks_types = BlockType::GetRegistered();
-    for (auto *block_type : registered_blocks_types)
-        if (block_type->initialize)
-            block_type->initialize(block_type, this);
+    if (m_block_registry.empty()) return;
 
-    std::uint32_t colorfulId = BlockType::GetRegisteredIdByName("colorful_block"sv);
+    for (auto block_type : m_block_registry)
+        block_type.second->Initialize(*this);
+
+    engine::BlockType *colorful_type = m_block_registry.Get("colorful_block"sv);
 
     running = true;
     std::random_device rd {};
     std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
-    std::uniform_int_distribution<std::uint32_t> id_dist { 0, static_cast<std::uint32_t>(registered_blocks_types.size() - 1) };
+    std::uniform_int_distribution<std::size_t> id_dist { 0, m_block_registry.size() };
 
     int32_t const max_x = 10;
     for (std::int32_t x = 0; x < max_x; ++x) {
@@ -62,8 +63,10 @@ void engine::Game::start()
         m_entity_registry.emplace<engine::C_Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
-            if ((block.id = id_dist(rd)) == colorfulId)
-                block.subid = math::pack_u32(dist(rd), dist(rd), dist(rd));
+            if ((block.type = m_block_registry[id_dist(rd)].second) == colorful_type) {
+                auto const packed = math::pack_u32(dist(rd), dist(rd), dist(rd));
+                block.data = reinterpret_cast<void *>(static_cast<std::uintptr_t>(packed));
+            }
         }
     }
 }
