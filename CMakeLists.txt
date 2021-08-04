@@ -63,6 +63,26 @@ add_executable(little_game
     include/operators.hpp
 )
 
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG(-Ofast HAS_OFAST)
+if (HAS_OFAST)
+    set_source_files_properties(src/chunk_mesh_generation.cpp PROPERTIES COMPILE_OPTIONS "-Ofast")
+else()
+    CHECK_CXX_COMPILER_FLAG(-O3 HAS_O3)
+    if(HAS_O3)
+        set_source_files_properties(src/chunk_mesh_generation.cpp PROPERTIES COMPILE_OPTIONS "-O3")
+    else()
+        CHECK_CXX_COMPILER_FLAG(/Ox HAS_OX)
+        if(HAS_OX)
+            set_source_files_properties(src/chunk_mesh_generation.cpp PROPERTIES COMPILE_OPTIONS "/Ox")
+        endif()
+    endif()
+endif()
+
+unset(HAST_OFAST)
+unset(HAST_O3)
+unset(HAST_OX)
+
 target_link_libraries(little_game
 PRIVATE
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
