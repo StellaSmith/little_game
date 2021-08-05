@@ -40,6 +40,7 @@ add_executable(little_game
     src/game/render.cpp
 
     src/engine/errors/AlreadyRegistered.cpp
+    src/engine/errors/UnsupportedFileType.cpp
 
     # src/game/blocks/Air.cpp
     # src/game/blocks/Colorful.cpp
@@ -65,6 +66,7 @@ add_executable(little_game
     include/operators.hpp
 
     include/engine/errors/AlreadyRegistered.hpp
+    include/engine/errors/UnsupportedFileType.hpp
 )
 
 include(CheckCXXCompilerFlag)
