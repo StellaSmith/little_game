@@ -1,6 +1,8 @@
 #ifndef ENGINE_BLOCKREGISTRY_HPP
 #define ENGINE_BLOCKREGISTRY_HPP
 
+#include <engine/errors/AlreadyRegistered.hpp>
+
 #include <algorithm>
 #include <cstdint>
 #include <exception>
@@ -14,18 +16,6 @@ namespace engine {
 
     struct BlockType;
     struct Game;
-
-    class AlreadyRegistered : public std::exception {
-
-    public:
-        explicit AlreadyRegistered() noexcept;
-        explicit AlreadyRegistered(char const *message) noexcept;
-
-        char const *what() const noexcept override;
-
-    private:
-        char const *m_message;
-    };
 
     class BlockRegistry {
 
@@ -42,7 +32,7 @@ namespace engine {
                 return item.name < name;
             });
             if (it != m_registeredBlocks.end() && it->name == name)
-                throw AlreadyRegistered { "BlockType already registered" };
+                throw engine::errors::AlreadyRegistered { "BlockType" };
             it = m_registeredBlocks.emplace(it, std::string(name), std::make_unique<std::remove_cv_t<T>>());
             return it->blockType.get();
         }

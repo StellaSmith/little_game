@@ -39,6 +39,8 @@ add_executable(little_game
     src/game/update.cpp
     src/game/render.cpp
 
+    src/engine/errors/AlreadyRegistered.cpp
+
     # src/game/blocks/Air.cpp
     # src/game/blocks/Colorful.cpp
     # src/game/blocks/Stone.cpp
@@ -61,6 +63,8 @@ add_executable(little_game
     include/engine/textures.hpp
     include/utils/error.hpp
     include/operators.hpp
+
+    include/engine/errors/AlreadyRegistered.hpp
 )
 
 include(CheckCXXCompilerFlag)

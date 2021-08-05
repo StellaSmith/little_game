@@ -1,22 +1,5 @@
 #include <engine/BlockRegistry.hpp>
 
-engine::AlreadyRegistered::AlreadyRegistered() noexcept
-    : exception()
-    , m_message("Already registered")
-{
-}
-
-engine::AlreadyRegistered::AlreadyRegistered(char const *message) noexcept
-    : exception()
-    , m_message(message)
-{
-}
-
-char const *engine::AlreadyRegistered::what() const noexcept
-{
-    return m_message;
-}
-
 engine::BlockType *engine::BlockRegistry::Get(std::string_view name)
 {
     if (auto it = find(name); it != end())
