@@ -28,12 +28,11 @@ jobs:
           install: >-
             base-devel
             mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
             mingw-w64-x86_64-python-pip
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-clang
 
-      - name: Build dependencies
+      - name: Install
         shell: msys2 {0}
         env:
           CC: ${{ matrix.compiler.c }}
@@ -44,22 +43,21 @@ jobs:
           mkdir build;
           cd build;
           conan profile new --detect detect-${{ matrix.compiler.c }};
-          conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/conan;
-          conan install -pr detect-${{ matrix.compiler.c }} .. --build=missing;
+          conan install .. --build=missing --profile detect-${{ matrix.compiler.c }} --settings build_type=${{ matrix.build_type }};
 
-      - name: Configure
+      - name: Build
         shell: msys2 {0}
         env:
           CC: ${{ matrix.compiler.c }}
           CXX: ${{ matrix.compiler.cxx }}
         run: |
           set -e;
-          source build/activate.sh;
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_WARNINGS:BOOL=ON
+          cd build;
+          conan build ..;
 
       - name: Build
         shell: msys2 {0}
         run: |
           set -e;
-          source build/activate.sh;
-          cmake --build build/ --parallel
+          cd build;
+          conan package ..;

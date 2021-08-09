@@ -18,21 +18,20 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Build dependencies
+    - name: Install
       run: |
         pip install -U conan;
         mkdir build;
         cd build;
         conan profile new --detect default;
-        conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/conan;
-        conan install .. --build=missing;
-
-    - name: Configure
-      run: |
-        build/activate.ps1;
-        cmake -S . -B build/ -DENABLE_WARNINGS:BOOL=ON;
+        conan install .. --build=missing --settings build_type=${{ matrix.build_type }};
 
     - name: Build
       run: |
-        build/activate.ps1;
-        cmake --build build/ --config ${{ matrix.build_type }} --parallel;
+        cd build;
+        conan build ..;
+
+    - name: Package
+      run: |
+        cd build;
+        conan package ..;
