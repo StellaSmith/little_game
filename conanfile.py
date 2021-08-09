@@ -8,7 +8,7 @@ class VGameConan(ConanFile):
     url = homepage = "https://github/StellaSmith/little_game"
     
     settings = "os", "arch", "compiler", "build_type"
-    generators = "cmake_find_package"
+    generators = "cmake_find_package", "cmake_paths"
 
     options = {
         "use_ninja": [True, False]
@@ -54,7 +54,7 @@ class VGameConan(ConanFile):
         cmake.build()
     
     def package(self):
-        self.copy("LICENSE", dst="licenses", src=self.source_subfolder)
+        self.copy("LICENSE", dst="licenses", src=self.source_folder)
         cmake = self._configure_cmake()
         cmake.install()
 
