@@ -139,20 +139,6 @@ install(TARGETS little_game
 install(DIRECTORY ${CONAN_SDL2_ROOT}/lib DESTINATION .) # .so
 install(DIRECTORY ${CONAN_SDL2_ROOT}/bin DESTINATION .) # .dll
 
-install(FILES run.sh run.bat
-    DESTINATION .
-    PERMISSIONS
-        OWNER_EXECUTE
-        GROUP_EXECUTE
-        WORLD_EXECUTE
-
-        OWNER_READ
-        GROUP_READ
-        WORLD_READ
-
-        OWNER_WRITE
-)
-
 install(DIRECTORY assets cfg
     DESTINATION .
 )
