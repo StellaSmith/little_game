@@ -1,0 +1,75 @@
+name: Build mingw-w64
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-mingw:
+    name: Building for ${{ matrix.build_type }} with mingw-w64-${{ matrix.compiler.c }}
+    runs-on: ubuntu-20.04
+    strategy:
+        fail-fast: false
+        matrix:
+          compiler:
+            - c: gcc
+              cxx: g++
+          build_type: [Release, Debug]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install
+      run: |
+        set -e;
+        pip install -U conan;
+        mkdir -p ~/.conan/profiles/;
+        cat > ~/.conan/profiles/mingw-w64-gcc <<EOF
+        toolchain=/usr/x86_64-w64-mingw32
+        target_host=x86_64-w64-mingw32
+        cc_compiler=gcc
+        cxx_compiler=g++
+
+        [settings]
+        os=Windows
+        os_build=Linux
+        arch=x86_64
+        arch_build=x86_64
+        compiler=gcc
+        compiler.version=11
+        compiler.libcxx=libstdc++11
+        build_type=Release
+
+        [options]
+        [build_requires]
+        [env]
+        CONAN_CMAKE_FIND_ROOT_PATH=$toolchain
+        CONAN_CMAKE_SYSROOT=$toolchain
+        CHOST=\$target_host
+        AR=\$target_host-ar
+        AS=\$target_host-as
+        RANLIB=\$target_host-ranlib
+        CC=\$target_host-\$cc_compiler
+        CXX=\$target_host-\$cxx_compiler
+        STRIP=\$target_host-strip
+        RC=\$target_host-windres
+        LDFLAGS=-static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
+        EOF
+
+        mkdir build;
+        cd build;
+        conan install .. --build=missing --profile mingw-w64-gcc --settings build_type=${{ matrix.build_type }};
+      
+    - name: Build
+      run: |
+        set -e;
+        cd build;
+        conan build ..;
+
+    - name: Install
+      run: |
+        set -e;
+        cd build;
+        conan package ..;
