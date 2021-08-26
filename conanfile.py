@@ -16,7 +16,6 @@ class VGameConan(ConanFile):
 
     default_options = {
         "use_ninja": False,
-        "sdl2:shared": True,
         "glad:gl_profile": "core",
         "glad:gl_version": "3.3",
         "glad:extensions": "GL_ARB_get_program_binary,GL_KHR_debug"
@@ -35,7 +34,7 @@ class VGameConan(ConanFile):
         self.requires("spdlog/1.9.1")
         self.requires("rapidjson/cci.20200410")
         self.requires("entt/3.8.0")
-        self.requires("luajit/2.0.5")
+        self.requires("lua/5.4.1")
         self.requires("sol2/3.2.3")
         self.requires("openssl/1.1.1k")
         self.requires("imgui/1.83")

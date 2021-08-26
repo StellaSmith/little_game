@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CONAN_CMAKE_SILENT_OUTPUT ON)
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake OPTIONAL)
 
-find_package(luajit REQUIRED)
+find_package(lua REQUIRED)
 find_package(glm REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(fmt REQUIRED)
@@ -92,13 +92,14 @@ unset(HAST_OX)
 target_link_libraries(little_game
 PRIVATE
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog luajit::luajit EnTT::EnTT sol2::sol2)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua)
 
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC
     GLM_FORCE_XYZW_ONLY
-    SOL_LUAJIT SOL_ALL_SAFETIES_ON)
+    # SOL_LUAJIT
+    SOL_ALL_SAFETIES_ON)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT (MINGW OR CYGWIN))
     message(STATUS "Linking with SDL2main")
