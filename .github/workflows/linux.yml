@@ -35,12 +35,12 @@ jobs:
         cd build;
         conan profile new --detect detect-${{ matrix.compiler.c }};
         conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/conan;
-        conan install .. --build=missing --profile detect-${{ matrix.compiler.c }} --settings build_type=${{ matrix.build_type }};
+        conan install .. --build=missing -pr detect-${{ matrix.compiler.c }} -s build_type=${{ matrix.build_type }} -e CC=${{ matrix.compiler.c }} -e CXX=${{ matrix.compiler.cxx }}; 
 
     - name: Build
       env:
-        CC: ${{ matrix.compiler.c }}
-        CXX: ${{ matrix.compiler.cxx }}
+        CC: 
+        CXX: 
       run: |
         set -e;
         cd build;
