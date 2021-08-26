@@ -48,6 +48,8 @@ add_executable(little_game
     # src/game/blocks/Dirt.cpp
     # src/game/blocks/Grass.cpp
 
+    src/assets/BlockModel.cpp
+
     include/engine/Game.hpp
     include/engine/Block.hpp
     include/engine/BlockType.hpp
@@ -64,6 +66,8 @@ add_executable(little_game
     include/engine/textures.hpp
     include/utils/error.hpp
     include/operators.hpp
+
+    include/engine/assets/BlockModel.hpp
 
     include/engine/errors/AlreadyRegistered.hpp
     include/engine/errors/UnsupportedFileType.hpp
