@@ -1,9 +1,10 @@
 # little_game
 A little project aimed to create a minecraft-like game.
 
-[![Build Win32](https://github.com/StellaSmith/little_game/workflows/Build%20Win32/badge.svg)](https://github.com/StellaSmith/little_game/actions?query=workflow%3A%22Build+Win32%22)
-[![Build MSYS2](https://github.com/StellaSmith/little_game/workflows/Build%20MSYS2/badge.svg)](https://github.com/StellaSmith/little_game/actions?query=workflow%3A%22Build+MSYS2%22)
-[![Build Linux](https://github.com/StellaSmith/little_game/workflows/Build%20Linux/badge.svg)](https://github.com/StellaSmith/little_game/actions?query=workflow%3A%22Build+Linux%22)
+[![Build Linux](https://github.com/StellaSmith/little_game/actions/workflows/linux.yml/badge.svg)](https://github.com/StellaSmith/little_game/actions/workflows/linux.yml)
+[![Build Win32](https://github.com/StellaSmith/little_game/actions/workflows/win32.yml/badge.svg)](https://github.com/StellaSmith/little_game/actions/workflows/win32.yml)
+[![Build MinGW-w64](https://github.com/StellaSmith/little_game/actions/workflows/mingw.yml/badge.svg)](https://github.com/StellaSmith/little_game/actions/workflows/mingw.yml)
+[![Build MSYS2](https://github.com/StellaSmith/little_game/actions/workflows/msys2.yml/badge.svg)](https://github.com/StellaSmith/little_game/actions/workflows/msys2.yml)
 
 ## Building
 ### Windows
