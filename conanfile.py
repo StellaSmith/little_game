@@ -31,7 +31,7 @@ class VGameConan(ConanFile):
             self.requires("sdl2/2.0.14@bincrafters/stable")
         self.requires("glm/0.9.9.8")
         self.requires("fmt/8.0.1")
-        self.requires("spdlog/1.9.1")
+        self.requires("spdlog/1.9.2")
         self.requires("rapidjson/cci.20200410")
         self.requires("entt/3.8.0")
         self.requires("lua/5.4.1")
