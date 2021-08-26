@@ -21,10 +21,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install
+    - name: Install build tools
       run: |
         set -e;
+        apt-get upgrade;
+        apt-get install -y mingw-w64;
         pip install -U conan;
+
+    - name: conan install
+      run: |
+        set -e;
         mkdir -p ~/.conan/profiles/;
         cat > ~/.conan/profiles/mingw-w64-gcc <<EOF
         toolchain=/usr/x86_64-w64-mingw32
@@ -62,13 +68,13 @@ jobs:
         cd build;
         conan install .. --build=missing --profile mingw-w64-gcc --settings build_type=${{ matrix.build_type }};
       
-    - name: Build
+    - name: conan build
       run: |
         set -e;
         cd build;
         conan build ..;
 
-    - name: Install
+    - name: conan install
       run: |
         set -e;
         cd build;
