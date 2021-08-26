@@ -39,7 +39,7 @@ class VGameConan(ConanFile):
         self.requires("sol2/3.2.3")
         self.requires("openssl/1.1.1k")
         self.requires("imgui/1.83")
-        self.requires("stb/20200203")
+        self.requires("stb/cci.20210713")
         self.requires("glad/0.1.34")
 
 
