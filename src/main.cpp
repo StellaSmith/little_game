@@ -35,6 +35,9 @@ static void fix_current_directory();
 
 int main(int argc, char **argv)
 {
+#ifdef SDL_MAIN_HANDLED
+    SDL_SetMainReady();
+#endif
     try {
         fix_current_directory();
 

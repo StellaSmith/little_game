@@ -100,9 +100,11 @@ target_compile_definitions(little_game PUBLIC
     GLM_FORCE_XYZW_ONLY
     SOL_LUAJIT SOL_ALL_SAFETIES_ON)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT (MINGW OR CYGWIN))
     message(STATUS "Linking with SDL2main")
     target_link_libraries(little_game PRIVATE SDL2::SDL2main)
+else()
+    target_compile_definitions(little_game PRIVATE SDL_MAIN_HANDLED)
 endif()
 if (MSVC)
     target_compile_options(little_game PUBLIC /std:c++latest)
