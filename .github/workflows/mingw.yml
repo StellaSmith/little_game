@@ -32,6 +32,7 @@ jobs:
       run: |
         set -e;
         mkdir -p ~/.conan/profiles/;
+        touch ~/.conan/profiles/default; # Make conan shutup
         cat > ~/.conan/profiles/mingw-w64-gcc <<EOF
         toolchain=/usr/x86_64-w64-mingw32
         target_host=x86_64-w64-mingw32
@@ -51,8 +52,8 @@ jobs:
         [options]
         [build_requires]
         [env]
-        CONAN_CMAKE_FIND_ROOT_PATH=$toolchain
-        CONAN_CMAKE_SYSROOT=$toolchain
+        CONAN_CMAKE_FIND_ROOT_PATH=\$toolchain
+        CONAN_CMAKE_SYSROOT=\$toolchain
         CHOST=\$target_host
         AR=\$target_host-ar
         AS=\$target_host-as
