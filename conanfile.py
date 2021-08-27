@@ -24,11 +24,7 @@ class VGameConan(ConanFile):
     _cmake = None
 
     def requirements(self):
-        if self.settings.os == "Windows":
-            # Conan Center only supports SDL2 on windows for the moment 
-            self.requires("sdl/2.0.14")
-        else:
-            self.requires("sdl2/2.0.14@bincrafters/stable")
+        self.requires("sdl/2.0.16")
         self.requires("glm/0.9.9.8")
         self.requires("fmt/8.0.1")
         self.requires("spdlog/1.9.2")
@@ -36,7 +32,6 @@ class VGameConan(ConanFile):
         self.requires("entt/3.8.0")
         self.requires("lua/5.4.1")
         self.requires("sol2/3.2.3")
-        self.requires("openssl/1.1.1k")
         self.requires("imgui/1.83")
         self.requires("stb/cci.20210713")
         self.requires("glad/0.1.34")
