@@ -2,7 +2,7 @@
     // Don't set for the SDL defaults
     "SDL": {
         // "video_driver": "wayland",
-        // "audio_driver": "jack",
+        "audio_driver": "dummy",
         "OpenGL": {
             "red_bits": 8,
             "green_bits": 8,
