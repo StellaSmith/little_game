@@ -26,6 +26,8 @@ engine::Game::~Game()
 
 void engine::Game::start()
 {
+    setup_lua();
+
     glClearColor(0.0, 0.25, 0.5, 1.0);
 
     setup_shader();
