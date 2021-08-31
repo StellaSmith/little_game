@@ -29,6 +29,7 @@ add_executable(little_game
     src/file.cpp
     src/textures.cpp
     src/error.cpp
+    src/lua_bindings.cpp
 
     src/engine/BlockRegistry.cpp
     src/engine/BlockType.cpp
