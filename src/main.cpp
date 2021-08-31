@@ -53,7 +53,7 @@ int main(int argc, char **argv)
                     "\t-h\t--help\t\tDisplay this message and exit.\n"
                     "\t-v\t--verbose\tDisplay more verbose messages.\n"
                     "\t--sdl-video-drivers\tEnumerate the aviable video drivers.\n"
-                    "\t--sdl-autio-drivers\tEnumerate the avaible audio drivers.\n",
+                    "\t--sdl-audio-drivers\tEnumerate the avaible audio drivers.\n",
                     argv[0]);
                 return 0;
             } else if (argv[i] == "--sdl-video-drivers"sv) {
@@ -242,15 +242,12 @@ int main(int argc, char **argv)
     } catch (utils::application_error const &e) {
         if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window) < 0)
             SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", e.what());
-        std::exit(EXIT_FAILURE);
     } catch (std::exception const &e) {
         if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), s_window) < 0)
             SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "EXCEPTION NOT HANDLED!!\n%s", e.what());
-        std::exit(EXIT_FAILURE);
     } catch (...) {
         if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", s_window) < 0)
             SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", "UNKOWN EXCEPTION NOT HANDLED!!!");
-        std::exit(EXIT_FAILURE);
     }
     return -1;
 }
