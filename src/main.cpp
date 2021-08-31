@@ -1,5 +1,6 @@
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
+#include <fmt/core.h>
 #include <glDebug.h>
 #include <utils/error.hpp>
 
@@ -44,18 +45,30 @@ int main(int argc, char **argv)
         constexpr int width = 640, height = 480;
 
         for (int i = 0; i < argc; ++i) {
-            if (argv[i] == "--sdl-video-drivers"sv) {
+            if (argv[i] == "-h"sv || argv[i] == "--help"sv) {
+                fmt::print(
+                    "Usage:\n"
+                    "\t{} [options]\n"
+                    "Options:\n"
+                    "\t-h\t--help\t\tDisplay this message and exit.\n"
+                    "\t-v\t--verbose\tDisplay more verbose messages.\n"
+                    "\t--sdl-video-drivers\tEnumerate the aviable video drivers.\n"
+                    "\t--sdl-autio-drivers\tEnumerate the avaible audio drivers.\n",
+                    argv[0]);
+                return 0;
+            } else if (argv[i] == "--sdl-video-drivers"sv) {
                 int drivers = SDL_GetNumVideoDrivers();
-                std::printf("Available video drivers (%d):\n", drivers);
+                fmt::print("Available video drivers ({}):\n", drivers);
                 for (int i = 0; i < drivers; ++i)
-                    std::printf("\t%d) %s\n", i + 1, SDL_GetVideoDriver(i));
+                    fmt::print("\t{}) {}\n", i + 1, SDL_GetVideoDriver(i));
             } else if (argv[i] == "--sdl-audio-drivers"sv) {
                 int drivers = SDL_GetNumAudioDrivers();
-                std::printf("Available audio drivers (%d):\n", drivers);
+                fmt::print("Available audio drivers ({}):\n", drivers);
                 for (int i = 0; i < drivers; ++i)
-                    std::printf("\t%d) %s\n", i + 1, SDL_GetAudioDriver(i));
+                    fmt::print("\t{}) {}\n", i + 1, SDL_GetAudioDriver(i));
             } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
                 g_verbose = true;
+                fmt::print("Verbose output enabled.\n");
             }
         }
 
