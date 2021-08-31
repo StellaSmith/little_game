@@ -22,7 +22,7 @@ static engine::Config s_config {};
 
 using namespace std::literals;
 
-engine::Config const &engine::get_engine_config()
+engine::Config const &engine::config()
 {
     return s_config;
 }

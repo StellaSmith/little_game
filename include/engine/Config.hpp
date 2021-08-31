@@ -29,7 +29,7 @@ namespace engine {
         } terminal;
     };
 
-    Config const &get_engine_config();
+    Config const &config();
     Config const &load_engine_config();
 }
 
