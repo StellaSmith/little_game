@@ -23,6 +23,10 @@ namespace engine {
         struct {
             std::string_view font_path;
         } imgui;
+
+        struct {
+            int max_lines = 5000;
+        } terminal;
     };
 
     Config const &get_engine_config();

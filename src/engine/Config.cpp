@@ -110,6 +110,8 @@ engine::Config const &engine::load_engine_config()
     s_config.opengl.depth_bits = get_integer("/SDL/OpenGL/depth_bits");
     s_config.opengl.stencil_bits = get_integer("/SDL/OpenGL/stencil_bits");
 
+    s_config.terminal.max_lines = get_integer("/Terminal/max_lines");
+
     if (auto *value = rapidjson::Pointer("/ImGui/font_path").Get(doc); value && value->IsString()) {
         std::size_t length = value->GetStringLength();
         void *p = s_resource->allocate(length);
