@@ -1,7 +1,7 @@
+#include <engine/Config.hpp>
 #include <engine/Game.hpp>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 #include <sol/sol.hpp>
 #include <spdlog/spdlog.h>
 
@@ -9,18 +9,16 @@
 #include <string>
 #include <system_error>
 
-using json = nlohmann::json;
 using namespace std::literals;
 
-extern json g_config_engine;
-extern bool g_verbose;
+extern bool g_verbose; // TODO: Move to it's own header
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
 #define HAS_CXXABI_H
 #endif
 
-static std::string unmangled_name(std::type_info const &ti)
+static std::string unmangled_name(std::type_info const &ti) // TODO: Move to it's own header
 {
 #ifdef HAS_CXXABI_H
     std::size_t length;
@@ -58,7 +56,6 @@ static int exception_handler(lua_State *L, sol::optional<std::exception const &>
 
 namespace {
     struct Printer {
-        std::uint32_t max_lines;
         std::deque<std::string> &console_text;
         void operator()(sol::variadic_args args, sol::this_state L)
         {
@@ -101,7 +98,7 @@ namespace {
             spdlog::info("[{}lua{}] {}", "\033[36m" /* cyan */, "\033[m" /* reset */, line);
 
             console_text.emplace_back(std::move(line));
-            while (console_text.size() > max_lines)
+            while (console_text.size() > engine::config().terminal.max_lines)
                 console_text.pop_front();
         }
     };
@@ -112,15 +109,6 @@ void engine::Game::setup_lua()
     m_lua = sol::state {};
     m_lua.set_exception_handler(&exception_handler);
     m_lua.globals().raw_set("_VERBOSE"sv, g_verbose);
-
-    std::uint32_t max_lines = 5000;
-
-    try {
-        g_config_engine.at("/Terminal/max_lines"_json_pointer).get_to(max_lines);
-    } catch (std::exception &e) {
-        if (g_verbose)
-            spdlog::warn("Can't obtain /Terminal/max_lines, using the default of {}\n\t{}", max_lines, e.what());
-    }
 
     m_lua.open_libraries(sol::lib::base);
     // m_lua.open_libraries(sol::lib::package); disabled
@@ -144,7 +132,7 @@ void engine::Game::setup_lua()
         m_lua.globals().raw_set(f, sol::nil);
 
     // override print
-    m_lua.globals().set_function("print"sv, Printer { max_lines, this->m_console_text });
+    m_lua.globals().set_function("print"sv, Printer { this->m_console_text });
 
     sol::environment sv_env(m_lua, sol::create, m_lua.globals());
     sol::environment cl_env(m_lua, sol::create, m_lua.globals());
