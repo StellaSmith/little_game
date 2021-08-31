@@ -75,8 +75,9 @@ engine::Config const &engine::load_engine_config()
 
     if (auto *value = rapidjson::Pointer("/SDL/video_driver").Get(doc); value) {
         std::size_t length = value->GetStringLength();
-        void *p = s_resource->allocate(length);
+        void *p = s_resource->allocate(length + 1);
         std::memcpy(p, value->GetString(), length);
+        ((char *)p)[length] = 0; // null terminator
         s_config.sdl.video_driver = std::string_view { reinterpret_cast<char const *>(p), length };
     } else if (value) {
         utils::show_error("Error loading engine config file."sv, "/SDL/video_driver must be an string");
@@ -84,8 +85,9 @@ engine::Config const &engine::load_engine_config()
 
     if (auto *value = rapidjson::Pointer("/SDL/audio_driver").Get(doc); value && value->IsString()) {
         std::size_t length = value->GetStringLength();
-        void *p = s_resource->allocate(length);
+        void *p = s_resource->allocate(length + 1);
         std::memcpy(p, value->GetString(), length);
+        ((char *)p)[length] = 0; // null terminator
         s_config.sdl.audio_driver = std::string_view { reinterpret_cast<char const *>(p), length };
     } else if (value) {
         utils::show_error("Error loading engine config file."sv, "/SDL/audio_driver must be an string");
