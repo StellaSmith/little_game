@@ -2,6 +2,7 @@
 #include <engine/Game.hpp>
 #include <fmt/core.h>
 #include <glDebug.h>
+#include <spdlog/spdlog.h>
 #include <utils/error.hpp>
 
 #include <SDL.h>
@@ -180,13 +181,13 @@ int main(int argc, char **argv)
 
         if (!config.imgui.font_path.empty()) {
             if (!imgui_io.Fonts->AddFontFromFileTTF(config.imgui.font_path.data(), 14)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "IMGUI: Error loading font \"%.*s\", using default font.", static_cast<int>(config.imgui.font_path.size()), config.imgui.font_path.data());
+                spdlog::error("[ImGui] Can't load font \"{}\", using default font.", config.imgui.font_path);
                 if (!imgui_io.Fonts->AddFontDefault())
-                    utils::show_error("IMGUI Error."sv, "Can't load default font."sv);
+                    utils::show_error("ImGui Error."sv, "Can't load default font."sv);
             }
         } else {
             if (!imgui_io.Fonts->AddFontDefault())
-                utils::show_error("IMGUI Error."sv, "Can't load default font!"sv);
+                utils::show_error("ImGui Error."sv, "Can't load default font!"sv);
         }
 
         engine::Game game;
