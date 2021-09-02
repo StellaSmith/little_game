@@ -241,14 +241,17 @@ int main(int argc, char **argv)
         SDL_Quit();
         return 0;
     } catch (utils::application_error const &e) {
-        if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window) < 0)
-            SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", e.what());
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window);
+        spdlog::critical("{}: {}", e.title(), e.body());
+        throw;
     } catch (std::exception const &e) {
-        if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), s_window) < 0)
-            SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "EXCEPTION NOT HANDLED!!\n%s", e.what());
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), s_window);
+        spdlog::critical("std::exception raised: {}", e.what());
+        throw;
     } catch (...) {
-        if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", s_window) < 0)
-            SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", "UNKOWN EXCEPTION NOT HANDLED!!!");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", s_window);
+        spdlog::critical("Unkown exception raised");
+        throw;
     }
     return -1;
 }
