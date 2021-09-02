@@ -240,6 +240,10 @@ int main(int argc, char **argv)
         SDL_VideoQuit();
         SDL_Quit();
         return 0;
+    } catch (sol::error const &e) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lua panic!", e.what(), s_window);
+        spdlog::critical("Lua panic!: {}", e.what());
+        throw;
     } catch (utils::application_error const &e) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window);
         spdlog::critical("{}: {}", e.title(), e.body());
