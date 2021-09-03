@@ -2,7 +2,7 @@
     // Don't set for the SDL defaults
     "SDL": {
         // "video_driver": "wayland",
-        "audio_driver": "dummy",
+        // "audio_driver": "dummy",
         "OpenGL": {
             "red_bits": 8,
             "green_bits": 8,
@@ -14,6 +14,6 @@
     },
     "ImGui": {
         // Don't set for the default font
-        "font_path": "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
+        // "font_path": "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
     }
 }
