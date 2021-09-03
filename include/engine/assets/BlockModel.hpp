@@ -1,5 +1,5 @@
-#ifndef ENGINE_ASSETS_MODEL_HPP
-#define ENGINE_ASSETS_MODEL_HPP
+#ifndef ENGINE_ASSETS_BLOCKMODEL_HPP
+#define ENGINE_ASSETS_BLOCKMODEL_HPP
 
 #include <engine/Sides.hpp>
 #include <engine/rendering/Mesh.hpp>
