@@ -1,6 +1,6 @@
 [requires]
 glm/0.9.9.8
-entt/3.8.0
+entt/3.8.1
 stb/cci.20210713
 
 fmt/8.0.1
