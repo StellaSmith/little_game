@@ -29,6 +29,6 @@ jobs:
     - name: Build
       run: |
         cd build;
-        activate.bat;
+        activate.ps1;
         cmake ..;
         cmake --build . --config ${{ matrix.build_type }};
