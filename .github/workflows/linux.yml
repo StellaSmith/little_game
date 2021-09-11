@@ -45,10 +45,6 @@ jobs:
       run: |
         set -e;
         cd build;
-        conan build ..;
-
-    - name: Install
-      run: |
-        set -e;
-        cd build;
-        conan package ..;
+        source activate.sh;
+        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }};
+        cmake --build .;

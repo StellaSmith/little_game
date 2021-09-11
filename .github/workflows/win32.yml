@@ -29,9 +29,6 @@ jobs:
     - name: Build
       run: |
         cd build;
-        conan build ..;
-
-    - name: Package
-      run: |
-        cd build;
-        conan package ..;
+        activate.bat;
+        cmake ..;
+        cmake --build . --config ${{ matrix.build_type }};
