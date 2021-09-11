@@ -14,8 +14,6 @@ A little project aimed to create a minecraft-like game.
   ```powershell
   # Make sure we have conan installed
   pip install --update conan
-  # Add the bincrafters conan repository for SDL2
-  conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/conan
   # Install and build dependencies
   mkdir build
   pushd build
@@ -52,8 +50,6 @@ A little project aimed to create a minecraft-like game.
   cd little_game/
   # Make sure we have conan installed
   sudo python3 -m pip install --update conan
-  # Add the bincrafters conan repository for SDL2
-  conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/conan
   # Install and build dependencies
   mkdir build
   pushd build
@@ -64,7 +60,6 @@ A little project aimed to create a minecraft-like game.
   # Configure the project
   cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=Release
   # And finally, building
-  # If this fails to link in Arch (/usr/bin/ld: cannot find -laudio), install aur/nas
   cmake --build build/ --target little_game --parallel
   # Install on default destination (/opt/little_game)
   sudo cmake --install build/

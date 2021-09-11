@@ -29,6 +29,6 @@ jobs:
     - name: Build
       run: |
         cd build;
-        activate.ps1;
+        ./activate.ps1;
         cmake ..;
-        cmake --build . --config ${{ matrix.build_type }};
+        cmake --build . --config ${{ matrix.build_type }} --parallel;
