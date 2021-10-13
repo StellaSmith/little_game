@@ -10,7 +10,6 @@
 
 #include <cstdio>
 #include <filesystem>
-#include <memory_resource>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -61,10 +60,9 @@ engine::Textures engine::load_textures()
     int max_layers;
     glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &max_layers);
 
-    using map_type = std::pmr::unordered_map<std::string_view, std::string_view>;
+    using map_type = std::unordered_map<std::string_view, std::string_view>;
 
-    std::pmr::monotonic_buffer_resource buffer_resource;
-    map_type textures(&buffer_resource);
+    map_type textures;
 
     if (auto *value = rapidjson::Pointer("/textures").Get(texture_pack); value && value->IsObject()) {
         for (auto const &[name_v, path_v] : value->GetObject()) {

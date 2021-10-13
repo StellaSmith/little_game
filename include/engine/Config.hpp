@@ -1,14 +1,14 @@
 #ifndef ENGINE_CONFIG_HPP
 #define ENGINE_CONFIG_HPP
 
-#include <string_view>
+#include <string>
 
 namespace engine {
     struct Config {
 
         struct {
-            std::string_view video_driver = {};
-            std::string_view audio_driver = {};
+            std::string video_driver = {};
+            std::string audio_driver = {};
         } sdl;
 
         struct {
@@ -21,7 +21,7 @@ namespace engine {
         } opengl;
 
         struct {
-            std::string_view font_path;
+            std::string font_path;
         } imgui;
 
         struct {

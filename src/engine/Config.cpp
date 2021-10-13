@@ -14,10 +14,7 @@
 #include <cstdio>
 #include <cstring>
 #include <memory>
-#include <memory_resource>
-#include <optional>
 
-static std::optional<std::pmr::monotonic_buffer_resource> s_resource;
 static engine::Config s_config {};
 
 using namespace std::literals;
@@ -69,26 +66,16 @@ engine::Config const &engine::load_engine_config()
         utils::show_error("Error parsing engine config file."sv,
             fmt::format("Error at line {} column {}: {}"sv, lineno + 1, offset - lineat, message));
     }
-
-    s_resource.emplace(std::pmr::new_delete_resource());
     s_config = engine::Config {};
 
     if (auto *value = rapidjson::Pointer("/SDL/video_driver").Get(doc); value) {
-        std::size_t length = value->GetStringLength();
-        void *p = s_resource->allocate(length + 1);
-        std::memcpy(p, value->GetString(), length);
-        ((char *)p)[length] = 0; // null terminator
-        s_config.sdl.video_driver = std::string_view { reinterpret_cast<char const *>(p), length };
+        s_config.sdl.video_driver = std::string { value->GetString(), value->GetStringLength() };
     } else if (value) {
         utils::show_error("Error loading engine config file."sv, "/SDL/video_driver must be an string");
     }
 
     if (auto *value = rapidjson::Pointer("/SDL/audio_driver").Get(doc); value && value->IsString()) {
-        std::size_t length = value->GetStringLength();
-        void *p = s_resource->allocate(length + 1);
-        std::memcpy(p, value->GetString(), length);
-        ((char *)p)[length] = 0; // null terminator
-        s_config.sdl.audio_driver = std::string_view { reinterpret_cast<char const *>(p), length };
+        s_config.sdl.audio_driver = std::string { value->GetString(), value->GetStringLength() };
     } else if (value) {
         utils::show_error("Error loading engine config file."sv, "/SDL/audio_driver must be an string");
     }
@@ -113,10 +100,7 @@ engine::Config const &engine::load_engine_config()
     s_config.terminal.max_lines = get_integer("/Terminal/max_lines");
 
     if (auto *value = rapidjson::Pointer("/ImGui/font_path").Get(doc); value && value->IsString()) {
-        std::size_t length = value->GetStringLength();
-        void *p = s_resource->allocate(length);
-        std::memcpy(p, value->GetString(), length);
-        s_config.imgui.font_path = std::string_view { reinterpret_cast<char const *>(p), length };
+        s_config.imgui.font_path = std::string { value->GetString(), value->GetStringLength() };
     } else if (value) {
         utils::show_error("Error loading engine config file."sv, "/ImGui/font_path must be an string");
     }
