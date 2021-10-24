@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CONAN_CMAKE_SILENT_OUTPUT ON)
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake OPTIONAL)
@@ -74,31 +72,20 @@ add_executable(little_game
     include/engine/errors/UnsupportedFileType.hpp
 )
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG(-Ofast HAS_OFAST)
-if (HAS_OFAST)
-    set_source_files_properties(src/chunk_mesh_generation.cpp PROPERTIES COMPILE_OPTIONS "-Ofast")
-else()
-    CHECK_CXX_COMPILER_FLAG(-O3 HAS_O3)
-    if(HAS_O3)
-        set_source_files_properties(src/chunk_mesh_generation.cpp PROPERTIES COMPILE_OPTIONS "-O3")
-    else()
-        CHECK_CXX_COMPILER_FLAG(/Ox HAS_OX)
-        if(HAS_OX)
-            set_source_files_properties(src/chunk_mesh_generation.cpp PROPERTIES COMPILE_OPTIONS "/Ox")
-        endif()
-    endif()
-endif()
+list(APPEND CXX_PRECOMPILED_HEADERS "string" "string_view" "vector" "type_traits" "chrono" "utility")
+list(APPEND CXX_PRECOMPILED_HEADERS "spdlog/spdlog.h" "fmt/format.h" "glm/glm.hpp" "entt/entt.hpp")
+foreach(HEADER ${CXX_PRECOMPILED_HEADERS})
+    target_precompile_headers(little_game PRIVATE $<$<COMPILE_LANGUAGE:CXX>:<${HEADER}$<ANGLE-R>>)    
+endforeach()
 
-unset(HAST_OFAST)
-unset(HAST_O3)
-unset(HAST_OX)
+
 
 target_link_libraries(little_game
 PRIVATE
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua)
 
+set_target_properties(little_game PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 target_compile_features(little_game PUBLIC cxx_std_17)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC
@@ -130,7 +117,7 @@ if(UNIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/opt/${PROJECT_NAME}" CACHE PATH "" FORCE)
 endif()
 
-if (NOT (WIN32 OR MINGW))
+if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set_target_properties(little_game PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 endif()
 set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
