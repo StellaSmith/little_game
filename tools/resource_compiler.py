@@ -48,11 +48,16 @@ def add_file(path):
 
 def main():
     print("#include <stddef.h>\n")
-    print("enum ResourceType {\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n};\n")
-    print("struct BaseResource {\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    size_t size;\n};\n")
-    print("struct DirectoryResource : BaseResource {\n    BaseResource const *const *entries;\n};\n")
-    print("struct FileResource : BaseResource {\n    unsigned char const *data;\n};\n")
+    print("namespace resources {")
+    print("    enum ResourceType {\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n};\n")
+    print("    struct BaseResource {\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    size_t size;\n};\n")
+    print("    struct DirectoryResource : BaseResource {\n    BaseResource const *const *entries;\n};\n")
+    print("    struct FileResource : BaseResource {\n    unsigned char const *data;\n};\n")
+    print("    BaseResource const *get_root() noexcept;")
+    print("}\n")
+    print("#if defined(COMPILE_RESOURCES)\n")
     indices = {}
+    print("namespace resources {")
     for i, entry in enumerate(add_directory(".")):
         indices[entry.path] = i
         path = entry.path.as_posix()
@@ -73,7 +78,7 @@ def main():
                 print(f"    &entry_{i}_path[0],")
                 print(f"    &entry_{i}_path[{name_index}],")
             if entry.entries:
-                print(f"    sizeof(entry_{i}_data),")
+                print(f"    sizeof(entry_{i}_data) / sizeof(entry_{i}_data[0]),")
                 print(f"    &entry_{i}_data[0],")
             else:
                 print(f"    0,")
@@ -101,21 +106,23 @@ def main():
                 print(f"    0,")
                 print(f"    nullptr,")
             print(f"}};\n")
-    print(f"static BaseResource const *const root = &entry_{i};")
-    print("namespace resources {")
-    print("    BaseResource const *get_root() noexcept")
-    print("    {")
-    print("        return root;")
-    print("    }\n}\n")
+    print(f"BaseResource const *get_root() noexcept")
+    print(f"{{")
+    print(f"    return &entry_{i};")
+    print(f"}}\n")
+    print("}\n")
+    print("#endif")
 
 def usage():
-    print("Usage:\n\t" + sys.executable + " " + sys.argv[0] + " <dir_path>\n", file=sys.stderr)
-    print("dir_path\tDirectory containing the resources to compile", file=sys.stderr)
+    print("Usage:\n\t" + sys.executable + " " + sys.argv[0] + " [dir_path]\n", file=sys.stderr)
+    print("dir_path\tDirectory containing the resources to compile, defaults to cwd", file=sys.stderr)
     print(file=sys.stderr)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        usage()
-    else:
-        os.chdir(sys.argv[1])
-        main()
+    if len(sys.argv) == 2:
+        if sys.argv[1] in ("-h", "--help"):
+            usage()
+            exit()
+        else:
+            os.chdir(sys.argv[1])
+    main()
