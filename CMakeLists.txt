@@ -78,10 +78,27 @@ foreach(HEADER ${CXX_PRECOMPILED_HEADERS})
     target_precompile_headers(little_game PRIVATE $<$<COMPILE_LANGUAGE:CXX>:<${HEADER}$<ANGLE-R>>)    
 endforeach()
 
+find_package(Python 3 REQUIRED COMPONENTS Interpreter)
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/
+    COMMAND  ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
+)
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
+    COMMAND ${Python_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/tools/resource_compiler.py" > ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ "${CMAKE_CURRENT_LIST_DIR}/tools/resource_compiler.py" "${CMAKE_CURRENT_LIST_DIR}/res"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/res"
+    USES_TERMINAL
+)
+add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)
+target_compile_features(resources PRIVATE cxx_std_17)
+target_compile_definitions(resources PRIVATE COMPILE_RESOURCES)
+target_include_directories(resources PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include/)
 
 target_link_libraries(little_game
 PRIVATE
+    resources
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua)
 
