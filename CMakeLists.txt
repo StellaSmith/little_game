@@ -65,6 +65,7 @@ add_executable(little_game
     include/engine/textures.hpp
     include/utils/error.hpp
     include/operators.hpp
+    include/engine/resources.hpp
 
     include/engine/assets/BlockModel.hpp
 
