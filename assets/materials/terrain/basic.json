@@ -1,0 +1,12 @@
+{
+    "$schema": "resources://schemas/ShaderSchema.json",
+    "type": "terrain",
+    "fragment": {
+        "language": "glsl",
+        "file": "assets://shaders/terrain/basic.frag"
+    },
+    "vertex": {
+        "language": "glsl",
+        "file": "assets://shaders/terrain/basic.vert"
+    }
+}

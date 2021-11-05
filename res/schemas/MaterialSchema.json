@@ -1,0 +1,101 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "default": {},
+    "required": [
+        "type"
+    ],
+    "properties": {
+        "type": {
+            "enum": [
+                "terrain",
+                "entity"
+            ]
+        },
+        "fragment": {
+            "type": "object",
+            "required": [
+                "language",
+                "file"
+            ],
+            "properties": {
+                "language": {
+                    "enum": [
+                        "glsl",
+                        "hlsl",
+                        "spir-v",
+                        "spir-v asm"
+                    ]
+                },
+                "file": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": [
+                        "string",
+                        "array"
+                    ],
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                    }
+                },
+                "encoding": {
+                    "default": "plain",
+                    "enum": [
+                        "plain",
+                        "gzip",
+                        "compress",
+                        "deflate",
+                        "br"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "vertex": {
+            "type": "object",
+            "required": [
+                "language",
+                "file"
+            ],
+            "properties": {
+                "language": {
+                    "enum": [
+                        "glsl",
+                        "hlsl",
+                        "spir-v",
+                        "spir-v asm"
+                    ]
+                },
+                "file": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": [
+                        "string",
+                        "array"
+                    ],
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                    }
+                },
+                "encoding": {
+                    "default": "plain",
+                    "enum": [
+                        "plain",
+                        "gzip",
+                        "compress",
+                        "deflate",
+                        "br"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "additionalProperties": true
+}
