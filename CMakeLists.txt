@@ -15,6 +15,7 @@ find_package(EnTT REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
 find_package(glad REQUIRED)
+find_package(ctre REQUIRED)
 
 add_subdirectory(external)
 
@@ -66,6 +67,7 @@ add_executable(little_game
     include/utils/error.hpp
     include/operators.hpp
     include/engine/resources.hpp
+    include/utils/url.hpp
 
     include/engine/assets/BlockModel.hpp
 
@@ -101,7 +103,7 @@ target_link_libraries(little_game
 PRIVATE
     resources
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre)
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 target_compile_features(little_game PUBLIC cxx_std_17)
