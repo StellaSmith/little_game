@@ -56,6 +56,9 @@ def main():
     for i, entry in enumerate(add_directory(".")):
         indices[entry.path] = i
         path = entry.path.as_posix()
+        if path == ".":
+            path = "/"
+
         print(f"static char const entry_{i}_path[] = {json.dumps(path)};")
         name_index = path.rindex(entry.path.name)
         if isinstance(entry, DirectoryResource):
@@ -66,12 +69,8 @@ def main():
                 print(f"}};")
             print(f"static DirectoryResource const entry_{i} = {{")
             print(f"    DIRECTORY_RESOURCE,")
-            if str(entry.path) == ".":
-                print(f"    u8\"/\",")
-                print(f"    u8\"/\",")
-            else:
-                print(f"    &entry_{i}_path[0],")
-                print(f"    &entry_{i}_path[{name_index}],")
+            print(f"    &entry_{i}_path[0],")
+            print(f"    &entry_{i}_path[{name_index}],")
             if entry.entries:
                 print(f"    sizeof(entry_{i}_data) / sizeof(entry_{i}_data[0]),")
                 print(f"    &entry_{i}_data[0],")
@@ -88,12 +87,8 @@ def main():
                 print(f"}};")
             print(f"static FileResource const entry_{i} = {{")
             print(f"    FILE_RESOURCE,")
-            if str(entry.path) == ".":
-                print(f"    u8\"/\",")
-                print(f"    u8\"/\",")
-            else:
-                print(f"    &entry_{i}_path[0],")
-                print(f"    &entry_{i}_path[{name_index}],")
+            print(f"    &entry_{i}_path[0],")
+            print(f"    &entry_{i}_path[{name_index}],")
             if entry.data:
                 print(f"    sizeof(entry_{i}_data),")
                 print(f"    &entry_{i}_data[0],")
