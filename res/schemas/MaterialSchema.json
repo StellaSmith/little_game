@@ -3,9 +3,71 @@
     "type": "object",
     "default": {},
     "required": [
-        "type"
+        "type",
+        "author",
+        "license"
     ],
     "properties": {
+        "author": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "contact": {
+                    "union": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                "url": {
+                    "union": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "license": {
+            "type": "string"
+        },
+        "url": {
+            "type": "string"
+        },
+        "comment": {
+            "union": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            ]
+        },
         "type": {
             "enum": [
                 "terrain",

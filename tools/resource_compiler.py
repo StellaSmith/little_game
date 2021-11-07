@@ -9,6 +9,8 @@ import sys
 import json
 from typing import *
 from dataclasses import dataclass
+import subprocess
+
 
 @dataclass(repr=True)
 class BaseResource:
@@ -25,6 +27,7 @@ class FileResource(BaseResource):
 def add_directory(path: Union[str, pathlib.Path]):
     current = DirectoryResource(pathlib.Path(path), [])
 
+    print(f"scanning directory {os.path.relpath(current.path, project_dir)}", file=sys.stderr)
     for entry in os.scandir(os.path.join(".", path)):
         if entry.is_dir():
             current.entries.append(pathlib.Path(entry.path))
@@ -32,14 +35,35 @@ def add_directory(path: Union[str, pathlib.Path]):
         elif entry.is_file():
             current.entries.append(pathlib.Path(entry.path))
             yield add_file(entry.path)
+    print(f"including directory {os.path.relpath(current.path, project_dir)} as is", file=sys.stderr)
     yield current
+
+preprocessors = {}
 
 def add_file(path: Union[str, pathlib.Path]) -> FileResource:
     current = FileResource(pathlib.Path(path), b"")
 
-    with open(os.path.join(".", current.path), "rb") as f:
-        current.data = f.read()
+    extension = os.path.splitext(current.path.name)[-1][1:]
+
+    with open(path, "rb") as f:
+        if extension in preprocessors:
+            print(f"preprocessing file {os.path.relpath(current.path, project_dir)} with {os.path.relpath(preprocessors[extension], project_dir)}", file=sys.stderr)
+            p = subprocess.Popen(preprocessors[extension], stdin=f, stdout=subprocess.PIPE, text=False)
+            output, errors = p.communicate()
+            current.data = output
+        else:
+            print(f"including file {os.path.relpath(current.path, project_dir)} as is", file=sys.stderr)
+            current.data = f.read()
+
     return current
+
+def load_preprocessors():
+    for pp in os.scandir(os.path.abspath( os.path.join(__file__, "..", "rc"))):
+        path = pathlib.Path(pp.path)
+        name = os.path.splitext(path.name)[0]
+        preprocessor = name.rsplit("_", 1)[0]
+        preprocessors[preprocessor] = str(path)
+        
 
 def main():
     print("#include <stddef.h>\n")
@@ -109,10 +133,12 @@ def usage():
     print(file=sys.stderr)
 
 if __name__ == "__main__":
+    project_dir = pathlib.Path(__file__) / ".." / ".."
     if len(sys.argv) == 2:
         if sys.argv[1] in ("-h", "--help"):
             usage()
             exit()
         else:
             os.chdir(sys.argv[1])
+    load_preprocessors()
     main()
