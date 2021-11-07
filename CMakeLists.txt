@@ -33,6 +33,7 @@ add_executable(little_game
     src/engine/BlockRegistry.cpp
     src/engine/BlockType.cpp
     src/engine/Config.cpp
+    src/engine/resources.cpp
 
     src/game/shared.cpp
     src/game/input.cpp
@@ -41,6 +42,7 @@ add_executable(little_game
 
     src/engine/errors/AlreadyRegistered.cpp
     src/engine/errors/UnsupportedFileType.cpp
+
 
     # src/game/blocks/Air.cpp
     # src/game/blocks/Colorful.cpp

@@ -1,6 +1,7 @@
 #include <engine/Sides.hpp>
 #include <engine/assets/BlockModel.hpp>
 #include <engine/errors/UnsupportedFileType.hpp>
+#include <engine/resources.hpp>
 
 #include <glm/fwd.hpp>
 #include <rapidjson/document.h>
@@ -13,6 +14,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <stdexcept>
 #include <string_view>
 
 struct ModelVertex {
@@ -36,11 +38,14 @@ struct ModelFace {
 
 static rapidjson::SchemaDocument const model_schema = []() {
     using namespace std::literals;
-    auto model_schema_json = ""
-                             R"json({"$schema":"http://json-schema.org/draft-07/schema","type":"object","required":["vertices","faces","license","author"],"additionalProperties":false,"properties":{"author":{"type":"object","additionalProperties":false,"required":["name"],"properties":{"name":{"type":"string"},"contact":{"type":"string"},"url":{"type":"string"}}},"license":{"type":"string"},"url":{"type":"string"},"comment":{"union":[{"type":"string"},{"type":"array","minItems":1,"items":{"type":"string"}}]},"vertices":{"type":"array","minItems":3,"items":{"type":"object","required":["position","uv"],"additionalProperties":false,"properties":{"position":{"type":"array","items":{"type":"number"},"minItems":2,"maxItems":3},"uv":{"type":"array","items":{"type":"number","minItems":2,"maxItems":2}}}}},"faces":{"type":"array","minItems":1,"items":{"type":"object","required":["indices","sides","texture"],"additionalProperties":false,"properties":{"indices":{"type":"array","minItems":3,"items":{"type":"integer","minimum":0,"maximum":4294967295}},"sides":{"type":"array","minItems":1,"items":{"type":"string","enum":["top","north","west","east","south","bottom"]}},"texture":{"type":"string"},"solid":{"type":"boolean","default":true}}}}}})json"sv;
+    resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json");
+    if (schema == nullptr) [[unlikely]]
+        throw std::runtime_error("Can't open resources://schemas/ModelSchema.json");
+    if (schema->type != resources::FILE_RESOURCE) [[unlikely]]
+        throw std::runtime_error("resources://schemas/ModelSchema.json is not a file");
 
     rapidjson::Document doc;
-    doc.Parse(model_schema_json.data(), model_schema_json.size());
+    doc.Parse(reinterpret_cast<char const *>(static_cast<resources::FileResource const *>(schema)->data), schema->size);
     return rapidjson::SchemaDocument(std::move(doc));
 }();
 
