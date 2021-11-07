@@ -10,25 +10,19 @@ import json
 from typing import *
 from dataclasses import dataclass
 
-dataclass(repr=True)
+@dataclass(repr=True)
 class BaseResource:
     path: str
 
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self.path}>"
-
-dataclass(repr=True)
+@dataclass()
 class DirectoryResource(BaseResource):
-    entries: list[str]
+    entries: List[str]
 
-dataclass(repr=True)
+@dataclass()
 class FileResource(BaseResource):
     data: bytes
 
-def add_directory(path):
-    current = DirectoryResource()
-    current.path = pathlib.Path(path)
-    current.entries = []
+    current = DirectoryResource(pathlib.Path(path), [])
 
     for entry in os.scandir(os.path.join(".", path)):
         if entry.is_dir():
@@ -39,9 +33,8 @@ def add_directory(path):
             yield add_file(entry.path)
     yield current
 
-def add_file(path):
-    current = FileResource()
-    current.path = pathlib.Path(path)
+    current = FileResource(pathlib.Path(path), b"")
+
     with open(os.path.join(".", current.path), "rb") as f:
         current.data = f.read()
     return current
