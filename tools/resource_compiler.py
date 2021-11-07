@@ -22,6 +22,7 @@ class DirectoryResource(BaseResource):
 class FileResource(BaseResource):
     data: bytes
 
+def add_directory(path: Union[str, pathlib.Path]):
     current = DirectoryResource(pathlib.Path(path), [])
 
     for entry in os.scandir(os.path.join(".", path)):
@@ -33,6 +34,7 @@ class FileResource(BaseResource):
             yield add_file(entry.path)
     yield current
 
+def add_file(path: Union[str, pathlib.Path]) -> FileResource:
     current = FileResource(pathlib.Path(path), b"")
 
     with open(os.path.join(".", current.path), "rb") as f:
