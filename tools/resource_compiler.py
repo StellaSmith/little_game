@@ -43,16 +43,16 @@ def add_file(path: Union[str, pathlib.Path]) -> FileResource:
 
 def main():
     print("#include <stddef.h>\n")
-    print("namespace resources {")
-    print("    enum ResourceType {\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n};\n")
-    print("    struct BaseResource {\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    size_t size;\n};\n")
-    print("    struct DirectoryResource : BaseResource {\n    BaseResource const *const *entries;\n};\n")
-    print("    struct FileResource : BaseResource {\n    unsigned char const *data;\n};\n")
-    print("    BaseResource const *get_root() noexcept;")
+    print("namespace resources {\n")
+    print("enum ResourceType {\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n};\n")
+    print("struct BaseResource {\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    size_t size;\n};\n")
+    print("struct DirectoryResource : BaseResource {\n    BaseResource const *const *entries;\n};\n")
+    print("struct FileResource : BaseResource {\n    unsigned char const *data;\n};\n")
+    print("BaseResource const *get_root() noexcept;\n")
     print("}\n")
     print("#if defined(COMPILE_RESOURCES)\n")
     indices = {}
-    print("namespace resources {")
+    print("namespace resources {\n")
     for i, entry in enumerate(add_directory(".")):
         indices[entry.path] = i
         path = entry.path.as_posix()
