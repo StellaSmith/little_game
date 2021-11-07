@@ -62,6 +62,7 @@ add_executable(little_game
     include/math/constexpr.hpp
     include/utils/timeit.hpp
     include/utils/cache.hpp
+    include/utils/strings.hpp
     include/utils/file.hpp
     include/engine/textures.hpp
     include/utils/error.hpp
