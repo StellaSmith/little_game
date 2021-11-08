@@ -2,6 +2,7 @@
 #include <engine/assets/BlockModel.hpp>
 #include <engine/errors/UnsupportedFileType.hpp>
 #include <engine/resources.hpp>
+#include <utils/strings.hpp>
 
 #include <glm/fwd.hpp>
 #include <rapidjson/document.h>
@@ -37,7 +38,6 @@ struct ModelFace {
 };
 
 static rapidjson::SchemaDocument const model_schema = []() {
-    using namespace std::literals;
     resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json");
     if (schema == nullptr) [[unlikely]]
         throw std::runtime_error("Can't open resources://schemas/ModelSchema.json");
@@ -49,19 +49,11 @@ static rapidjson::SchemaDocument const model_schema = []() {
     return rapidjson::SchemaDocument(std::move(doc));
 }();
 
-static bool ends_with(std::string_view str, std::string_view suffix) noexcept
-{
-    if (str.size() >= suffix.size())
-        return str.substr(str.size() - suffix.size()) == suffix;
-    else
-        return false;
-}
-
 using namespace std::literals;
 
 engine::assets::BlockModel engine::assets::BlockModel::load(std::string_view path)
 {
-    if (ends_with(path, ".json"sv))
+    if (utils::ends_with(path, ".json"sv))
         return load_json(path);
     throw engine::errors::UnsupportedFileType("engine::assets::BlockModel");
 }

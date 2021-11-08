@@ -43,6 +43,14 @@ namespace utils {
         return lstrip(rstrip(str, chars), chars);
     }
 
+    constexpr bool ends_with(std::string_view str, std::string_view suffix) noexcept
+    {
+        if (str.size() >= suffix.size())
+            return str.substr(str.size() - suffix.size()) == suffix;
+        else
+            return false;
+    }
+
 }
 
 #endif
