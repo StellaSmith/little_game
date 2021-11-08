@@ -48,8 +48,10 @@ def add_file(path: Union[str, pathlib.Path]) -> FileResource:
     with open(path, "rb") as f:
         if extension in preprocessors:
             print(f"preprocessing file {os.path.relpath(current.path, project_dir)} with {os.path.relpath(preprocessors[extension], project_dir)}", file=sys.stderr)
-            p = subprocess.Popen(preprocessors[extension], stdin=f, stdout=subprocess.PIPE, text=False)
+            p = subprocess.Popen([sys.executable, preprocessors[extension]], stdin=f, stdout=subprocess.PIPE, text=False)
             output, errors = p.communicate()
+            if p.returncode != 0:
+                exit(-1)
             current.data = output
         else:
             print(f"including file {os.path.relpath(current.path, project_dir)} as is", file=sys.stderr)
