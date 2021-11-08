@@ -15,6 +15,7 @@ A little project aimed to create a minecraft-like game.
   # Make sure we have conan installed
   pip install --update conan
   # Install and build dependencies
+  # This can take a while
   mkdir build
   pushd build
   conan install .. --build=missing
@@ -51,6 +52,7 @@ A little project aimed to create a minecraft-like game.
   # Make sure we have conan installed
   sudo python3 -m pip install --update conan
   # Install and build dependencies
+  # This can take a while
   mkdir build
   pushd build
   conan install .. --build=missing
@@ -58,9 +60,9 @@ A little project aimed to create a minecraft-like game.
   # Activate virtual enviroment
   source build/activate.sh
   # Configure the project
-  cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=Release
+  cmake -S ./ -B build/ -G Ninja -DCMAKE_BUILD_TYPE=Release
   # And finally, building
-  cmake --build build/ --target little_game --parallel
+  cmake --build build/ --target little_game
   # Install on default destination (/opt/little_game)
   sudo cmake --install build/
   # Or install under your user
