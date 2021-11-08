@@ -15,7 +15,8 @@ assimp/5.0.1
 sdl/2.0.16
 
 [build_requires]
-# cmake/[>=3.14]
+cmake/[>=3.16]
+ninja/[>=1.0]
 
 [options]
 glad:gl_profile=core
