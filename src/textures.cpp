@@ -1,3 +1,4 @@
+#include <engine/Stream.hpp>
 #include <engine/textures.hpp>
 #include <utils/error.hpp>
 
@@ -15,11 +16,6 @@
 #include <unordered_map>
 
 using namespace std::literals;
-
-static FILE *open_path(std::filesystem::path const &p, char const *mode)
-{
-    return std::fopen(p.string().c_str(), mode);
-}
 
 engine::Textures engine::load_textures()
 {
@@ -96,7 +92,7 @@ engine::Textures engine::load_textures()
         auto const path = std::filesystem::current_path() / "assets"sv / name_path;
 
         int x, y, c;
-        FILE *f = open_path(path, "rb");
+        std::FILE *f = engine::open_file(path, "rb");
         if (!f) {
             std::string str_error;
             if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>)

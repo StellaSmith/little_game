@@ -4,7 +4,7 @@
 
 thread_local static std::unordered_map<std::string_view, resources::BaseResource const *> s_resource_cache;
 
-static resources::BaseResource const *open_resource(std::string_view path) noexcept
+resources::BaseResource const *engine::open_resource(std::string_view path) noexcept
 {
     path = utils::strip(path, '/');
     if (path.empty())
@@ -35,9 +35,4 @@ static resources::BaseResource const *open_resource(std::string_view path) noexc
     }
 
     return s_resource_cache[std::string_view { root->path, path.size() }] = root;
-}
-
-resources::BaseResource const *engine::open_resource(char const *path_) noexcept
-{
-    return ::open_resource(std::string_view { path_ });
 }
