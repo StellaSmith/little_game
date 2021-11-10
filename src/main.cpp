@@ -89,7 +89,7 @@ int main(int argc, char **argv)
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 #define SET_GL_ATTRIBUTE(attribute, value)                                           \
-    if (value != -1) {                                                               \
+    if (value >= 0) {                                                                \
         if (SDL_GL_SetAttribute(attribute, value) < 0)                               \
             utils::show_error(fmt::format("Can't set " #attribute " to {}", value)); \
     }
@@ -148,6 +148,7 @@ int main(int argc, char **argv)
             std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
             std::printf("\tVersion: %s\n\tVendor: %s\n\tRenderer: %s\n\tShading language version: %s\n", version, vendor, renderer, shading_version);
         }
+#if defined(GL_KHR_debug)
         if (GLAD_GL_KHR_debug) {
             int flags;
             glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
@@ -160,6 +161,7 @@ int main(int argc, char **argv)
                     std::puts("\tDebug output enabled.\n");
             }
         }
+#endif
         SDL_GL_SetSwapInterval(0);
         if (!IMGUI_CHECKVERSION())
             utils::show_error("ImGui version mismatch!\nYou may need to recompile the game."sv);

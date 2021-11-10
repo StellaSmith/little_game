@@ -27,6 +27,5 @@ namespace engine {
 
     resources::BaseResource const *open_resource(std::string_view path) noexcept;
 
-
 }
 #endif

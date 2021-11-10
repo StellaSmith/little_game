@@ -1,7 +1,7 @@
 #include <engine/Sides.hpp>
+#include <engine/Stream.hpp>
 #include <engine/assets/BlockModel.hpp>
 #include <engine/errors/UnsupportedFileType.hpp>
-#include <engine/resources.hpp>
 #include <utils/strings.hpp>
 
 #include <glm/fwd.hpp>

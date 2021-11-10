@@ -1,6 +1,8 @@
-#include <engine/resources.hpp>
+#include <engine/Stream.hpp>
 #include <string_view>
 #include <utils/strings.hpp>
+
+#include <unordered_map>
 
 thread_local static std::unordered_map<std::string_view, resources::BaseResource const *> s_resource_cache;
 
