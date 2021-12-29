@@ -68,10 +68,9 @@ def load_preprocessors():
         
 
 def main():
-    print("#include <stddef.h>\n")
     print("namespace resources {\n")
     print("enum ResourceType {\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n};\n")
-    print("struct BaseResource {\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    size_t size;\n};\n")
+    print("struct BaseResource {\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    unsigned long long size;\n};\n")
     print("struct DirectoryResource : BaseResource {\n    BaseResource const *const *entries;\n};\n")
     print("struct FileResource : BaseResource {\n    unsigned char const *data;\n};\n")
     print("BaseResource const *get_root() noexcept;\n")

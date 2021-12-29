@@ -3,4 +3,8 @@
 import json
 import sys
 
-json.dump(json.load(sys.stdin), sys.stdout, indent=None, separators=(",", ":"))
+contents = sys.stdin.read()
+try:
+    json.dump(json.loads(contents), sys.stdout, indent=None, separators=(",", ":"))
+except Exception as e:
+    sys.stdout.write(contents)
