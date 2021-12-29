@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "Found CCACHE: ${CCACHE_PROGRAM}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
+
+find_program(MOLD_PROGRAM mold)
+if(MOLD_PROGRAM)
+    message(STATUS "Found MOLD: ${MOLD_PROGRAM}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ")
+endif()
+
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CONAN_CMAKE_SILENT_OUTPUT ON)
