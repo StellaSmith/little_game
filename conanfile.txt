@@ -20,8 +20,7 @@ ninja/[>=1.0]
 
 [options]
 glad:gl_profile=core
-glad:gl_version=3.3
-glad:extensions=GL_ARB_get_program_binary,GL_KHR_debug
+glad:no_loader=True
 
 [generators]
 cmake_find_package
