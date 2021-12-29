@@ -17,8 +17,11 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CONAN_CMAKE_SILENT_OUTPUT ON)
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake OPTIONAL)
+option(USE_CONAN "Use the Conan C/C++ package manager to automatically gather dependencies" ON)
+
+if(USE_CONAN)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/conan.cmake)
+endif()
 
 find_package(lua REQUIRED)
 find_package(glm REQUIRED)
