@@ -39,7 +39,7 @@ jobs:
         run: python -m pip install --upgrade conan
 
       - name: Configure
-        shell: msys2 {}
+        shell: msys2 {0}
         env:
           CC: ${{ matrix.compiler.c }}
           CXX: ${{ matrix.compiler.cxx }}

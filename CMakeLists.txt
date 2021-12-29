@@ -9,7 +9,7 @@ endif()
 
 
 find_program(MOLD_PROGRAM mold)
-if(MOLD_PROGRAM)
+if(MOLD_PROGRAM AND NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
     message(STATUS "Found MOLD: ${MOLD_PROGRAM}")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ")
 endif()

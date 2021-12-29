@@ -42,6 +42,7 @@ jobs:
         CONAN_SYSREQUIRES_MODE: enabled
         CONAN_CMAKE_FIND_ROOT_PATH: ${{ matrix.toolchain }}
         CONAN_CMAKE_SYSROOT: ${{ matrix.toolchain }}
+        CONAN_CMAKE_SYSTEM_NAME: Windows
         CHOST: ${{ matrix.target_host }}
         AR: ${{ matrix.target_host }}-ar
         AS: ${{ matrix.target_host }}-as
@@ -51,7 +52,7 @@ jobs:
         STRIP: ${{ matrix.target_host }}-strip
         RC: ${{ matrix.target_host }}-windres
         LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_FIND_ROOT_PATH=${{ matrix.toolchain }} -DCONAN_CMAKE_SYSROOT=${{ matrix.toolchain }}
     
     - name: Build
       run: cmake --build build --parallel
