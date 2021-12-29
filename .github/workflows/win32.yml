@@ -18,17 +18,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install
-      run: |
-        pip install -U conan;
-        mkdir build;
-        cd build;
-        conan profile new --detect default;
-        conan install .. --build=missing --settings build_type=${{ matrix.build_type }};
+    - name: Install Conan
+      run: pip install --upgrade conan
+
+    - name: Configure
+      run: cmake -S. -Bbuild
 
     - name: Build
-      run: |
-        cd build;
-        ./activate.ps1;
-        cmake ..;
-        cmake --build . --config ${{ matrix.build_type }} --parallel;
+      run:  cmake --build build --config ${{ matrix.build_type }} --parallel

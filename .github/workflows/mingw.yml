@@ -16,63 +16,38 @@ jobs:
           compiler:
             - c: gcc
               cxx: g++
+          toolchain: /usr/x86_64-w64-mingw32
+          target_host: x86_64-w64-mingw32
           build_type: [Release, Debug]
 
     steps:
     - uses: actions/checkout@v2
+    - uses: hendrikmuhs/ccache-action@v1
 
     - name: Install build tools
       run: |
         set -e;
         sudo apt-get upgrade;
         sudo apt-get install -y mingw-w64;
-        pip install -U conan;
 
-    - name: conan install
-      run: |
-        set -e;
-        mkdir -p ~/.conan/profiles/;
-        touch ~/.conan/profiles/default; # Make conan shutup
-        cat > ~/.conan/profiles/mingw-w64-gcc <<EOF
-        toolchain=/usr/x86_64-w64-mingw32
-        target_host=x86_64-w64-mingw32
-        cc_compiler=gcc
-        cxx_compiler=g++
+    - name: Install Conan
+        run: pip install --upgrade conan
 
-        [settings]
-        os=Windows
-        os_build=Linux
-        arch=x86_64
-        arch_build=x86_64
-        compiler=gcc
-        compiler.version=9.3
-        compiler.libcxx=libstdc++11
-        build_type=Release
-
-        [options]
-        [build_requires]
-        [env]
-        CONAN_CMAKE_FIND_ROOT_PATH=\$toolchain
-        CONAN_CMAKE_SYSROOT=\$toolchain
-        CHOST=\$target_host
-        AR=\$target_host-ar
-        AS=\$target_host-as
-        RANLIB=\$target_host-ranlib
-        CC=\$target_host-\$cc_compiler
-        CXX=\$target_host-\$cxx_compiler
-        STRIP=\$target_host-strip
-        RC=\$target_host-windres
-        LDFLAGS=-static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-        EOF
-
-        mkdir build;
-        cd build;
-        conan install .. --build=missing --profile mingw-w64-gcc --settings build_type=${{ matrix.build_type }};
-      
-    - name: conan build
-      run: |
-        set -e;
-        cd build;
-        source activate.sh;
-        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }};
-        cmake --build . --parallel;
+    - name: Configure
+      env:
+        CONAN_SYSREQUIRES_MODE: enabled
+        CONAN_CMAKE_FIND_ROOT_PATH: ${{ matrix.toolchain }}
+        CONAN_CMAKE_SYSROOT: ${{ matrix.toolchain }}
+        CHOST: ${{ matrix.target_host }}
+        AR: ${{ matrix.target_host }}-ar
+        AS: ${{ matrix.target_host }}-as
+        RANLIB: ${{ matrix.target_host }}-ranlib
+        CC: ${{ matrix.target_host }}-${{ matrix.compiler.c }}
+        CXX: ${{ matrix.target_host }}-${{ matrix.compiler.cxx }}
+        STRIP: ${{ matrix.target_host }}-strip
+        RC: ${{ matrix.target_host }}-windres
+        LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+    
+    - name: Build
+        run: cmake --build build --parallel

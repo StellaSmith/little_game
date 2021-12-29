@@ -22,28 +22,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: hendrikmuhs/ccache-action@v1
 
-    - name: Install
+    - name: Install Conan
+      run: pip install --upgrade conan
+
+    - name: Configure
       env:
         CONAN_SYSREQUIRES_MODE: enabled
         CC: ${{ matrix.compiler.c }}
         CXX: ${{ matrix.compiler.cxx }}
-      run: |
-        set -e;
-        pip install -U conan;
-        mkdir build;
-        cd build;
-        conan profile new --detect detect-${{ matrix.compiler.c }};
-        conan profile update settings.compiler.libcxx=libstdc++11 detect-${{ matrix.compiler.c }}
-        conan install .. --build=missing -pr detect-${{ matrix.compiler.c }} -s build_type=${{ matrix.build_type }} -e CC=${{ matrix.compiler.c }} -e CXX=${{ matrix.compiler.cxx }}; 
+      run: cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
-      env:
-        CC: 
-        CXX: 
-      run: |
-        set -e;
-        cd build;
-        source activate.sh;
-        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }};
-        cmake --build . --parallel;
+      run: cmake --build build --parallel
