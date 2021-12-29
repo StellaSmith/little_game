@@ -15,7 +15,7 @@
 namespace engine {
 
     struct BlockType;
-    struct Game;
+    class Game;
 
     class BlockRegistry {
 

@@ -18,9 +18,19 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(USE_CONAN "Use the Conan C/C++ package manager to automatically gather dependencies" ON)
+option(ENABLE_WARNINGS "Use as many warnings as possible" ON)
 
 if(USE_CONAN)
     include(${CMAKE_CURRENT_SOURCE_DIR}/conan.cmake)
+endif()
+
+if (ENABLE_WARNINGS)
+    message(STATUS "Warnings enabled")
+    if (MSVC)
+        add_compile_options(/W4)
+    else()
+        add_compile_options(-Wall -Wextra -pedantic)
+    endif()
 endif()
 
 find_package(lua REQUIRED)
@@ -142,15 +152,6 @@ endif()
 if (MSVC)
     target_compile_options(little_game PUBLIC /std:c++latest)
     target_compile_definitions(little_game PUBLIC _CRT_SECURE_NO_WARNINGS)
-endif()
-
-if (ENABLE_WARNINGS)
-    message(STATUS "Warnings enabled")
-    target_compile_options(little_game PRIVATE
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-            -Wall -Wextra -pedantic>
-        $<$<CXX_COMPILER_ID:MSVC>:
-            /W4>)
 endif()
 
 if(UNIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

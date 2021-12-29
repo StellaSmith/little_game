@@ -56,7 +56,7 @@ static engine::Sides get_visible_sides(engine::C_ChunkData const &chunk, glm::u3
 static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
 {
     assert(chunk_data.vertices.size() <= UINT32_MAX);
-    if (chunk_data.vertices.empty()) [[unlikely]]
+    if (chunk_data.vertices.empty())
         return;
     for (std::uint32_t i = 0; i < chunk_data.vertices.size() - 1; ++i) {
         auto it = std::find_if(chunk_data.vertices.data() + i + 1, chunk_data.vertices.data() + chunk_data.vertices.size(), [to_find = chunk_data.vertices.data() + i](auto const &vertex) {

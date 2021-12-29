@@ -98,7 +98,7 @@ namespace {
             spdlog::info("[{}lua{}] {}", "\033[36m" /* cyan */, "\033[m" /* reset */, line);
 
             console_text.emplace_back(std::move(line));
-            while (console_text.size() > engine::config().terminal.max_lines)
+            while (console_text.size() > static_cast<unsigned>(engine::config().terminal.max_lines))
                 console_text.pop_front();
         }
     };

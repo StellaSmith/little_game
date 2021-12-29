@@ -4,7 +4,6 @@
 
 void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, char const *message, void const *user_data)
 {
-
     (void)user_data;
     // ignore non-significant error/warning codes
     // if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
@@ -23,6 +22,7 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenu
     case GL_DEBUG_SOURCE_OTHER: fputs("Source: Other", stderr); break;
     }
 #else
+    (void)source;
     fputs("Source: Unknown", stderr);
 #endif
     fputc('\n', stderr);
@@ -40,6 +40,7 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenu
     case GL_DEBUG_TYPE_OTHER: fputs("Type: Other", stderr); break;
     }
 #else
+    (void)type;
     fputs("Type: Unknown", stderr);
 #endif
     fputc('\n', stderr);
@@ -52,6 +53,7 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenu
     case GL_DEBUG_SEVERITY_NOTIFICATION: fputs("Severity: notification", stderr); break;
     }
 #else
+    (void)severity;
     fputs("Severity: unknown", stderr);
 #endif
     fputc('\n', stderr);
