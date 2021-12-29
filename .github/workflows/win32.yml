@@ -22,7 +22,7 @@ jobs:
       run: pip install --upgrade conan
 
     - name: Configure
-      run: cmake -S. -Bbuild
+      run: cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
       run:  cmake --build build --config ${{ matrix.build_type }} --parallel
