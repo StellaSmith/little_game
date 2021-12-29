@@ -6,7 +6,7 @@ ctre/3.4.1
 
 fmt/8.0.1
 spdlog/1.9.2
-rapidjson/cci.20200410
+rapidjson/cci.20211112
 lua/5.4.3
 sol2/3.2.3
 imgui/1.85
