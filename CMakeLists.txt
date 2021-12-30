@@ -3,15 +3,15 @@ project(little_game)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
-    message(STATUS "Found CCACHE: ${CCACHE_PROGRAM}")
+    message(STATUS "ccache: Found program ${CCACHE_PROGRAM}")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
 
 find_program(MOLD_PROGRAM mold)
 if(MOLD_PROGRAM AND NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
-    message(STATUS "Found MOLD: ${MOLD_PROGRAM}")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ")
+    message(STATUS "mold: Found program ${MOLD_PROGRAM}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${MOLD_PROGRAM} -run")
 endif()
 
 
@@ -43,6 +43,7 @@ find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
 find_package(glad REQUIRED)
 find_package(ctre REQUIRED)
+find_package(absl REQUIRED)
 
 add_subdirectory(external)
 
@@ -133,7 +134,7 @@ target_link_libraries(little_game
 PRIVATE
     resources
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre absl::absl)
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 target_compile_features(little_game PUBLIC cxx_std_17)

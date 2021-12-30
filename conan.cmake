@@ -16,7 +16,11 @@ if (CMAKE_SYSTEM_NAME AND NOT CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
 endif()
 
 if (CMAKE_SYSTEM_PROCESSOR AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL CMAKE_HOST_SYSTEM_PROCESSOR)
-    list(APPEND settings "arch=${CMAKE_SYSTEM_PROCESSOR}")
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
+        list(APPEND settings "arch=x86")
+    else()
+        list(APPEND settings "arch=${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
 endif()
 
 conan_cmake_install(

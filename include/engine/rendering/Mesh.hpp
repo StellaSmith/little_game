@@ -8,8 +8,8 @@
 
 namespace engine::rendering {
     struct Mesh {
-        using vertex_t = engine::rendering::Vertex;
-        using vertex_vector = std::vector<vertex_t>;
+        using vertex_type = engine::rendering::Vertex;
+        using vertex_vector = std::vector<vertex_type>;
         using index_vector = std::vector<std::uint32_t>;
         vertex_vector vertices;
         index_vector indices;

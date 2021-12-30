@@ -1,41 +1,42 @@
 #include <utils/cache.hpp>
 
 #include <cassert>
-#include <filesystem>
+#include <cstdlib> // std::getenv
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
-#include <shlobj.h>
+#include <shlobj.h> // SHGetFolderPathW
+// #include <windows.h>
 #else
-#include <unistd.h>
-#include <sys/types.h>
-#include <pwd.h>
+#include <pwd.h> // getpwuid
+// #include <unistd.h>
 #endif
 
-static std::filesystem::path get_cache_directory()
+std::filesystem::path const &utils::cache_directory()
 {
-    char const *const cache_env = std::getenv("CACHE_PATH");
-    if (cache_env)
-        return cache_env;
+    static std::filesystem::path cache_dir;
+    if (!cache_dir.empty())
+        return cache_dir;
+
+    if (char const *const cache_env = std::getenv("CACHE_PATH"))
+        return cache_dir = cache_env;
 
 #ifdef _WIN32
     wchar_t c_homedir[MAX_PATH] {};
     SHGetFolderPathW(nullptr, CSIDL_PROFILE, nullptr, 0, c_homedir);
-    auto const cachedir = std::filesystem::path { c_homedir } / L"little_game\\cache\\";
+    return cache_dir = std::filesystem::path { c_homedir } / L"little_game\\cache\\";
 #else
-    std::filesystem::path cachedir;
-    if (char const *c_cachedir = std::getenv("XDG_CACHE_HOME"); c_cachedir != nullptr)
-        cachedir = std::filesystem::path { c_cachedir } / "little_game";
-    else if (char const *c_homedir = std::getenv("HOME"); c_homedir != nullptr)
-        cachedir = std::filesystem::path { c_homedir } / ".cache/little_game";
+
+    if (char const *cache_env = std::getenv("XDG_CACHE_HOME"); cache_env != nullptr)
+        return cache_dir = std::filesystem::path { cache_env } / "little_game";
+    else if (char const *home_env = std::getenv("HOME"); home_env != nullptr)
+        return cache_dir = std::filesystem::path { home_env } / ".cache/little_game";
     else
-        cachedir = std::filesystem::path { getpwuid(getuid())->pw_dir } / ".cache/little_game";
+        return cache_dir = std::filesystem::path { getpwuid(getuid())->pw_dir } / ".cache/little_game";
 #endif
-    return cachedir;
 }
 
 std::FILE *utils::create_cache_file(std::string_view name)
@@ -44,7 +45,7 @@ std::FILE *utils::create_cache_file(std::string_view name)
         name.remove_suffix(1);
     assert(!name.empty());
 
-    static std::filesystem::path const cache_path = get_cache_directory();
+    std::filesystem::path const &cache_path = cache_directory();
 
     auto const cache_file_path = (cache_path / name).remove_filename();
     if (!std::filesystem::exists(cache_file_path)) {
@@ -61,13 +62,13 @@ std::FILE *utils::create_cache_file(std::string_view name)
     return std::fopen(cache_file.string().c_str(), "wb");
 }
 
-std::FILE *utils::get_cache_file(std::string_view name, std::vector<std::string_view> ref_files)
+std::FILE *utils::get_cache_file(absl::string_view name, absl::Span<absl::string_view> ref_files)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
     assert(!name.empty());
 
-    static std::filesystem::path const cache_path = get_cache_directory();
+    std::filesystem::path const &cache_path = cache_directory();
 
     auto cache_file = cache_path / name;
 
