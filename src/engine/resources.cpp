@@ -4,7 +4,9 @@
 
 #include <unordered_map>
 
-thread_local static std::unordered_map<std::string_view, resources::BaseResource const *> s_resource_cache;
+#include <absl/container/flat_hash_map.h>
+
+thread_local static absl::flat_hash_map<std::string_view, resources::BaseResource const *> s_resource_cache;
 
 resources::BaseResource const *engine::open_resource(std::string_view path) noexcept
 {
