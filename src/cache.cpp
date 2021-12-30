@@ -11,9 +11,12 @@
 #include <shlobj.h> // SHGetFolderPathW
 // #include <windows.h>
 #else
+#include <limits.h>
 #include <pwd.h> // getpwuid
-// #include <unistd.h>
+#include <unistd.h> // getuid
 #endif
+
+using namespace std::literals;
 
 std::filesystem::path const &utils::cache_directory()
 {
@@ -27,15 +30,15 @@ std::filesystem::path const &utils::cache_directory()
 #ifdef _WIN32
     wchar_t c_homedir[MAX_PATH] {};
     SHGetFolderPathW(nullptr, CSIDL_PROFILE, nullptr, 0, c_homedir);
-    return cache_dir = std::filesystem::path { c_homedir } / L"little_game\\cache\\";
+    return cache_dir = std::filesystem::path { c_homedir } / L"little_game\\cache\\"sv;
 #else
 
     if (char const *cache_env = std::getenv("XDG_CACHE_HOME"); cache_env != nullptr)
-        return cache_dir = std::filesystem::path { cache_env } / "little_game";
+        return cache_dir = std::filesystem::path { cache_env } / "little_game"sv;
     else if (char const *home_env = std::getenv("HOME"); home_env != nullptr)
-        return cache_dir = std::filesystem::path { home_env } / ".cache/little_game";
+        return cache_dir = std::filesystem::path { home_env } / ".cache/little_game"sv;
     else
-        return cache_dir = std::filesystem::path { getpwuid(getuid())->pw_dir } / ".cache/little_game";
+        return cache_dir = std::filesystem::path { getpwuid(getuid())->pw_dir } / ".cache/little_game"sv;
 #endif
 }
 
@@ -62,7 +65,7 @@ std::FILE *utils::create_cache_file(std::string_view name)
     return std::fopen(cache_file.string().c_str(), "wb");
 }
 
-std::FILE *utils::get_cache_file(absl::string_view name, absl::Span<absl::string_view> ref_files)
+std::FILE *utils::get_cache_file(std::string_view name, absl::Span<std::string_view> ref_files)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
