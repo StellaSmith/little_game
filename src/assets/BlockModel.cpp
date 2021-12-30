@@ -17,6 +17,21 @@
 #include <cstdio>
 #include <stdexcept>
 #include <string_view>
+#include <type_traits>
+
+#if defined(_WIN32)
+#define TEXT(s) L##s
+#else
+#define TEXT(s) s
+#endif
+
+static decltype(auto) string_path(std::filesystem::path const &p) noexcept
+{
+    if constexpr (std::is_same_v<std::filesystem::path::value_type, char>)
+        return p.native();
+    else
+        return p.string();
+}
 
 struct ModelVertex {
     float x, y, z, u, v;
@@ -51,24 +66,24 @@ static rapidjson::SchemaDocument const model_schema = []() {
 
 using namespace std::literals;
 
-engine::assets::BlockModel engine::assets::BlockModel::load(std::string_view path)
+engine::assets::BlockModel engine::assets::BlockModel::load(std::filesystem::path const &path)
 {
-    if (utils::ends_with(path, ".json"sv))
+    if (utils::ends_with(path.native(), TEXT(".json"sv)))
         return load_json(path);
     throw engine::errors::UnsupportedFileType("engine::assets::BlockModel");
 }
 
-engine::assets::BlockModel engine::assets::BlockModel::load_json(std::string_view path)
+engine::assets::BlockModel engine::assets::BlockModel::load_json(std::filesystem::path const &path)
 {
 
-    spdlog::info("Loading model from json {}"sv, path);
+    spdlog::info("Loading model from json {}"sv, string_path(path));
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
     std::vector<std::string> textures;
 
     {
-        std::FILE *fp = std::fopen(path.data(), "r");
+        std::FILE *fp = engine::open_file(path, "r");
         if (!fp)
             throw /* can't open file */;
 
@@ -84,7 +99,7 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::string_vie
         if (auto const result = reader.GetParseResult(); !result) {
             if (result.Code() == rapidjson::kParseErrorTermination) {
                 if (!reader.IsValid()) {
-                    spdlog::error("Model {} is invalid according to schema", path);
+                    spdlog::error("Model {} is invalid according to schema", string_path(path));
                     rapidjson::StringBuffer sb;
                     reader.GetInvalidDocumentPointer().StringifyUriFragment(sb);
                     spdlog::error("\tpath    : {}", std::string_view { sb.GetString(), sb.GetSize() });
@@ -94,11 +109,11 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::string_vie
                     spdlog::error("\tdocument: {}", std::string_view { sb.GetString(), sb.GetSize() });
                     throw /* invalid according to schema */;
                 } else {
-                    spdlog::error("Error reading {}", path);
+                    spdlog::error("Error reading {}", string_path(path));
                     throw /* io error */;
                 }
             } else {
-                spdlog::error("{} is not valid json", path);
+                spdlog::error("{} is not valid json", string_path(path));
                 throw /* invalid json */;
             }
         }
@@ -190,7 +205,7 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::string_vie
         }
     }
 
-    spdlog::info("Compiling block model from json {}"sv, path);
+    spdlog::info("Compiling block model from json {}"sv, string_path(path));
     engine::assets::BlockModel result;
     result.m_textures = std::move(textures);
 

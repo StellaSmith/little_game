@@ -5,15 +5,15 @@
 #include <engine/rendering/Mesh.hpp>
 
 #include <array>
+#include <filesystem>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace engine::assets {
 
     class BlockModel {
     public:
-        static BlockModel load(std::string_view path);
+        static BlockModel load(std::filesystem::path const &path);
 
         engine::rendering::Mesh const &get_solid_mesh(engine::Sides sides) const noexcept
         {
@@ -26,7 +26,7 @@ namespace engine::assets {
         }
 
     private:
-        static BlockModel load_json(std::string_view path);
+        static BlockModel load_json(std::filesystem::path const &path);
 
     private:
         std::array<engine::rendering::Mesh, 128> m_meshes;
