@@ -36,18 +36,9 @@ jobs:
           ~/.conan/data
           # Do not cache system packages
           !~/.conan/data/*/system 
-        key: ${{ runner.os }}_${{ matrix.compiler.c }}_${{ matrix.compiler.cxx }}_${{ matrix.compiler.build_type }}_conan
+        key: ${{ runner.os }}_${{ matrix.compiler.c }}_${{ matrix.compiler.cxx }}_${{ matrix.build_type }}_conan
 
     - uses: hendrikmuhs/ccache-action@v1
-
-    - name: Cache ccache
-      id: cache-ccache
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cache/ccache
-        key: ${{ runner.os }}_${{ matrix.compiler.c }}_${{ matrix.compiler.cxx }}_${{ matrix.compiler.build_type }}_ccache
-
 
     - name: Configure
       env:
