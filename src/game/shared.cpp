@@ -47,7 +47,7 @@ void engine::Game::start()
 
     if (m_block_registry.empty()) return;
 
-    for (auto block_type : m_block_registry)
+    for (auto const &block_type : m_block_registry)
         block_type.second->Initialize(*this);
 
     engine::BlockType *colorful_type = m_block_registry.Get("colorful_block"sv);
@@ -65,7 +65,7 @@ void engine::Game::start()
         m_entity_registry.emplace<engine::C_Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
-            if ((block.type = m_block_registry[id_dist(rd)].second) == colorful_type) {
+            if ((block.type = m_block_registry[id_dist(rd)]) == colorful_type) {
                 auto const packed = math::pack_u32(dist(rd), dist(rd), dist(rd));
                 block.data = reinterpret_cast<void *>(static_cast<std::uintptr_t>(packed));
             }
