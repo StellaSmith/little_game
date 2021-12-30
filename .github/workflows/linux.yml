@@ -34,8 +34,7 @@ jobs:
       with:
         path: |
           ~/.conan/data
-          # Do not cache system packages
-          !~/.conan/data/*/system 
+          !~/.conan/data/*/system/**
         key: ${{ runner.os }}_${{ matrix.compiler.c }}_${{ matrix.compiler.cxx }}_${{ matrix.build_type }}_conan
 
     - uses: hendrikmuhs/ccache-action@v1
