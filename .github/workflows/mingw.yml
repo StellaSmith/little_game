@@ -16,10 +16,9 @@ jobs:
           compiler:
             - c: gcc
               cxx: g++
-          toolchain:
-            - /usr/x86_64-w64-mingw32
           target_host: 
             - x86_64-w64-mingw32
+            - i686-w64-mingw32
           build_type:
             - Release
             - Debug
@@ -39,9 +38,10 @@ jobs:
 
     - name: Configure
       env:
+        CONAN_BASH_PATH: sh
         CONAN_SYSREQUIRES_MODE: enabled
-        CONAN_CMAKE_FIND_ROOT_PATH: ${{ matrix.toolchain }}
-        CONAN_CMAKE_SYSROOT: ${{ matrix.toolchain }}
+        CONAN_CMAKE_FIND_ROOT_PATH: /usr/${{ matrix.target_host }}
+        CONAN_CMAKE_SYSROOT: /usr/${{ matrix.target_host }}
         CONAN_CMAKE_SYSTEM_NAME: Windows
         CHOST: ${{ matrix.target_host }}
         AR: ${{ matrix.target_host }}-ar
@@ -52,7 +52,7 @@ jobs:
         STRIP: ${{ matrix.target_host }}-strip
         RC: ${{ matrix.target_host }}-windres
         LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_FIND_ROOT_PATH=${{ matrix.toolchain }} -DCONAN_CMAKE_SYSROOT=${{ matrix.toolchain }}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host }}
     
     - name: Build
       run: cmake --build build --parallel
