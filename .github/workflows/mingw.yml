@@ -12,8 +12,6 @@ jobs:
     # x86_64-w64-mingw32 is the toolchain name to compile to x86_64-pc-windows-gnu
     name: Building for ${{ matrix.target_host.toolchain }} (${{ matrix.build_type }}) with mingw-w64-${{ matrix.compiler.c }}
     runs-on: ubuntu-20.04
-    container:
-      image: debian:11
     strategy:
         fail-fast: false
         matrix:
@@ -33,9 +31,8 @@ jobs:
     - name: Install build tools
       run: |
         set -e;
-        apt-get update;
-        # sudo required by github actions
-        apt-get install -y sudo git cmake ninja-build python3-pip mingw-w64;
+        sudo apt-get update;
+        sudo apt-get install -y cmake ninja-build python3-pip mingw-w64;
 
     - uses: actions/checkout@v2
     - uses: hendrikmuhs/ccache-action@v1
@@ -61,12 +58,12 @@ jobs:
         AR: ${{ matrix.target_host.toolchain }}-ar
         AS: ${{ matrix.target_host.toolchain }}-as
         RANLIB: ${{ matrix.target_host.toolchain }}-ranlib
-        CC: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.c }}
-        CXX: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.cxx }}
+        CC: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.c }}-posix
+        CXX: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.cxx }}-posix
         STRIP: ${{ matrix.target_host.toolchain }}-strip
         RC: ${{ matrix.target_host.toolchain }}-windres
         LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
+      run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
       run: cmake --build build --parallel
