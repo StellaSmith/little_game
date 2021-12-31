@@ -62,9 +62,9 @@ jobs:
         CXX: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.cxx }}-posix
         STRIP: ${{ matrix.target_host.toolchain }}-strip
         RC: ${{ matrix.target_host.toolchain }}-windres
-        LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-        CFLAGS: -Wa,-mbig-obj
-        CXXFLAGS: -Wa,-mbig-obj
+        LDFLAGS: -static-libgcc -static-libstdc++ -fuse-linker-plugin -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
+        CFLAGS: -Wa,-mbig-obj -fuse-linker-plugin -flto
+        CXXFLAGS: -Wa,-mbig-obj -fuse-linker-plugin -flto
       run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
