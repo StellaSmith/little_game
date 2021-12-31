@@ -22,10 +22,10 @@ namespace engine {
         template <typename T>
         auto Register(std::string_view name) -> std::enable_if_t<std::is_base_of_v<engine::BlockType, T>, std::remove_cv_t<T> *>
         {
-            auto it = this->find(name);
-            if (it != this->end())
+            auto it = super::find(absl::string_view { name.data(), name.size() });
+            if (it != super::end())
                 throw engine::errors::AlreadyRegistered { "BlockType" };
-            it = this->emplace(it, std::string(name), std::make_unique<std::remove_cv_t<T>>());
+            it = super::emplace(it, std::string(name), std::make_unique<std::remove_cv_t<T>>());
             return it->second.get();
         }
 
@@ -41,7 +41,7 @@ namespace engine {
 
         engine::BlockType *Get(std::string_view name)
         {
-            if (auto it = find(name); it != end())
+            if (auto it = super::find(absl::string_view { name.data(), name.size() }); it != end())
                 return it->second.get();
             else
                 return nullptr;
@@ -66,10 +66,7 @@ namespace engine {
 
         engine::BlockType *operator[](std::string_view name)
         {
-            if (auto it = this->find(name); it == this->end())
-                return nullptr;
-            else
-                return it->second.get();
+            return this->Get(name);
         }
     };
 
