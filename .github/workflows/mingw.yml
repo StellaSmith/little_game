@@ -21,8 +21,14 @@ jobs:
           target_host: 
             - toolchain: x86_64-w64-mingw32
               arch: x86_64
+              cflags: -Wa,-mbig-obj
+              cxxflags: -Wa,-mbig-obj
+              ldflags:
             - toolchain: i686-w64-mingw32
               arch: i686
+              cflags: -Wa,-mbig-obj -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
+              cxxflags: -Wa,-mbig-obj -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
+              ldflags: -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
           build_type:
             - Release
             - Debug
@@ -62,9 +68,9 @@ jobs:
         CXX: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.cxx }}-posix
         STRIP: ${{ matrix.target_host.toolchain }}-strip
         RC: ${{ matrix.target_host.toolchain }}-windres
-        LDFLAGS: -static-libgcc -static-libstdc++ -fuse-linker-plugin -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-        CFLAGS: -Wa,-mbig-obj -fuse-linker-plugin -flto
-        CXXFLAGS: -Wa,-mbig-obj -fuse-linker-plugin -flto
+        LDFLAGS: ${{ matrix.target_host.ldflags }} -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
+        CFLAGS: ${{ matrix.target_host.cflags }}
+        CXXFLAGS: ${{ matrix.target_host.cxxflags }}
       run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
