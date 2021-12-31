@@ -43,7 +43,7 @@ jobs:
 
       - name: Configure
         env:
-          CONAN_BASH_PATH: msys2
+          CONAN_BASH_PATH: sh
           CC: ${{ matrix.compiler.c }}
           CXX: ${{ matrix.compiler.cxx }}
           CFLAGS: -Wa,-mbig-obj
