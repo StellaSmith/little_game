@@ -8,7 +8,9 @@ on:
 
 jobs:
   build-mingw:
-    name: Building for ${{ matrix.build_type }} with mingw-w64-${{ matrix.compiler.c }}
+    # note that x86_64-w64-mingw32 is an alias for x86_64-pc-windows-gnu
+    # x86_64-w64-mingw32 is the toolchain name to compile to x86_64-pc-windows-gnu
+    name: Building for ${{ matrix.target_host }} (${{ matrix.build_type }}) with mingw-w64-${{ matrix.compiler.c }}
     runs-on: ubuntu-20.04
     strategy:
         fail-fast: false
@@ -17,8 +19,10 @@ jobs:
             - c: gcc
               cxx: g++
           target_host: 
-            - x86_64-w64-mingw32
-            - i686-w64-mingw32
+            - toolchain: x86_64-w64-mingw32
+              arch: x86_64
+            - toolchain: i686-w64-mingw32
+              arch: i686
           build_type:
             - Release
             - Debug
@@ -40,19 +44,19 @@ jobs:
       env:
         CONAN_BASH_PATH: sh
         CONAN_SYSREQUIRES_MODE: enabled
-        CONAN_CMAKE_FIND_ROOT_PATH: /usr/${{ matrix.target_host }}
-        CONAN_CMAKE_SYSROOT: /usr/${{ matrix.target_host }}
+        CONAN_CMAKE_FIND_ROOT_PATH: /usr/${{ matrix.target_host.toolchain }}
+        CONAN_CMAKE_SYSROOT: /usr/${{ matrix.target_host.toolchain }}
         CONAN_CMAKE_SYSTEM_NAME: Windows
-        CHOST: ${{ matrix.target_host }}
-        AR: ${{ matrix.target_host }}-ar
-        AS: ${{ matrix.target_host }}-as
-        RANLIB: ${{ matrix.target_host }}-ranlib
-        CC: ${{ matrix.target_host }}-${{ matrix.compiler.c }}
-        CXX: ${{ matrix.target_host }}-${{ matrix.compiler.cxx }}
-        STRIP: ${{ matrix.target_host }}-strip
-        RC: ${{ matrix.target_host }}-windres
+        CHOST: ${{ matrix.target_host.toolchain }}
+        AR: ${{ matrix.target_host.toolchain }}-ar
+        AS: ${{ matrix.target_host.toolchain }}-as
+        RANLIB: ${{ matrix.target_host.toolchain }}-ranlib
+        CC: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.c }}
+        CXX: ${{ matrix.target_host.toolchain }}-${{ matrix.compiler.cxx }}
+        STRIP: ${{ matrix.target_host.toolchain }}-strip
+        RC: ${{ matrix.target_host.toolchain }}-windres
         LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host }}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
       run: cmake --build build --parallel
