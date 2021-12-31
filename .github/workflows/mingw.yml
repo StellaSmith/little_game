@@ -40,6 +40,14 @@ jobs:
     - name: Install Conan
       run: pip install --upgrade conan
 
+    - name: Cache Conan Packages
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.conan/data
+          !~/.conan/data/*/system/**
+        key: ${{ matrix.target_host.toolchain }}_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
+
     - name: Configure
       env:
         CONAN_BASH_PATH: sh
