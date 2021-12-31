@@ -45,7 +45,15 @@ jobs:
       with:
         path: |
           ~/.conan/data
-          !~/.conan/data/*/system/**
+          ~/.conan/data
+          !~/.conan/data/egl/system/**
+          !~/.conan/data/glu/system/**
+          !~/.conan/data/gtk/system/**
+          !~/.conan/data/libudev/system/**
+          !~/.conan/data/libopengl/system/**
+          !~/.conan/data/vaapi/system/**
+          !~/.conan/data/vdpau/system/**
+          !~/.conan/data/xorg/system/**
         key: ${{ matrix.target_host.toolchain }}_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
     - name: Configure
