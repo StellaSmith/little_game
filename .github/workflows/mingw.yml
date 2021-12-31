@@ -12,6 +12,8 @@ jobs:
     # x86_64-w64-mingw32 is the toolchain name to compile to x86_64-pc-windows-gnu
     name: Building for ${{ matrix.target_host.toolchain }} (${{ matrix.build_type }}) with mingw-w64-${{ matrix.compiler.c }}
     runs-on: ubuntu-20.04
+    container:
+      image: debian:11
     strategy:
         fail-fast: false
         matrix:
@@ -35,7 +37,7 @@ jobs:
       run: |
         set -e;
         sudo apt-get upgrade;
-        sudo apt-get install -y mingw-w64;
+        sudo apt-get install -y cmake ninja python3-pip mingw-w64;
 
     - name: Install Conan
       run: pip install --upgrade conan
@@ -53,6 +55,7 @@ jobs:
         CONAN_CMAKE_FIND_ROOT_PATH: /usr/${{ matrix.target_host.toolchain }}
         CONAN_CMAKE_SYSROOT: /usr/${{ matrix.target_host.toolchain }}
         CONAN_CMAKE_SYSTEM_NAME: Windows
+        CONAN_CMAKE_SYSTEM_PROCESSOR: ${{ matrix.target_host.arch }}
         CHOST: ${{ matrix.target_host.toolchain }}
         AR: ${{ matrix.target_host.toolchain }}-ar
         AS: ${{ matrix.target_host.toolchain }}-as
@@ -62,7 +65,7 @@ jobs:
         STRIP: ${{ matrix.target_host.toolchain }}-strip
         RC: ${{ matrix.target_host.toolchain }}-windres
         LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
       run: cmake --build build --parallel
