@@ -10,7 +10,7 @@ jobs:
   build-mingw:
     # note that x86_64-w64-mingw32 is an alias for x86_64-pc-windows-gnu
     # x86_64-w64-mingw32 is the toolchain name to compile to x86_64-pc-windows-gnu
-    name: Building for ${{ matrix.target_host }} (${{ matrix.build_type }}) with mingw-w64-${{ matrix.compiler.c }}
+    name: Building for ${{ matrix.target_host.toolchain }} (${{ matrix.build_type }}) with mingw-w64-${{ matrix.compiler.c }}
     runs-on: ubuntu-20.04
     strategy:
         fail-fast: false

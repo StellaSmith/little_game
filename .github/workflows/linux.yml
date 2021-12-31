@@ -29,13 +29,19 @@ jobs:
       run: pip install --upgrade conan
 
     - name: Cache Conan Packages
-      id: cache-conan
       uses: actions/cache@v2
       with:
         path: |
           ~/.conan/data
-          !~/.conan/data/*/system/**
-        key: ${{ runner.os }}_${{ matrix.compiler.c }}_${{ matrix.compiler.cxx }}_${{ matrix.build_type }}_conan
+          !~/.conan/data/egl/system/**
+          !~/.conan/data/glu/system/**
+          !~/.conan/data/gtk/system/**
+          !~/.conan/data/libudev/system/**
+          !~/.conan/data/libopengl/system/**
+          !~/.conan/data/vaapi/system/**
+          !~/.conan/data/vdpau/system/**
+          !~/.conan/data/xorg/system/**
+        key: x86_64-pc-linux-gnu_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
     - uses: hendrikmuhs/ccache-action@v1
 
