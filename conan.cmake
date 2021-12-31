@@ -25,7 +25,7 @@ endif()
 
 conan_cmake_install(
     PATH_OR_REFERENCE ${CMAKE_CURRENT_SOURCE_DIR}
-    UPDATE
+    # UPDATE
     BUILD missing
     REMOTE conancenter
     GENERATOR cmake_find_package cmake_paths
