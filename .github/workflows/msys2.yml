@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-msys2:
-    name: Building for ${{ matrix.build_type }} with ${{ matrix.compiler.c }}
+    name: Building for x86_64-w64-mingw32 (${{ matrix.build_type }}) with ${{ matrix.compiler.c }}
     runs-on: windows-latest
     strategy:
       fail-fast: false

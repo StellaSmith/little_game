@@ -8,12 +8,14 @@ on:
 
 jobs:
   build-windows:
-    name: Building for ${{ matrix.build_type }}
+    name: Building for x86_64-pc-windows-msvc (${{ matrix.build_type }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        build_type: [Release, Debug]
+        build_type:
+          - Release
+          - Debug
 
     steps:
     - uses: actions/checkout@v2
