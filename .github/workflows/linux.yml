@@ -25,6 +25,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        # OpenGL
+        sudo apt-get install -y --no-install-recommends libgl-dev
+        # OpenGL ES
+        sudo apt-get install -y --no-install-recommends libegl-dev
+        # xorg
+        sudo apt-get install -y --no-install-recommends libfontenc-dev libx11-xcb-dev libxaw7-dev libxcb-dri3-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxinerama-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxres-dev libxss-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev
+        
+
     - name: Install Conan
       run: pip install --upgrade conan
 
@@ -33,21 +44,12 @@ jobs:
       with:
         path: |
           ~/.conan/data
-          !~/.conan/data/egl/system/**
-          !~/.conan/data/glu/system/**
-          !~/.conan/data/gtk/system/**
-          !~/.conan/data/libudev/system/**
-          !~/.conan/data/libopengl/system/**
-          !~/.conan/data/vaapi/system/**
-          !~/.conan/data/vdpau/system/**
-          !~/.conan/data/xorg/system/**
         key: x86_64-pc-linux-gnu_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
     - uses: hendrikmuhs/ccache-action@v1
 
     - name: Configure
       env:
-        CONAN_SYSREQUIRES_MODE: enabled
         CC: ${{ matrix.compiler.c }}
         CXX: ${{ matrix.compiler.cxx }}
       run: |

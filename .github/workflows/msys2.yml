@@ -18,10 +18,13 @@ jobs:
             cxx: g++
           - c: clang
             cxx: clang++
-        build_type: [Release, Debug]
+        build_type:
+          - Release
+          - Debug
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v2
-
       - name: Setting up MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -33,19 +36,17 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-clang
 
-      # - uses: hendrikmuhs/ccache-action@v1
+      - uses: actions/checkout@v2
 
       - name: Install conan
-        shell: msys2 {0}
         run: python -m pip install --upgrade conan
 
       - name: Configure
-        shell: msys2 {0}
         env:
+          CONAN_BASH_PATH: msys2
           CC: ${{ matrix.compiler.c }}
           CXX: ${{ matrix.compiler.cxx }}
         run: cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
       - name: Build
-        shell: msys2 {0}
         run: cmake --build build --parallel
