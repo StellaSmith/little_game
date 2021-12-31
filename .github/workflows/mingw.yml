@@ -33,7 +33,7 @@ jobs:
     - name: Install build tools
       run: |
         set -e;
-        apt-get upgrade;
+        apt-get update;
         # sudo required by github actions
         apt-get install -y sudo git cmake ninja-build python3-pip mingw-w64;
 
