@@ -46,6 +46,8 @@ jobs:
           CONAN_BASH_PATH: msys2
           CC: ${{ matrix.compiler.c }}
           CXX: ${{ matrix.compiler.cxx }}
+          CFLAGS: -Wa,-mbig-obj
+          CXXFLAGS: -Wa,-mbig-obj
         run: cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
       - name: Build
