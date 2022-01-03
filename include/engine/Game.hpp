@@ -1,9 +1,9 @@
 #ifndef ENGINE_GAME_HPP
 #define ENGINE_GAME_HPP
 
-#include <assets/BlockModel.hpp>
 #include <engine/BlockType.hpp>
 #include <engine/NamedRegistry.hpp>
+#include <engine/assets/BlockModel.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/rendering/Mesh.hpp>
