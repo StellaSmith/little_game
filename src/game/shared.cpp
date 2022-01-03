@@ -47,10 +47,10 @@ void engine::Game::start()
 
     if (m_block_registry.empty()) return;
 
-    for (auto const &block_type : m_block_registry)
-        block_type.second->Initialize(*this);
+    for (auto block_type : m_block_registry)
+        block_type->Initialize(*this);
 
-    engine::BlockType *colorful_type = m_block_registry.Get("colorful_block"sv);
+    engine::BlockType *colorful_type = m_block_registry.at("colorful_block"sv);
 
     running = true;
     std::random_device rd {};
