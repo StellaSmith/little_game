@@ -1,22 +1,13 @@
 #ifndef ENGINE_BLOCKTYPE_HPP
 #define ENGINE_BLOCKTYPE_HPP
 
-#include <engine/Sides.hpp>
-#include <engine/rendering/Mesh.hpp>
-#include <glm/fwd.hpp>
+#include <glm/ext/vector_uint4_sized.hpp>
 
 namespace engine {
-    class Game;
-    struct Block;
 
     struct BlockType {
-        virtual void Initialize(engine::Game &);
-        virtual engine::rendering::Mesh GetSolidMesh(engine::Block const &, engine::Sides) const;
-        virtual engine::rendering::Mesh GetTranslucentMesh(engine::Block const &, engine::Sides) const;
-        virtual engine::Sides GetSolidSides(engine::Block const &) const;
-        virtual glm::u8vec4 GetProducedLight(engine::Block const &) const;
-
-        virtual ~BlockType();
+        glm::uint32 model_id;
+        glm::u8vec4 produced_light;
     };
 
 } // namespace engine

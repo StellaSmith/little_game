@@ -45,17 +45,12 @@ void engine::Game::start()
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
 
-    if (m_block_registry.empty()) return;
-
-    for (auto block_type : m_block_registry)
-        block_type->Initialize(*this);
-
-    engine::BlockType *colorful_type = m_block_registry.at("colorful_block"sv);
+    std::uint32_t colorful_index = m_block_types.index("colorful_block"sv);
 
     running = true;
     std::random_device rd {};
     std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
-    std::uniform_int_distribution<std::size_t> id_dist { 0, m_block_registry.size() };
+    std::uniform_int_distribution<std::size_t> id_dist { 0, m_block_types.size() };
 
     int32_t const max_x = 10;
     for (std::int32_t x = 0; x < max_x; ++x) {
@@ -65,9 +60,8 @@ void engine::Game::start()
         m_entity_registry.emplace<engine::C_Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
-            if ((block.type = m_block_registry[id_dist(rd)]) == colorful_type) {
-                auto const packed = math::pack_u32(dist(rd), dist(rd), dist(rd));
-                block.data = reinterpret_cast<void *>(static_cast<std::uintptr_t>(packed));
+            if ((block.type = id_dist(rd)) == colorful_index) {
+                block.data = math::pack_u32(dist(rd), dist(rd), dist(rd));
             }
         }
     }

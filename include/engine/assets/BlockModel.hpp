@@ -6,6 +6,7 @@
 
 #include <array>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,21 +16,23 @@ namespace engine::assets {
     public:
         static BlockModel load(std::filesystem::path const &path);
 
-        engine::rendering::Mesh const &get_solid_mesh(engine::Sides sides) const noexcept
+        engine::rendering::Mesh const *get_solid_mesh(engine::Sides sides) const noexcept
         {
-            return m_meshes[sides];
+            auto const &maybe_mesh = m_meshes[sides];
+            return maybe_mesh.has_value() ? &maybe_mesh.value() : nullptr;
         }
 
-        engine::rendering::Mesh const &get_translucent_mesh(engine::Sides sides) const noexcept
+        engine::rendering::Mesh const *get_translucent_mesh(engine::Sides sides) const noexcept
         {
-            return m_meshes[64 + sides];
+            auto const &maybe_mesh = m_meshes[64 + sides];
+            return maybe_mesh.has_value() ? &maybe_mesh.value() : nullptr;
         }
 
     private:
         static BlockModel load_json(std::filesystem::path const &path);
 
     private:
-        std::array<engine::rendering::Mesh, 128> m_meshes;
+        std::array<std::optional<engine::rendering::Mesh>, 128> m_meshes;
         std::vector<std::string> m_textures;
     };
 

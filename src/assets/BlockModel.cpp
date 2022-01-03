@@ -47,9 +47,8 @@ struct ModelFace {
     std::uint32_t vertex_indices[4];
 
     engine::Sides sides;
-    unsigned char solid;
-    unsigned char quad;
-    unsigned char unused;
+    unsigned char solid : 1;
+    unsigned char quad : 1;
 };
 
 static rapidjson::SchemaDocument const model_schema = []() {
@@ -211,18 +210,19 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::filesystem
 
     auto const append_face = [](engine::assets::BlockModel &model, ModelFace const &face, std::vector<ModelVertex> const &vertices) {
         std::size_t const i = face.sides + (!face.solid * 64);
-        std::uint32_t const current = model.m_meshes[i].indices.size();
+        if (!model.m_meshes[i].has_value()) model.m_meshes[i].emplace();
+        std::uint32_t const current = model.m_meshes[i]->indices.size();
         if (face.quad) {
-            model.m_meshes[i].vertices.insert(
-                model.m_meshes[i].vertices.end(),
+            model.m_meshes[i]->vertices.insert(
+                model.m_meshes[i]->vertices.end(),
                 {
                     vertices[face.vertex_indices[0]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[1]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[2]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[3]].to_vertex(face.texture_index),
                 });
-            model.m_meshes[i].indices.insert(
-                model.m_meshes[i].indices.end(),
+            model.m_meshes[i]->indices.insert(
+                model.m_meshes[i]->indices.end(),
                 {
                     current + 0,
                     current + 1,
@@ -232,15 +232,15 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::filesystem
                     current + 3,
                 });
         } else {
-            model.m_meshes[i].vertices.insert(
-                model.m_meshes[i].vertices.end(),
+            model.m_meshes[i]->vertices.insert(
+                model.m_meshes[i]->vertices.end(),
                 {
                     vertices[face.vertex_indices[0]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[1]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[2]].to_vertex(face.texture_index),
                 });
-            model.m_meshes[i].indices.insert(
-                model.m_meshes[i].indices.end(),
+            model.m_meshes[i]->indices.insert(
+                model.m_meshes[i]->indices.end(),
                 {
                     current + 0,
                     current + 1,

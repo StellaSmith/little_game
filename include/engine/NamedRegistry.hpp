@@ -1,6 +1,7 @@
 #ifndef ENGINE_BLOCKREGISTRY_HPP
 #define ENGINE_BLOCKREGISTRY_HPP
 
+#include "errors/AlreadyRegistered.hpp"
 #include <absl/container/flat_hash_map.h>
 
 #include <memory>
@@ -12,6 +13,19 @@
 
 namespace engine {
 
+    template <typename T, typename U>
+    auto &const_as(U &obj) noexcept
+    {
+        if (std::is_const_v<T> && std::is_volatile_v<T>)
+            return static_cast<U const volatile &>(obj);
+        else if (std::is_const_v<T>)
+            return static_cast<U const &>(obj);
+        else if (std::is_volatile_v<T>)
+            return static_cast<U volatile &>(obj);
+        else
+            return obj;
+    }
+
     template <typename T>
     struct NamedRegistry {
 
@@ -20,59 +34,67 @@ namespace engine {
         using value_type = std::remove_cv_t<T>;
 
     private:
-        using table_type = std::vector<std::unique_ptr<value_type>>;
+        using table_type = std::vector<value_type>;
         using index_type = absl::flat_hash_map<std::string, size_type>;
 
     public:
-        template <typename U, typename... Args>
-        [[nodiscard]] T *registre(std::string_view name, Args &&...args)
+        template <typename U, typename... Args, std::enable_if_t<std::is_base_of_v<value_type, U>, int> SFINAE = 0>
+        [[nodiscard]] auto &registre(std::string_view name, Args &&...args)
         {
             if (auto [start, stop] = m_index.equal_range(absl::string_view { name.data(), name.size() }); start == stop || start->first != name) {
                 m_index.emplace_hint(start, std::make_pair(std::string { name }, m_table.size()));
-                return m_table.emplace_back(std::make_unique<std::remove_cv_t<U>>(std::forward<Args>(args)...)).get();
+                return const_as<value_type>(m_table.emplace_back(std::forward<Args>(args)...));
             } else {
-                return nullptr;
+                throw engine::errors::AlreadyRegistered {};
             }
         }
 
         template <typename... Args>
-        [[nodiscard]] T *registre(std::string_view name, Args &&...args)
+        [[nodiscard]] value_type &registre(std::string_view name, Args &&...args)
         {
             return registre<value_type>(name, std::forward<Args>(args)...);
         }
 
-        [[nodiscard]] value_type *operator[](std::uint32_t idx) const noexcept
+        [[nodiscard]] size_type index(std::string_view name) const noexcept
+        {
+            auto const it = m_index.find(absl::string_view { name.data(), name.size() });
+            assert(it != m_index.end());
+            return it->second;
+        }
+
+        [[nodiscard]] value_type &operator[](std::uint32_t idx) const noexcept
         {
             assert(idx < m_table.size());
-            return m_table[idx].get();
+            return at(idx);
         }
 
-        [[nodiscard]] value_type *operator[](std::string_view name) const noexcept
+        [[nodiscard]] value_type &operator[](std::string_view name) const noexcept
         {
-            auto it = m_index.find(absl::string_view { name.data(), name.size() });
-            assert(it != m_index.end());
-            return (*this)[it->second];
+            return at(index(name));
         }
 
-        [[nodiscard]] value_type *at(std::string_view name) const noexcept
+        [[nodiscard]] value_type &at(std::string_view name) const noexcept
         {
-            auto it = m_index.find(absl::string_view { name.data(), name.size() });
-            if (it == m_index.end())
-                return nullptr;
-            return m_table[it->second].get();
+            return at(index(name));
         }
 
         template <typename U,
-            std::enable_if_t<std::is_base_of_v<value_type, T>, int> SFINAE = 0>
-        [[nodiscard]] U *at(std::string_view name) const noexcept
+            std::enable_if_t<std::is_base_of_v<value_type, U>, int> SFINAE = 0>
+        [[nodiscard]] auto &at(std::string_view name) const noexcept
         {
-            return dynamic_cast<T *>(at(name));
+            return const_as<value_type>(dynamic_cast<T &>(at(name)));
         }
 
-        [[nodiscard]] value_type *at(std::uint32_t idx) const noexcept
+        [[nodiscard]] value_type &at(std::uint32_t idx) noexcept
         {
             assert(idx < m_table.size());
-            return m_table[idx].get();
+            return m_table[idx];
+        }
+
+        [[nodiscard]] value_type const &at(std::uint32_t idx) const noexcept
+        {
+            assert(idx < m_table.size());
+            return m_table[idx];
         }
 
         struct iterator {
@@ -81,14 +103,14 @@ namespace engine {
             {
             }
 
-            [[nodiscard]] value_type *operator*() const noexcept
-            {
-                return m_base->get();
-            }
-
-            [[nodiscard]] std::unique_ptr<value_type> const &operator->() const noexcept
+            [[nodiscard]] value_type &operator*() const noexcept
             {
                 return *m_base;
+            }
+
+            [[nodiscard]] value_type *const &operator->() const noexcept
+            {
+                return &*m_base;
             }
 
             iterator &operator++() noexcept

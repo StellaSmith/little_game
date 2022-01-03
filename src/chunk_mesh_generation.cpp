@@ -1,5 +1,6 @@
 #include <engine/BlockType.hpp>
 #include <engine/Game.hpp>
+#include <engine/Sides.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/rendering/Mesh.hpp>
 #include <math/bits.hpp>
@@ -23,22 +24,22 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
         return first * math::c_ipow_v<D, sizeof...(Rest)> + cube_at<D>(rest...);
 }
 
-static engine::Sides get_visible_sides(engine::C_ChunkData const &chunk, glm::u32vec3 block_pos)
+static engine::Sides get_visible_sides(engine::Game const &game, engine::C_ChunkData const &chunk, glm::u32vec3 block_pos)
 {
     using engine::Sides;
     constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
 
-    auto const is_solid = [](engine::Block const &block) -> Sides {
-        return block.type->GetSolidSides(block);
+    auto const is_solid = [&](engine::Block block, engine::Sides side) -> bool {
+        return game.block_models().at(block.type).get_solid_mesh(side);
     };
 
     auto const [x, y, z] = block_pos;
-    bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)]) & Sides::BOTTOM);
-    bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)]) & Sides::TOP);
-    bool const is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)]) & Sides::WEST);
-    bool const is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)]) & Sides::EAST);
-    bool const is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)]) & Sides::SOUTH);
-    bool const is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)]) & Sides::NORTH);
+    bool const is_top_visible = y == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y + 1, z)], Sides::BOTTOM));
+    bool const is_bottom_visible = y == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y - 1, z)], Sides::TOP));
+    bool const is_east_visible = x == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x + 1, y, z)], Sides::WEST));
+    bool const is_west_visible = x == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x - 1, y, z)], Sides::EAST));
+    bool const is_north_visible = z == 0 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z - 1)], Sides::SOUTH));
+    bool const is_south_visible = z == chunk_size - 1 || !(is_solid(chunk.blocks[cube_at<chunk_size>(x, y, z + 1)], Sides::NORTH));
 
     // clang-format off
     // pack to a Sides flags
@@ -69,7 +70,7 @@ static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
     }
 }
 
-static void calculate_light(engine::rendering::Mesh &mesh_data, engine::C_ChunkData const &chunk)
+static void calculate_light(engine::Game const &game, engine::rendering::Mesh &mesh_data, engine::C_ChunkData const &chunk)
 {
     struct LightData {
         glm::vec3 position;
@@ -84,11 +85,11 @@ static void calculate_light(engine::rendering::Mesh &mesh_data, engine::C_ChunkD
         std::uint_fast8_t const x = i >> 8 & 0xF;
         std::uint_fast8_t const y = i >> 4 & 0xF;
         std::uint_fast8_t const z = i >> 0 & 0xF;
-        if (!get_visible_sides(chunk, { x, y, z }))
+        if (!get_visible_sides(game, chunk, { x, y, z }))
             continue;
         engine::Block const &block = chunk.blocks[i];
 
-        glm::u8vec4 const produced_light = block.type->GetProducedLight(block);
+        glm::u8vec4 const produced_light = game.block_types().at(block.type).produced_light;
         if (!produced_light.w)
             continue;
 
@@ -138,14 +139,13 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
 
         engine::Block const &block = chunk_data.blocks[i];
 
-        if (block.type->GetSolidSides(block) == Sides::NONE)
-            continue;
+        Sides sides = get_visible_sides(*this, chunk_data, { x, y, z });
+        if (!sides) continue;
 
-        Sides sides = get_visible_sides(chunk_data, { x, y, z });
-        if (!sides) // no visible sides
-            continue;
+        engine::rendering::Mesh const *maybe_mesh = block_models().at(block_types().at(block.type).model_id).get_solid_mesh(sides);
+        if (!maybe_mesh) continue;
+        auto mesh = *maybe_mesh; // make a copy, we will transform it now
 
-        engine::rendering::Mesh mesh = block.type->GetSolidMesh(block, sides); // these are in block coords
         assert(mesh.indices.size() % 3 == 0);
 
         for (auto &vertex : mesh.vertices) // transform to chunk coords
@@ -170,7 +170,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
     // }
     {
         // utils::TimeIt timer { "solid lights"sv };
-        calculate_light(result, chunk_data);
+        calculate_light(*this, result, chunk_data);
     }
 
     for (auto &vertex : result.vertices) // transform to world coords
@@ -215,7 +215,7 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 chu
     }
     {
         // utils::TimeIt timer { "translucent lights"sv };
-        calculate_light(result, chunk_data);
+        calculate_light(*this, result, chunk_data);
     }
 
     return result;
