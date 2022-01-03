@@ -26,8 +26,8 @@ jobs:
               ldflags:
             - toolchain: i686-w64-mingw32
               arch: i686
-              cflags: -Wa,-mbig-obj -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
-              cxxflags: -Wa,-mbig-obj -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
+              cflags: -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
+              cxxflags: -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
               ldflags: -fuse-linker-plugin -flto -Wl,-allow-multiple-definition
           build_type:
             - Release
