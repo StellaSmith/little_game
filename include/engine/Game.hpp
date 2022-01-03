@@ -1,8 +1,8 @@
 #ifndef ENGINE_GAME_HPP
 #define ENGINE_GAME_HPP
 
-#include <engine/BlockRegistry.hpp>
 #include <engine/BlockType.hpp>
+#include <engine/NamedRegistry.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/rendering/Mesh.hpp>
@@ -78,7 +78,7 @@ namespace engine {
         entt::registry m_entity_registry;
         std::unordered_map<glm::i32vec4, entt::entity> m_chunks;
 
-        engine::BlockRegistry m_block_registry;
+        engine::NamedRegistry<engine::BlockType> m_block_registry;
 
         std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
         std::unordered_map<glm::i32vec4, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves

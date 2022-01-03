@@ -58,7 +58,6 @@ add_executable(little_game
     src/error.cpp
     src/lua_bindings.cpp
 
-    src/engine/BlockRegistry.cpp
     src/engine/BlockType.cpp
     src/engine/Config.cpp
     src/engine/resources.cpp
