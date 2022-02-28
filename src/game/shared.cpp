@@ -45,7 +45,7 @@ void engine::Game::start()
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
 
-    std::uint32_t colorful_index = m_block_types.index("colorful_block"sv);
+    std::uint32_t const colorful_id = block_type_names().find("colorful_block"sv)->second;
 
     running = true;
     std::random_device rd {};
@@ -60,7 +60,7 @@ void engine::Game::start()
         m_entity_registry.emplace<engine::C_Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
-            if ((block.type = id_dist(rd)) == colorful_index) {
+            if ((block.type = id_dist(rd)) == colorful_id) {
                 block.data = math::pack_u32(dist(rd), dist(rd), dist(rd));
             }
         }

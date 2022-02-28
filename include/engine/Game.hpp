@@ -9,12 +9,14 @@
 #include <engine/rendering/Mesh.hpp>
 #include <engine/textures.hpp>
 
+#include <absl/container/flat_hash_map.h>
 #include <entt/entt.hpp>
 #include <glad/glad.h>
 #include <sol/state.hpp>
 
 #include <chrono>
 #include <deque>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
@@ -64,11 +66,17 @@ namespace engine {
     public:
         bool running;
 
-        engine::NamedRegistry<engine::BlockType const> &block_types() noexcept { return m_block_types; }
-        engine::NamedRegistry<engine::assets::BlockModel const> &block_models() noexcept { return m_block_models; }
+        auto &block_types() noexcept { return m_block_types; }
+        auto const &block_types() const noexcept { return m_block_types; }
 
-        engine::NamedRegistry<engine::BlockType const> const &block_types() const noexcept { return m_block_types; }
-        engine::NamedRegistry<engine::assets::BlockModel const> const &block_models() const noexcept { return m_block_models; }
+        auto &block_type_names() noexcept { return m_block_type_names; }
+        auto const &block_type_names() const noexcept { return m_block_type_names; }
+
+        auto &block_models() noexcept { return m_block_models; }
+        auto const &block_models() const noexcept { return m_block_models; }
+
+        auto &block_model_names() noexcept { return m_block_model_names; }
+        auto const &block_model_names() const noexcept { return m_block_model_names; }
 
     private:
         sol::state m_lua;
@@ -85,8 +93,11 @@ namespace engine {
         entt::registry m_entity_registry;
         std::unordered_map<glm::i32vec4, entt::entity> m_chunks;
 
-        engine::NamedRegistry<engine::BlockType const> m_block_types;
-        engine::NamedRegistry<engine::assets::BlockModel const> m_block_models;
+        absl::flat_hash_map<std::string, entt::id_type> m_block_type_names;
+        entt::basic_storage<entt::id_type, engine::BlockType> m_block_types;
+
+        absl::flat_hash_map<std::string, entt::id_type> m_block_model_names;
+        entt::basic_storage<entt::id_type, engine::assets::BlockModel> m_block_models;
 
         std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
         std::unordered_map<glm::i32vec4, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves

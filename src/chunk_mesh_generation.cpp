@@ -30,7 +30,7 @@ static engine::Sides get_visible_sides(engine::Game const &game, engine::C_Chunk
     constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
 
     auto const is_solid = [&](engine::Block block, engine::Sides side) -> bool {
-        return game.block_models().at(block.type).get_solid_mesh(side);
+        return game.block_models().get(block.type).get_solid_mesh(side);
     };
 
     auto const [x, y, z] = block_pos;
@@ -89,7 +89,7 @@ static void calculate_light(engine::Game const &game, engine::rendering::Mesh &m
             continue;
         engine::Block const &block = chunk.blocks[i];
 
-        glm::u8vec4 const produced_light = game.block_types().at(block.type).produced_light;
+        glm::u8vec4 const produced_light = game.block_types().get(block.type).produced_light;
         if (!produced_light.w)
             continue;
 
@@ -142,7 +142,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
         Sides sides = get_visible_sides(*this, chunk_data, { x, y, z });
         if (!sides) continue;
 
-        engine::rendering::Mesh const *maybe_mesh = block_models().at(block_types().at(block.type).model_id).get_solid_mesh(sides);
+        engine::rendering::Mesh const *maybe_mesh = block_models().get(block_types().get(block.type).model_id).get_solid_mesh(sides);
         if (!maybe_mesh) continue;
         auto mesh = *maybe_mesh; // make a copy, we will transform it now
 
