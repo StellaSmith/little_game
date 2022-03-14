@@ -58,17 +58,17 @@ int main(int argc, char **argv)
                 return 0;
             } else if (argv[i] == "--sdl-video-drivers"sv) {
                 int drivers = SDL_GetNumVideoDrivers();
-                fmt::print("Available video drivers ({}):\n", drivers);
+                spdlog::info("Available video drivers ({}):\n", drivers);
                 for (int i = 0; i < drivers; ++i)
-                    fmt::print("\t{}) {}\n", i + 1, SDL_GetVideoDriver(i));
+                    spdlog::info("\t{}) {}\n", i + 1, SDL_GetVideoDriver(i));
             } else if (argv[i] == "--sdl-audio-drivers"sv) {
                 int drivers = SDL_GetNumAudioDrivers();
-                fmt::print("Available audio drivers ({}):\n", drivers);
+                spdlog::info("Available audio drivers ({}):\n", drivers);
                 for (int i = 0; i < drivers; ++i)
-                    fmt::print("\t{}) {}\n", i + 1, SDL_GetAudioDriver(i));
+                    spdlog::info("\t{}) {}\n", i + 1, SDL_GetAudioDriver(i));
             } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
                 g_verbose = true;
-                fmt::print("Verbose output enabled.\n");
+                spdlog::info("Verbose output enabled");
             }
         }
         fix_current_directory(argv[0]);
@@ -145,8 +145,14 @@ int main(int argc, char **argv)
             char unsigned const *renderer = glGetString(GL_RENDERER);
             char unsigned const *shading_version = glGetString(GL_SHADING_LANGUAGE_VERSION);
 
-            std::printf("OpenGL %d.%d\n\tRGBA bits: %d, %d, %d, %d\n\tDepth bits: %d\n\tStencil bits: %d\n", major, minor, r, g, b, a, d, s);
-            std::printf("\tVersion: %s\n\tVendor: %s\n\tRenderer: %s\n\tShading language version: %s\n", version, vendor, renderer, shading_version);
+            spdlog::info("OpenGL profile: {}.{}", major, minor);
+            spdlog::info("\tRGBA bits: {}, {}, {}, {}", r, g, b, a);
+            spdlog::info("\tDepth bits: {}", d);
+            spdlog::info("\tStencil bits: {}", s);
+            spdlog::info("\tVersion: {}", version);
+            spdlog::info("\tVendor: {}", vendor);
+            spdlog::info("\tRendered: {}", renderer);
+            spdlog::info("\tShading language version: {}", shading_version);
         }
 #if defined(GL_KHR_debug)
         if (GLAD_GL_KHR_debug) {
