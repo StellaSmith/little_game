@@ -33,7 +33,7 @@ static SDL_Window *s_window = nullptr;
 
 using namespace std::literals;
 
-static void fix_current_directory();
+static void fix_current_directory(char const *argv0);
 
 int main(int argc, char **argv)
 {
@@ -41,7 +41,6 @@ int main(int argc, char **argv)
     SDL_SetMainReady();
 #endif
     try {
-        fix_current_directory();
 
         constexpr int width = 640, height = 480;
 
@@ -72,6 +71,7 @@ int main(int argc, char **argv)
                 fmt::print("Verbose output enabled.\n");
             }
         }
+        fix_current_directory(argv[0]);
 
         if (SDL_Init(0) < 0)
             utils::show_error("Error initializing SDL: "s + SDL_GetError());
@@ -262,38 +262,30 @@ int main(int argc, char **argv)
     return -1;
 }
 
-static void fix_current_directory()
+static void fix_current_directory(char const *argv0)
 {
-#if defined(__linux__)
+#ifdef __unix__
     {
-        // dont wanna fill up the stack
-#if PATH_MAX > 1024
-        auto buf_p = std::make_unique<char[]>(PATH_MAX + 1);
-        char *buf = buf_p.get();
-#else
-        char buf[PATH_MAX + 1] {};
-#endif
-        int len;
-        if ((len = readlink("/proc/self/exe", buf, PATH_MAX)) < 0) {
+        auto path = std::string { argv0 };
+        if (path.back() == '/') path.pop_back();
+
+        // go up two levels, one for bin/
+
+        if (auto pos = path.rfind('/'); pos != std::string::npos) {
+            path.resize(pos);
+        }
+
+        if (auto pos = path.rfind('/'); pos != std::string::npos) {
+            path.resize(pos);
+        }
+
+        if (chdir(path.c_str()) < 0) {
             int const err = errno;
             std::string const err_str = std::system_category().message(err);
-            utils::show_error("Couldn't readlink", "Couldn't read link /proc/self/exe\nIs the proc filesystem mounted?\n" + err_str);
+            utils::show_error("Couldn't chdir", fmt::format("Couldn't change current working directory to {}\n{}", path, err_str));
         }
-        // starts with something like "/opt/little_game/bin/little_game\0" ... more \0 follows
-        // the double strrchr is essentially /opt/little_game/bin/little_game/../..
-        // which transforms the path to "/opt/little_game/\0in/little_game\0" ... more \0 follows
-        // if for some reason the executable is directly under root (/little_game) this would read up the stack
-        *std::strrchr(buf, '/') = '\0';
-        if (auto *p = std::strrchr(buf, '/'); p) {
-            *p = '\0';
-        } else {
-            utils::show_error("Couldn't chdir", "Couldn't change current working above root");
-        }
-        if (chdir(buf) < 0) {
-            int const err = errno;
-            std::string const err_str = std::system_category().message(err);
-            utils::show_error("Couldn't chdir", fmt::format("Couldn't change current working directory to {}\n{}", +buf, err_str));
-        }
+        if (g_verbose)
+            spdlog::info("Working directory: {}", path);
     }
 #elif defined(_WIN32)
     {
