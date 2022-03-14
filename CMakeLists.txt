@@ -104,11 +104,11 @@ add_executable(little_game
     include/engine/errors/UnsupportedFileType.hpp
 )
 
-list(APPEND CXX_PRECOMPILED_HEADERS "string" "string_view" "vector" "type_traits" "chrono" "utility")
-list(APPEND CXX_PRECOMPILED_HEADERS "spdlog/spdlog.h" "fmt/format.h" "glm/glm.hpp" "entt/entt.hpp")
-foreach(HEADER ${CXX_PRECOMPILED_HEADERS})
-    target_precompile_headers(little_game PRIVATE $<$<COMPILE_LANGUAGE:CXX>:<${HEADER}$<ANGLE-R>>)    
-endforeach()
+# list(APPEND CXX_PRECOMPILED_HEADERS "string" "string_view" "vector" "type_traits" "chrono" "utility")
+# list(APPEND CXX_PRECOMPILED_HEADERS "spdlog/spdlog.h" "fmt/format.h" "glm/glm.hpp" "entt/entt.hpp")
+# foreach(HEADER ${CXX_PRECOMPILED_HEADERS})
+#     target_precompile_headers(little_game PRIVATE $<$<COMPILE_LANGUAGE:CXX>:<${HEADER}$<ANGLE-R>>)    
+# endforeach()
 
 find_package(Python 3 REQUIRED COMPONENTS Interpreter)
 
