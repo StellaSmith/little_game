@@ -171,6 +171,6 @@ install(TARGETS little_game
         DESTINATION lib/static
 )
 
-install(DIRECTORY assets cfg
+install(DIRECTORY assets cfg lua
     DESTINATION .
 )
