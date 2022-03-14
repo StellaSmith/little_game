@@ -25,7 +25,7 @@ void engine::Game::setup_shader()
 
 #ifdef GL_ARB_get_program_binary
     if (GLAD_GL_ARB_get_program_binary) {
-        std::FILE *fp = utils::get_cache_file("shaders/basic.bin"sv, { "assets/basic.vert"sv, "assets/basic.frag"sv });
+        std::FILE *fp = utils::get_cache_file("shaders/terrain/basic.bin"sv, { "assets/terrain/basic.vert"sv, "assets/terrain/basic.frag"sv });
         if (fp) {
             GLenum format;
             std::fread(&format, sizeof(format), 1, fp);
@@ -55,14 +55,14 @@ void engine::Game::setup_shader()
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    std::FILE *fp = std::fopen("assets/shaders/basic.vert", "r");
+    std::FILE *fp = std::fopen("assets/shaders/terrain/basic.vert", "r");
     if (!fp)
-        utils::show_error("Can't open shader: assets/shaders/basic.vert"sv);
+        utils::show_error("Can't open shader: assets/shaders/terrain/basic.vert"sv);
     std::string const vertex_shader_source_str = utils::load_file(fp);
     std::fclose(fp);
-    fp = std::fopen("assets/shaders/basic.frag", "r");
+    fp = std::fopen("assets/shaders/terrain/basic.frag", "r");
     if (!fp)
-        utils::show_error("Can't open shader: assets/shaders/basic.frag"sv);
+        utils::show_error("Can't open shader: assets/shaders/terrain/basic.frag"sv);
     std::string const fragment_shader_source_str = utils::load_file(fp);
     std::fclose(fp);
 
@@ -121,7 +121,7 @@ void engine::Game::setup_shader()
 
 #ifdef GL_ARB_get_program_binary
     if (GLAD_GL_ARB_get_program_binary) {
-        std::FILE *fp = utils::create_cache_file("shaders/basic.bin");
+        std::FILE *fp = utils::create_cache_file("shaders/terrain/basic.bin");
         if (!fp)
             return;
         GLint bufSize;
