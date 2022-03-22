@@ -1,9 +1,9 @@
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
 message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/v0.16.1/conan.cmake"
+file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/0.17.0/conan.cmake"
               "${CMAKE_BINARY_DIR}/conan.cmake"
-              EXPECTED_HASH SHA256=396e16d0f5eabdc6a14afddbcfff62a54a7ee75c6da23f32f7a31bc85db23484
+              EXPECTED_HASH SHA512=ef6461fcc8afa6b946daf8cae5a5485bcf1bab23f66a0f2f469edda485d6120c88f02ea8af36f64d885f486a05d5fcab73953a58f3ac0a8d8e64d86c9ebdaeb4
               TLS_VERIFY ON)
 endif()
 
@@ -25,7 +25,7 @@ endif()
 
 conan_cmake_install(
     PATH_OR_REFERENCE ${CMAKE_CURRENT_SOURCE_DIR}
-    # UPDATE
+    UPDATE
     BUILD missing
     REMOTE conancenter
     GENERATOR cmake_find_package cmake_paths
