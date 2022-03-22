@@ -114,9 +114,8 @@ find_program(VRC_EXECUTABLE resource_compiler REQUIRED)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
-    COMMAND ${VRC_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/res" > "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
+    COMMAND ${VRC_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ "${VRC_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/res"
-    USES_TERMINAL
 )
 add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)
 target_compile_features(resources PRIVATE cxx_std_17)

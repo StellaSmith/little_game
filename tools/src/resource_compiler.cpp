@@ -11,6 +11,8 @@
 #include <fmt/ostream.h> // formatting boost::filesystem::path
 #include <fmt/ranges.h>
 
+static bool g_verbose = false;
+
 struct BaseResource {
     boost::filesystem::path path;
     virtual ~BaseResource() = default;
@@ -89,7 +91,7 @@ std::unique_ptr<FileResource> add_file(boost::filesystem::path const &path)
     auto result = std::make_unique<FileResource>();
     result->path = path;
     result->data = load_file(path);
-    fmt::print(stderr, "including file {} as is\n", std::quoted(path.string()));
+    if (g_verbose) fmt::print(stderr, "including file {} as is\n", std::quoted(path.string()));
     return result;
 }
 
@@ -99,7 +101,7 @@ std::vector<std::unique_ptr<BaseResource>> add_directory(boost::filesystem::path
     auto current = std::make_unique<DirectoryResource>();
     current->path = path;
 
-    fmt::print(stderr, "scanning directory {}\n", std::quoted(path.string()));
+    if (g_verbose) fmt::print(stderr, "scanning directory {}\n", std::quoted(path.string()));
     for (auto const &entry : boost::filesystem::directory_iterator(path)) {
 
         if (entry.symlink_status().type() == boost::filesystem::file_type::directory_file) {
@@ -112,16 +114,27 @@ std::vector<std::unique_ptr<BaseResource>> add_directory(boost::filesystem::path
         }
     }
     result.push_back(std::move(current));
-    fmt::print(stderr, "including directory {} as is\n", std::quoted(path.string()));
+    if (g_verbose) fmt::print(stderr, "including directory {} as is\n", std::quoted(path.string()));
     return result;
 }
 
 int main(int argc, char **argv)
 {
+    using namespace std::literals;
+
     auto program = argparse::ArgumentParser {};
+    program
+        .add_argument("-V", "--verbose")
+        .help("Be verbose")
+        .default_value(false)
+        .implicit_value(true);
     program
         .add_argument("resources_dir")
         .help("Directory containing the resources to compile.");
+    program
+        .add_argument("-o", "--output")
+        .default_value("-"s)
+        .help("File to put the output");
     try {
         program.parse_args(argc, argv);
     } catch (std::runtime_error const &e) {
@@ -130,18 +143,28 @@ int main(int argc, char **argv)
         std::exit(EXIT_FAILURE);
     }
 
+    if (program["--verbose"] == true) {
+        g_verbose = true;
+        fmt::print(stderr, "Verbosity enabled\n");
+    }
+
+    std::FILE *output = stdout;
+    if (auto output_path = program.get<std::string>("--output"); output_path != "-") {
+        output = std::fopen(output_path.c_str(), "wt");
+        std::setvbuf(output, nullptr, _IOFBF, 1024 * 8);
+    }
+
     if (program.present("resources_dir"))
         boost::filesystem::current_path(program.template get<std::string>("resources_dir"));
 
-    using namespace std::literals;
-    fmt::print("namespace resources {{\n\n"sv);
-    fmt::print("enum class ResourceType {{\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n}};\n\n"sv);
-    fmt::print("struct BaseResource {{\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    unsigned long long size;\n}};\n\n"sv);
-    fmt::print("struct DirectoryResource : BaseResource {{\n    BaseResource const *const *entries;\n}};\n\n"sv);
-    fmt::print("struct FileResource : BaseResource {{\n    unsigned char const *data;\n}};\n\n"sv);
-    fmt::print("BaseResource const *get_root() noexcept;\n\n"sv);
-    fmt::print("}}\n\n"sv);
-    fmt::print("#if defined(COMPILE_RESOURCES)\n\n"sv);
+    fmt::print(output, "namespace resources {{\n\n"sv);
+    fmt::print(output, "enum class ResourceType {{\n    DIRECTORY_RESOURCE,\n    FILE_RESOURCE\n}};\n\n"sv);
+    fmt::print(output, "struct BaseResource {{\n    ResourceType type;\n    char const *path;\n    char const *basename;\n    unsigned long long size;\n}};\n\n"sv);
+    fmt::print(output, "struct DirectoryResource : BaseResource {{\n    BaseResource const *const *entries;\n}};\n\n"sv);
+    fmt::print(output, "struct FileResource : BaseResource {{\n    unsigned char const *data;\n}};\n\n"sv);
+    fmt::print(output, "BaseResource const *get_root() noexcept;\n\n"sv);
+    fmt::print(output, "}}\n\n"sv);
+    fmt::print(output, "#if defined(COMPILE_RESOURCES)\n\n"sv);
 
     auto indices = boost::container::map<std::basic_string_view<boost::filesystem::path::value_type>, std::size_t> {};
 
@@ -162,66 +185,66 @@ int main(int argc, char **argv)
         }();
         auto const name_index = path.rfind(name);
 
-        fmt::print("static char const entry_{}_path[] = {};\n", i, ascii_repr(path));
+        fmt::print(output, "static char const entry_{}_path[] = {};\n", i, ascii_repr(path));
         if (auto p_dir = dynamic_cast<DirectoryResource *>(entry.get())) {
             if (!p_dir->entries.empty()) {
-                fmt::print("static resources::BaseResource const *const entry_{}_data[] = {{\n", i);
+                fmt::print(output, "static resources::BaseResource const *const entry_{}_data[] = {{\n", i);
                 std::sort(p_dir->entries.begin(), p_dir->entries.end());
                 for (auto const &e : p_dir->entries) {
-                    fmt::print("    &entry_{},\n", indices[e.native()]);
+                    fmt::print(output, "    &entry_{},\n", indices[e.native()]);
                 }
-                fmt::print("}};\n");
+                fmt::print(output, "}};\n");
 
-                fmt::print("static resources::DirectoryResource const entry_{} = {{\n", i);
-                fmt::print("    resources::ResourceType::DIRECTORY_RESOURCE,\n");
-                fmt::print("    &entry_{}_path[0],\n", i);
-                fmt::print("    &entry_{}_path[{}],\n", i, name_index);
+                fmt::print(output, "static resources::DirectoryResource const entry_{} = {{\n", i);
+                fmt::print(output, "    resources::ResourceType::DIRECTORY_RESOURCE,\n");
+                fmt::print(output, "    &entry_{}_path[0],\n", i);
+                fmt::print(output, "    &entry_{}_path[{}],\n", i, name_index);
 
                 if (!p_dir->entries.empty()) {
-                    fmt::print("    sizeof(entry_{0}_data) / sizeof(entry_{0}_data[0]),\n", i);
-                    fmt::print("    &entry_{}_data[0],\n", i);
+                    fmt::print(output, "    sizeof(entry_{0}_data) / sizeof(entry_{0}_data[0]),\n", i);
+                    fmt::print(output, "    &entry_{}_data[0],\n", i);
                 } else {
-                    fmt::print("    0,\n");
-                    fmt::print("    nullptr,\n");
+                    fmt::print(output, "    0,\n");
+                    fmt::print(output, "    nullptr,\n");
                 }
 
-                fmt::print("}};\n");
+                fmt::print(output, "}};\n");
             }
         } else if (auto *p_file = reinterpret_cast<FileResource *>(entry.get())) {
             if (!p_file->data.empty()) {
-                fmt::print("static unsigned char const entry_{}_data[] = {{\n", i);
+                fmt::print(output, "static unsigned char const entry_{}_data[] = {{\n", i);
                 for (std::size_t j = 0; j < p_file->data.size(); j += 16) {
-                    fmt::print("    {},\n",
+                    fmt::print(output, "    {},\n",
                         fmt::join(
                             reinterpret_cast<unsigned char const *>(p_file->data.data() + j),
                             reinterpret_cast<unsigned char const *>(p_file->data.data() + std::min(j + 16u, p_file->data.size())),
                             ", "));
                 }
-                fmt::print("}};\n");
+                fmt::print(output, "}};\n");
             }
 
-            fmt::print("static resources::FileResource const entry_{} = {{\n", i);
-            fmt::print("    resources::ResourceType::FILE_RESOURCE,\n");
-            fmt::print("    &entry_{}_path[0],\n", i);
-            fmt::print("    &entry_{}_path[{}],\n", i, name_index);
+            fmt::print(output, "static resources::FileResource const entry_{} = {{\n", i);
+            fmt::print(output, "    resources::ResourceType::FILE_RESOURCE,\n");
+            fmt::print(output, "    &entry_{}_path[0],\n", i);
+            fmt::print(output, "    &entry_{}_path[{}],\n", i, name_index);
 
             if (!p_file->data.empty()) {
-                fmt::print("    sizeof(entry_{}_data),\n", i);
-                fmt::print("    &entry_{}_data[0],\n", i);
+                fmt::print(output, "    sizeof(entry_{}_data),\n", i);
+                fmt::print(output, "    &entry_{}_data[0],\n", i);
             } else {
-                fmt::print("    0,\n");
-                fmt::print("    nullptr,\n");
+                fmt::print(output, "    0,\n");
+                fmt::print(output, "    nullptr,\n");
             }
 
-            fmt::print("}};\n");
+            fmt::print(output, "}};\n");
         }
-        fmt::print("\n");
+        fmt::print(output, "\n");
         ++i;
     }
 
-    fmt::print("resources::BaseResource const *resources::get_root() noexcept\n");
-    fmt::print("{{\n");
-    fmt::print("    return &entry_{};\n", i - 1);
-    fmt::print("}}\n\n");
-    fmt::print("#endif\n");
+    fmt::print(output, "resources::BaseResource const *resources::get_root() noexcept\n");
+    fmt::print(output, "{{\n");
+    fmt::print(output, "    return &entry_{};\n", i - 1);
+    fmt::print(output, "}}\n\n");
+    fmt::print(output, "#endif\n");
 }

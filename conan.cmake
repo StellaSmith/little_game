@@ -33,8 +33,3 @@ conan_cmake_install(
 
 set(CONAN_CMAKE_SILENT_OUTPUT ON)
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
-
-add_custom_target(conan_check ALL
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt
-)
