@@ -53,6 +53,13 @@ jobs:
           ~/.conan/data
         key: ${{ matrix.target_host.toolchain }}_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
+    - name: Configure & Build Tools
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
+        cmake --build build/tools-build/ --parallel
+        cmake --install build/tools-build/ --prefix build/tools-install/
+
     - name: Configure
       env:
         CONAN_BASH_PATH: sh
@@ -71,7 +78,9 @@ jobs:
         LDFLAGS: ${{ matrix.target_host.ldflags }} -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
         CFLAGS: ${{ matrix.target_host.cflags }}
         CXXFLAGS: ${{ matrix.target_host.cxxflags }}
-      run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
+      run: |
+        export PATH="/usr/lib/ccache/bin:/usr/local/opt/ccache/libexec:build/tools-install/bin:$PATH"
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
       run: cmake --build build --parallel

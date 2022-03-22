@@ -48,6 +48,12 @@ jobs:
             ~/.conan/data
           key: x86_64-w64-mingw32_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
+    - name: Configure & Build Tools
+      run: |
+        cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
+        cmake --build build/tools-build/ --parallel
+        cmake --install build/tools-build/ --prefix build/tools-install/
+
       - name: Configure
         env:
           CONAN_BASH_PATH: sh
@@ -55,7 +61,9 @@ jobs:
           CXX: ${{ matrix.compiler.cxx }}
           CFLAGS: -Wa,-mbig-obj
           CXXFLAGS: -Wa,-mbig-obj
-        run: cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        run: |
+          export PATH="build/tools-install/bin:$PATH"
+          cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
       - name: Build
         run: cmake --build build --parallel
