@@ -86,12 +86,21 @@ std::vector<std::byte> load_file(boost::filesystem::path const &path)
         throw boost::system::system_error(errno, boost::system::system_category(), "std::fread");
 }
 
+static std::vector<std::byte> minify_json(boost::filesystem::path const &filename, std::vector<std::byte> data);
+
 std::unique_ptr<FileResource> add_file(boost::filesystem::path const &path)
 {
     auto result = std::make_unique<FileResource>();
     result->path = path;
     result->data = load_file(path);
-    if (g_verbose) fmt::print(stderr, "including file {} as is\n", std::quoted(path.string()));
+
+    using namespace std::literals;
+    if (path.extension().string() == ".json"sv || path.extension().string() == ".jsonc"sv) {
+        result->data = minify_json(path, std::move(result->data));
+        if (g_verbose) fmt::print(stderr, "including file {} as minified json\n", std::quoted(path.string()));
+    } else {
+        if (g_verbose) fmt::print(stderr, "including file {} as is\n", std::quoted(path.string()));
+    }
     return result;
 }
 
@@ -118,6 +127,120 @@ std::vector<std::unique_ptr<BaseResource>> add_directory(boost::filesystem::path
     return result;
 }
 
+#include <rapidjson/error/en.h>
+#include <rapidjson/reader.h>
+#include <rapidjson/stream.h>
+#include <rapidjson/writer.h>
+
+struct IOMemoryStream {
+    using Ch = char;
+
+    IOMemoryStream(char *src, size_t size)
+        : src_(src)
+        , begin_(src)
+        , end_(src + size)
+        , size_(size)
+    {
+    }
+
+    char Peek() const
+    {
+        return RAPIDJSON_UNLIKELY(src_ == end_) ? '\0' : *src_;
+    }
+
+    char Take()
+    {
+        return RAPIDJSON_UNLIKELY(src_ == end_) ? '\0' : *src_++;
+    }
+
+    size_t Tell() const
+    {
+        return static_cast<size_t>(src_ - begin_);
+    }
+
+    char *PutBegin()
+    {
+        RAPIDJSON_ASSERT(false);
+        return 0;
+    }
+
+    void Put(char c)
+    {
+        RAPIDJSON_ASSERT(src_ != end_);
+        *src_++ = c;
+    }
+
+    void Flush()
+    {
+    }
+
+    size_t PutEnd(char *)
+    {
+        RAPIDJSON_ASSERT(false);
+        return 0;
+    }
+
+    // For encoding detection only.
+    const char *Peek4() const
+    {
+        return Tell() + 4 <= size_ ? src_ : 0;
+    }
+
+    char *src_; //!< Current read position.
+    char *begin_; //!< Original head of the string.
+    char *end_; //!< End of stream.
+    size_t size_; //!< Size of the stream.
+};
+
+template <typename Container>
+auto back_inserter_stream(Container &container)
+{
+    struct BackInserterStream {
+        using Ch = std::conditional_t<std::is_same_v<typename Container::value_type, std::byte>, char, typename Container::value_type>;
+
+        void Put(Ch c)
+        {
+            auto const prev = container.capacity();
+            container.push_back(static_cast<typename Container::value_type>(c));
+            if (container.capacity() != prev)
+                fmt::print(stderr, "allocation\n");
+        }
+
+        void Flush() const noexcept { }
+
+        Container &container;
+    };
+
+    return BackInserterStream { container };
+}
+
+static std::vector<std::byte> minify_json(boost::filesystem::path const &path, std::vector<std::byte> data)
+{
+    rapidjson::MemoryStream is(reinterpret_cast<char *>(data.data()), data.size());
+    rapidjson::Reader reader;
+
+    std::vector<std::byte> result;
+    result.reserve(data.size() / 4u * 3u);
+    auto os = back_inserter_stream(result);
+
+    rapidjson::Writer<decltype(os)> writer(os);
+
+    if (!reader.Parse<
+            rapidjson::kParseCommentsFlag
+            | rapidjson::kParseFullPrecisionFlag
+            | rapidjson::kParseNanAndInfFlag
+            | rapidjson::kParseTrailingCommasFlag>(is, writer)) {
+        fmt::print(stderr, "Error parsing json file {} at offset {} {}\n",
+            std::quoted(path.string()),
+            reader.GetErrorOffset(), rapidjson::GetParseError_En(reader.GetParseErrorCode()));
+        fmt::print(stderr, "Skiping minification\n");
+
+        return data;
+    }
+
+    return result;
+}
+
 int main(int argc, char **argv)
 {
     using namespace std::literals;
@@ -138,19 +261,23 @@ int main(int argc, char **argv)
     try {
         program.parse_args(argc, argv);
     } catch (std::runtime_error const &e) {
-        std::cerr << e.what() << '\n';
-        std::cerr << program << std::endl;
+        fmt::print(stderr, "{}\n", e.what());
+        fmt::print(stderr, "{}\n", program);
         std::exit(EXIT_FAILURE);
     }
 
     if (program["--verbose"] == true) {
         g_verbose = true;
-        fmt::print(stderr, "Verbosity enabled\n");
+        fmt::print(stderr, "verbosity enabled\n");
     }
 
     std::FILE *output = stdout;
     if (auto output_path = program.get<std::string>("--output"); output_path != "-") {
         output = std::fopen(output_path.c_str(), "wt");
+        if (!output) {
+            fmt::print(stderr, "failed to open {} for writting: ({}) {}\n", std::quoted(output_path), errno, std::strerror(errno));
+            std::exit(EXIT_FAILURE);
+        }
         std::setvbuf(output, nullptr, _IOFBF, 1024 * 8);
     }
 

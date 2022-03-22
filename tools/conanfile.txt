@@ -1,5 +1,6 @@
 [requires]
 argparse/2.2
+rapidjson/cci.20211112
 boost/1.78.0
 
 [generators]
