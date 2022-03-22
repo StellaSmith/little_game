@@ -50,7 +50,7 @@ jobs:
 
     - name: Configure & Build Tools
       run: |
-        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        export PATH="/usr/lib/ccache/bin:/usr/local/opt/ccache/libexec:$PATH"
         cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
         cmake --build build/tools-build/ --parallel
         cmake --install build/tools-build/ --prefix build/tools-install/

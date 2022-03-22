@@ -25,28 +25,28 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - name: Setting up MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          install: >-
-            base-devel
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-python-pip
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-clang
+    - name: Setting up MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        install: >-
+          base-devel
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-python-pip
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-clang
 
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-      - name: Install conan
-        run: python -m pip install --upgrade conan
+    - name: Install conan
+      run: python -m pip install --upgrade conan
 
-      - name: Cache Conan Packages
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.conan/data
-          key: x86_64-w64-mingw32_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
+    - name: Cache Conan Packages
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.conan/data
+        key: x86_64-w64-mingw32_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
     - name: Configure & Build Tools
       run: |
@@ -54,16 +54,16 @@ jobs:
         cmake --build build/tools-build/ --parallel
         cmake --install build/tools-build/ --prefix build/tools-install/
 
-      - name: Configure
-        env:
-          CONAN_BASH_PATH: sh
-          CC: ${{ matrix.compiler.c }}
-          CXX: ${{ matrix.compiler.cxx }}
-          CFLAGS: -Wa,-mbig-obj
-          CXXFLAGS: -Wa,-mbig-obj
-        run: |
-          export PATH="build/tools-install/bin:$PATH"
-          cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+    - name: Configure
+      env:
+        CONAN_BASH_PATH: sh
+        CC: ${{ matrix.compiler.c }}
+        CXX: ${{ matrix.compiler.cxx }}
+        CFLAGS: -Wa,-mbig-obj
+        CXXFLAGS: -Wa,-mbig-obj
+      run: |
+        export PATH="build/tools-install/bin:$PATH"
+        cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
-      - name: Build
-        run: cmake --build build --parallel
+    - name: Build
+      run: cmake --build build --parallel
