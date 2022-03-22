@@ -48,12 +48,25 @@ jobs:
 
     - uses: hendrikmuhs/ccache-action@v1
 
+    - name: Configure & Build Tools
+      env:
+        CC: ${{ matrix.compiler.c }}
+        CXX: ${{ matrix.compiler.cxx }}
+      run: |
+        mkdir -P build/tools
+        cd build/tools
+        conan install /../../tools
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        cmake -Stools -Bbuild/tools -DCMAKE_BUILD_TYPE=Release
+        cmake --build build/tools --parallel
+        cmake --install build/tools ~/.local/opt/little_game-tools
+
     - name: Configure
       env:
         CC: ${{ matrix.compiler.c }}
         CXX: ${{ matrix.compiler.cxx }}
       run: |
-        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:~/.local/opt/little_game-tools:$PATH"
         cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build

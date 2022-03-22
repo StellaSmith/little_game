@@ -1,38 +1,37 @@
 cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-    message(STATUS "ccache: Found program ${CCACHE_PROGRAM}")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
-endif()
-
-
-find_program(MOLD_PROGRAM mold)
-if(MOLD_PROGRAM AND NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
-    message(STATUS "mold: Found program ${MOLD_PROGRAM}")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${MOLD_PROGRAM} -run")
-endif()
-
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 option(USE_CONAN "Use the Conan C/C++ package manager to automatically gather dependencies" ON)
-option(ENABLE_WARNINGS "Use as many warnings as possible" ON)
 
 if(USE_CONAN)
     include(${CMAKE_CURRENT_SOURCE_DIR}/conan.cmake)
 endif()
 
-if (ENABLE_WARNINGS)
-    message(STATUS "Warnings enabled")
-    if (MSVC)
-        set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "/W4")
-    elseif (CMAKE_C_COMPILER_ID MATCHES "Clang*")
-        set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "-Weverything" "-Wpedantic-errors")
-    else()
-        set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "-Wall" "-Wextra" "-Wpedantic-errors")
-    endif()
+find_program(MOLD_PROGRAM mold)
+if(MOLD_PROGRAM AND NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
+    message(STATUS "mold: Found program ${MOLD_PROGRAM}")
+    get_property(PREV_RULE_LAUNCH_LINK GLOBAL PROPERTY RULE_LAUNCH_LINK)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ${PREV_RULE_LAUNCH_LINK}")
+endif()
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "ccache: Found program ${CCACHE_PROGRAM}")
+    get_property(PREV_RULE_LAUNCH_COMPILE GLOBAL PROPERTY RULE_LAUNCH_COMPILE)
+    get_property(PREV_RULE_LAUNCH_LINK GLOBAL PROPERTY RULE_LAUNCH_LINK)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_COMPILE}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_LINK}")
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+if (MSVC)
+    set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "/W4")
+elseif (CMAKE_C_COMPILER_ID MATCHES "Clang*")
+    set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "-Weverything" "-Wpedantic-errors")
+else()
+    set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "-Wall" "-Wextra" "-Wpedantic-errors")
 endif()
 
 find_package(lua REQUIRED)
@@ -106,23 +105,17 @@ add_executable(little_game
     include/engine/errors/UnsupportedFileType.hpp
 )
 
-# list(APPEND CXX_PRECOMPILED_HEADERS "string" "string_view" "vector" "type_traits" "chrono" "utility")
-# list(APPEND CXX_PRECOMPILED_HEADERS "spdlog/spdlog.h" "fmt/format.h" "glm/glm.hpp" "entt/entt.hpp")
-# foreach(HEADER ${CXX_PRECOMPILED_HEADERS})
-#     target_precompile_headers(little_game PRIVATE $<$<COMPILE_LANGUAGE:CXX>:<${HEADER}$<ANGLE-R>>)    
-# endforeach()
-
-find_package(Python 3 REQUIRED COMPONENTS Interpreter)
-
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/
     COMMAND  ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
 )
+
+find_program(VRC_EXECUTABLE resource_compiler REQUIRED)
+
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
-    COMMAND ${Python_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/tools/resource_compiler.py" > ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ "${CMAKE_CURRENT_LIST_DIR}/tools/resource_compiler.py" "${CMAKE_CURRENT_LIST_DIR}/res"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/res"
+    COMMAND ${VRC_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/res" > "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ "${VRC_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/res"
     USES_TERMINAL
 )
 add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)

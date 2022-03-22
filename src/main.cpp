@@ -115,8 +115,10 @@ int main(int argc, char **argv)
         if (!s_window)
             utils::show_error("Can't create window."sv, SDL_GetError());
 
+#ifndef NDEBUG
         if (SDL_SetRelativeMouseMode(SDL_TRUE))
             utils::show_error("Can't set mouse to relative mode!"sv);
+#endif
 
         SDL_GLContext gl_context = SDL_GL_CreateContext(s_window);
 

@@ -26,7 +26,7 @@ resources::BaseResource const *engine::open_resource(std::string_view path) noex
         root = open_resource(path.substr(0, pos));
 
     if (root != nullptr) {
-        if (root->type != resources::DIRECTORY_RESOURCE) {
+        if (root->type != resources::ResourceType::DIRECTORY_RESOURCE) {
             root = nullptr;
         } else {
             for (std::size_t i = 0; i < root->size; ++i) {

@@ -1,0 +1,7 @@
+[requires]
+argparse/2.2
+boost/1.78.0
+
+[generators]
+cmake_find_package
+cmake_paths

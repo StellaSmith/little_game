@@ -55,7 +55,7 @@ static rapidjson::SchemaDocument const model_schema = []() {
     resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json");
     if (schema == nullptr)
         throw std::runtime_error("Can't open resources://schemas/ModelSchema.json");
-    if (schema->type != resources::FILE_RESOURCE)
+    if (schema->type != resources::ResourceType::FILE_RESOURCE)
         throw std::runtime_error("resources://schemas/ModelSchema.json is not a file");
 
     rapidjson::Document doc;

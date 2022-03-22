@@ -11,6 +11,7 @@
 #include <lua.hpp>
 
 #include <cstdint>
+#include <optional>
 #include <random>
 
 using namespace std::literals;
@@ -45,7 +46,13 @@ void engine::Game::start()
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
 
-    std::uint32_t const colorful_id = block_type_names().find("colorful_block"sv)->second;
+    auto const maybe_colorful_id = [&]() -> std::optional<std::uint32_t> {
+        if (auto it = block_type_names().find("colorful_block"sv); it == block_type_names().end()) {
+            return std::nullopt;
+        } else {
+            return it->second;
+        }
+    }();
 
     running = true;
     std::random_device rd {};
@@ -60,8 +67,10 @@ void engine::Game::start()
         m_entity_registry.emplace<engine::C_Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
-            if ((block.type = id_dist(rd)) == colorful_id) {
-                block.data = math::pack_u32(dist(rd), dist(rd), dist(rd));
+            if (maybe_colorful_id) {
+                if ((block.type = id_dist(rd)) == maybe_colorful_id.value()) {
+                    block.data = math::pack_u32(dist(rd), dist(rd), dist(rd));
+                }
             }
         }
     }

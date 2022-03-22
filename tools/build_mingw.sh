@@ -1,5 +1,16 @@
 #!/bin/sh
 
+
+###
+# Build tools
+###
+
+cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
+cmake --build build/tools-build/ --parallel
+cmake --install build/tools-build/ --prefix build/tools-install/
+
+export PATH=build/tools-install/bin:$PATH
+
 ###
 # Feel free to modify this file to use the proper environment for your case
 ###
