@@ -65,7 +65,7 @@ std::FILE *utils::create_cache_file(std::string_view name)
     return std::fopen(cache_file.string().c_str(), "wb");
 }
 
-std::FILE *utils::get_cache_file(std::string_view name, absl::Span<std::string_view> ref_files)
+std::FILE *utils::get_cache_file(std::string_view name, std::vector<std::string_view> const &ref_files)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
