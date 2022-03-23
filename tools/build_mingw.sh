@@ -5,6 +5,8 @@
 # Build tools
 ###
 
+set -e
+
 cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
 cmake --build build/tools-build/ --parallel
 cmake --install build/tools-build/ --prefix build/tools-install/

@@ -55,10 +55,11 @@ jobs:
 
     - name: Configure & Build Tools
       run: |
+        set -e
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
         cmake --build build/tools-build/ --parallel
-        cmake --install build/tools-build/ --prefix build/tools-install/
+        exec cmake --install build/tools-build/ --prefix build/tools-install/
 
     - name: Configure
       env:
@@ -80,7 +81,7 @@ jobs:
         CXXFLAGS: ${{ matrix.target_host.cxxflags }}
       run: |
         export PATH="/usr/lib/ccache/bin:/usr/local/opt/ccache/libexec:build/tools-install/bin:$PATH"
-        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
+        exec cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target_host.arch }} -DCMAKE_FIND_ROOT_PATH=/usr/${{ matrix.target_host.toolchain }} -DCMAKE_SYSROOT=/usr/${{ matrix.target_host.toolchain }}
     
     - name: Build
       run: cmake --build build --parallel

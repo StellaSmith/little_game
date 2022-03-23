@@ -50,10 +50,11 @@ jobs:
 
     - name: Configure & Build Tools
       run: |
+        set -e
         export PATH="/usr/lib/ccache/bin:/usr/local/opt/ccache/libexec:$PATH"
         cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
         cmake --build build/tools-build/ --parallel
-        cmake --install build/tools-build/ --prefix build/tools-install/
+        exec cmake --install build/tools-build/ --prefix build/tools-install/
 
     - name: Configure
       env:
@@ -61,9 +62,9 @@ jobs:
         CXX: ${{ matrix.compiler.cxx }}
       run: |
         export PATH="/usr/lib/ccache/bin:/usr/local/opt/ccache/libexec:build/tools-install/bin:$PATH"
-        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        exec cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
       run: |
         export PATH="/usr/lib/ccache/bin:/usr/local/opt/ccache/libexec:build/tools-install/bin:$PATH"
-        cmake --build build --parallel
+        exec cmake --build build --parallel
