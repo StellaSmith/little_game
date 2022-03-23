@@ -23,4 +23,4 @@ function(add_simple_tool tool_name)
     install(TARGETS ${tool_name} RUNTIME DESTINATION bin)
 endfunction()
 
-add_simple_tool(resource_compiler Boost::Boost argparse::argparse fmt::fmt)
+add_simple_tool(resource_compiler Boost::Boost argparse::argparse fmt::fmt RapidJSON::RapidJSON)
