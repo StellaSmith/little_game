@@ -3,6 +3,7 @@ argparse/2.2
 fmt/8.1.1
 rapidjson/cci.20211112
 boost/1.78.0
+ctre/3.5
 
 [generators]
 cmake_find_package

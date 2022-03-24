@@ -24,3 +24,4 @@ function(add_simple_tool tool_name)
 endfunction()
 
 add_simple_tool(resource_compiler Boost::Boost argparse::argparse fmt::fmt RapidJSON::RapidJSON)
+add_simple_tool(install_shared_libraries argparse::argparse fmt::fmt ctre::ctre)
