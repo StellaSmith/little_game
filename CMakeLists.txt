@@ -58,6 +58,7 @@ add_executable(little_game
     src/textures.cpp
     src/error.cpp
     src/lua_bindings.cpp
+    src/lua/format.cpp
 
     src/engine/Config.cpp
     src/engine/resources.cpp
@@ -105,17 +106,14 @@ add_executable(little_game
     include/engine/errors/UnsupportedFileType.hpp
 )
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/
-    COMMAND  ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
-)
-
 find_program(VRC_EXECUTABLE resource_compiler REQUIRED)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
     COMMAND ${VRC_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ "${VRC_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/res"
+    DEPENDS "${VRC_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/res"
+    VERBATIM
 )
 add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)
 target_compile_features(resources PRIVATE cxx_std_17)
