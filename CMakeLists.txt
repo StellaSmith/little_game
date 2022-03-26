@@ -116,7 +116,7 @@ add_custom_command(
     VERBATIM
 )
 add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)
-target_compile_features(resources PRIVATE cxx_std_17)
+target_compile_features(resources PRIVATE cxx_std_20)
 target_compile_definitions(resources PRIVATE COMPILE_RESOURCES)
 target_include_directories(resources PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include/)
 
@@ -126,8 +126,8 @@ PRIVATE
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre absl::absl)
 
-set_target_properties(little_game PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-target_compile_features(little_game PUBLIC cxx_std_17)
+set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+target_compile_features(little_game PUBLIC cxx_std_20)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC
     GLM_FORCE_XYZW_ONLY
