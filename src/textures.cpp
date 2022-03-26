@@ -64,7 +64,7 @@ engine::Textures engine::load_textures()
         for (auto const &[name_v, path_v] : value->GetObject()) {
             auto const name = std::string_view { name_v.GetString(), name_v.GetStringLength() };
             if (!path_v.IsString())
-                utils::show_error("Error loading textures pack."sv, fmt::format("/textures/{} must be an string"));
+                utils::show_error("Error loading textures pack."sv, fmt::format("/textures/{} must be an string", name));
             auto const path = std::string_view { path_v.GetString(), path_v.GetStringLength() };
             textures.emplace(name, path);
         }
