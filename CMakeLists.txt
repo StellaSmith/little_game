@@ -44,7 +44,7 @@ find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
 find_package(glad REQUIRED)
 find_package(ctre REQUIRED)
-find_package(absl REQUIRED)
+find_package(Boost REQUIRED)
 
 add_subdirectory(external)
 
@@ -124,7 +124,7 @@ target_link_libraries(little_game
 PRIVATE
     resources
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre absl::absl)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre Boost::Boost)
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 target_compile_features(little_game PUBLIC cxx_std_20)

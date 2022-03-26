@@ -1,8 +1,10 @@
 #ifndef ENGINE_BLOCKREGISTRY_HPP
 #define ENGINE_BLOCKREGISTRY_HPP
 
-#include "errors/AlreadyRegistered.hpp"
-#include <absl/container/flat_hash_map.h>
+#include <engine/errors/AlreadyRegistered.hpp>
+
+#include <boost/container/flat_map.hpp>
+#include <entt/entity/storage.hpp>
 
 #include <memory>
 #include <string>
@@ -34,14 +36,14 @@ namespace engine {
         using value_type = std::remove_cv_t<T>;
 
     private:
-        using table_type = std::vector<value_type>;
-        using index_type = absl::flat_hash_map<std::string, size_type>;
+        using table_type = entt::basic_storage<entt::id_type, T>;
+        using index_type = boost::container::flat_map<std::string, entt::id_type>;
 
     public:
         template <typename U, typename... Args, std::enable_if_t<std::is_base_of_v<value_type, U>, int> SFINAE = 0>
         [[nodiscard]] auto &registre(std::string_view name, Args &&...args)
         {
-            if (auto [start, stop] = m_index.equal_range(absl::string_view { name.data(), name.size() }); start == stop || start->first != name) {
+            if (auto [start, stop] = m_index.equal_range(name); start == stop || start->first != name) {
                 m_index.emplace_hint(start, std::make_pair(std::string { name }, m_table.size()));
                 return const_as<value_type>(m_table.emplace_back(std::forward<Args>(args)...));
             } else {
@@ -57,7 +59,7 @@ namespace engine {
 
         [[nodiscard]] size_type index(std::string_view name) const noexcept
         {
-            auto const it = m_index.find(absl::string_view { name.data(), name.size() });
+            auto const it = m_index.find(name);
             assert(it != m_index.end());
             return it->second;
         }

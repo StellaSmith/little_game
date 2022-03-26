@@ -1,12 +1,13 @@
 
-#include <absl/container/flat_hash_set.h>
+
+#include <boost/container/flat_set.hpp>
 #include <fmt/format.h>
 #include <sol/sol.hpp>
 
 using namespace std::literals;
 
 namespace lua::impl {
-    std::string repr(sol::object obj, absl::flat_hash_set<void const *> &visited);
+    std::string repr(sol::object obj, boost::container::flat_set<void const *> &visited);
 }
 
 static std::string repr_string(std::string_view str)
@@ -44,7 +45,7 @@ static std::string repr_string(std::string_view str)
     return result;
 }
 
-static std::string repr_table(sol::table tbl, absl::flat_hash_set<void const *> &visited)
+static std::string repr_table(sol::table tbl, boost::container::flat_set<void const *> &visited)
 {
     std::string result;
     result += '{';
@@ -65,7 +66,7 @@ static std::string repr_table(sol::table tbl, absl::flat_hash_set<void const *> 
 
 namespace lua::impl {
 
-    std::string repr(sol::object obj, absl::flat_hash_set<void const *> &visited)
+    std::string repr(sol::object obj, boost::container::flat_set<void const *> &visited)
     {
         {
             std::vector<void const *> constdbg_visited(visited.begin(), visited.end());
@@ -118,7 +119,7 @@ namespace lua::impl {
 
     std::string repr(sol::object obj)
     {
-        absl::flat_hash_set<void const *> visited;
+        boost::container::flat_set<void const *> visited;
         return repr(std::move(obj), visited);
     }
 

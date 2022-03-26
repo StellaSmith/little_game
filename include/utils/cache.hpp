@@ -2,9 +2,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <string_view>
-
-#include <absl/strings/string_view.h>
-#include <absl/types/span.h>
+#include <vector>
 
 namespace utils {
     std::filesystem::path const &cache_directory();

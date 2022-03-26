@@ -9,7 +9,7 @@
 #include <engine/rendering/Mesh.hpp>
 #include <engine/textures.hpp>
 
-#include <absl/container/flat_hash_map.h>
+#include <boost/container/flat_map.hpp>
 #include <entt/entt.hpp>
 #include <glad/glad.h>
 #include <sol/state.hpp>
@@ -93,10 +93,10 @@ namespace engine {
         entt::registry m_entity_registry;
         std::unordered_map<glm::i32vec4, entt::entity> m_chunks;
 
-        absl::flat_hash_map<std::string, entt::id_type> m_block_type_names;
+        boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_type_names;
         entt::basic_storage<entt::id_type, engine::BlockType> m_block_types;
 
-        absl::flat_hash_map<std::string, entt::id_type> m_block_model_names;
+        boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_model_names;
         entt::basic_storage<entt::id_type, engine::assets::BlockModel> m_block_models;
 
         std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;

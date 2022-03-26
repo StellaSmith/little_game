@@ -1,12 +1,12 @@
 #include <engine/Stream.hpp>
-#include <string_view>
 #include <utils/strings.hpp>
 
+#include <boost/container/flat_map.hpp>
+
+#include <string_view>
 #include <unordered_map>
 
-#include <absl/container/flat_hash_map.h>
-
-thread_local static absl::flat_hash_map<std::string_view, resources::BaseResource const *> s_resource_cache;
+thread_local static boost::container::flat_map<std::string_view, resources::BaseResource const *> s_resource_cache;
 
 resources::BaseResource const *engine::open_resource(std::string_view path) noexcept
 {
