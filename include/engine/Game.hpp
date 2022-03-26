@@ -10,6 +10,7 @@
 #include <engine/textures.hpp>
 
 #include <boost/container/flat_map.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <entt/entt.hpp>
 #include <glad/glad.h>
 #include <sol/state.hpp>
@@ -24,17 +25,17 @@
 
 union SDL_Event;
 
-namespace std {
-    template <auto N, typename T, auto Q>
-    struct hash<glm::vec<N, T, Q>> {
-        auto operator()(glm::vec<N, T, Q> const &v) const -> std::enable_if_t<std::is_trivially_copyable_v<T>, std::size_t>
+namespace engine {
+    struct VectorHasher {
+        template <glm::length_t L, typename T, glm::qualifier Q>
+        std::size_t operator()(glm::vec<L, T, Q> const &vec) const noexcept
         {
-            return std::hash<std::string_view> {}(std::string_view { (char const *)&v.x, N * sizeof(T) });
+            return boost::hash_value([&]<std::size_t... I>(std::index_sequence<I...>) {
+                return std::make_tuple(vec[I]...);
+            }(std::make_index_sequence<L> {}));
         }
     };
-} // namespace std
 
-namespace engine {
     class Game {
     public:
         using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
@@ -91,7 +92,7 @@ namespace engine {
         engine::Textures m_textures;
 
         entt::registry m_entity_registry;
-        std::unordered_map<glm::i32vec4, entt::entity> m_chunks;
+        std::unordered_map<glm::i32vec4, entt::entity, VectorHasher> m_chunks;
 
         boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_type_names;
         entt::basic_storage<entt::id_type, engine::BlockType> m_block_types;
@@ -99,8 +100,8 @@ namespace engine {
         boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_model_names;
         entt::basic_storage<entt::id_type, engine::assets::BlockModel> m_block_models;
 
-        std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
-        std::unordered_map<glm::i32vec4, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
+        std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>, VectorHasher> m_chunk_meshes;
+        std::unordered_map<glm::i32vec4, rendering::Mesh, VectorHasher> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 
 } // namespace engine
