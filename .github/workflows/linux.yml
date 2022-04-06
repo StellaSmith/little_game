@@ -43,6 +43,7 @@ jobs:
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:ccache
 
     - name: Configure & Build Tools
+      shell: /usr/bin/bash --login -eo pipefail {0}
       run: |
         set -e
         cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
@@ -50,6 +51,7 @@ jobs:
         exec cmake --install build/tools-build/ --prefix build/tools-install/
 
     - name: Configure
+      shell: /usr/bin/bash --login -eo pipefail {0}
       env:
         CC: ${{ matrix.compiler.c }}
         CXX: ${{ matrix.compiler.cxx }}
@@ -58,6 +60,7 @@ jobs:
         exec cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
+      shell: /usr/bin/bash --login -eo pipefail {0}
       run: |
         export PATH="build/tools-install/bin:$PATH"
         exec cmake --build build --parallel
