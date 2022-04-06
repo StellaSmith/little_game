@@ -9,6 +9,7 @@ on:
 jobs:
   build-linux:
     name: Building for x86_64-pc-linux-gnu (${{ matrix.build_type }}) with ${{ matrix.compiler.c }}
+    runs-on: ubuntu-20.04
     container:
       image: docker.io/stellasmith/vgame_builder:1
       volumes:
