@@ -13,8 +13,8 @@ jobs:
     container:
       image: docker.io/stellasmith/vgame_builder:1
       volumes:
-        - ~/.conan/data:/root/.conan/data
-        - ~/.cache/ccache:/root/.cache/ccache
+        - /home/runner/.conan/data:/root/.conan/data
+        - /home/runner/.cache/ccache:/root/.cache/ccache
     strategy:
       fail-fast: false
       matrix:
