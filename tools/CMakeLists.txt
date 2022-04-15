@@ -3,12 +3,6 @@ project(vengine_tools)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(USE_CONAN "Use the Conan C/C++ package manager to automatically gather dependencies" ON)
-
-if(USE_CONAN)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/../conan.cmake)
-endif()
-
 function(add_simple_tool tool_name)
     add_executable(${tool_name})
     target_sources(${tool_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/${tool_name}.cpp)

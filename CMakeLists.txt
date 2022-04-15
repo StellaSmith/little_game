@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
-option(USE_CONAN "Use the Conan C/C++ package manager to automatically gather dependencies" ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(WITH_LUAJIT "Use LuaJIT instead of Lua" ON)
+option(USE_CONAN "Use the Conan C/C++ package manager" OFF)
 
-if(USE_CONAN)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/conan.cmake)
+if (USE_CONAN)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup(TARGETS KEEP_RPATHS)
 endif()
 
 find_program(MOLD_PROGRAM mold)
@@ -23,9 +26,6 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_LINK}")
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-
 if (MSVC)
     set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "/W4")
 elseif (CMAKE_C_COMPILER_ID MATCHES "Clang*")
@@ -34,7 +34,14 @@ else()
     set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "-Wall" "-Wextra" "-Wpedantic-errors")
 endif()
 
-find_package(lua REQUIRED)
+
+
+if (WITH_LUAJIT)
+    find_package(luajit REQUIRED)
+else()
+    find_package(lua REQUIRED)
+endif()
+
 find_package(glm REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(fmt REQUIRED)
@@ -106,13 +113,13 @@ add_executable(little_game
     include/engine/errors/UnsupportedFileType.hpp
 )
 
-find_program(VRC_EXECUTABLE resource_compiler REQUIRED)
+find_program(RESOURCE_COMPILER resource_compiler REQUIRED)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
-    COMMAND ${VRC_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
-    DEPENDS "${VRC_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/res"
+    COMMAND ${RESOURCE_COMPILER} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
+    DEPENDS "${CMAKE_CURRENT_LIST_DIR}/res"
     VERBATIM
 )
 add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)
@@ -124,15 +131,24 @@ target_link_libraries(little_game
 PRIVATE
     resources
     glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 lua::lua ctre::ctre Boost::Boost)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost)
+
+if (WITH_LUAJIT)
+    target_link_libraries(little_game PRIVATE luajit::luajit)
+else()
+    target_link_libraries(little_game PRIVATE lua::lua)
+endif()
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 target_compile_features(little_game PUBLIC cxx_std_20)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC
     GLM_FORCE_XYZW_ONLY
-    # SOL_LUAJIT
     SOL_ALL_SAFETIES_ON)
+
+if (WITH_LUAJIT)
+    target_compile_definitions(little_game PUBLIC SOL_LUAJIT)
+endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT (MINGW OR CYGWIN))
     message(STATUS "Linking with SDL2main")
@@ -152,17 +168,10 @@ endif()
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set_target_properties(little_game PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 endif()
+
+
 set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-
+include(GNUInstallDirs)
 install(TARGETS little_game
-    RUNTIME
-        DESTINATION bin
-    LIBRARY
-        DESTINATION lib
-    ARCHIVE
-        DESTINATION lib/static
-)
-
-install(DIRECTORY assets cfg lua
-    DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
