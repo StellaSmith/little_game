@@ -1,8 +1,6 @@
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
-#include <fmt/core.h>
 #include <glDebug.h>
-#include <spdlog/spdlog.h>
 #include <utils/error.hpp>
 
 #include <SDL.h>
@@ -11,6 +9,7 @@
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl.h>
+#include <spdlog/spdlog.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -27,23 +26,24 @@
 #include <windows.h>
 #endif
 
-bool g_verbose = false;
-
-static SDL_Window *s_window = nullptr;
+#include <SDL.hpp>
 
 using namespace std::literals;
 
+bool g_verbose = false;
 static void fix_current_directory(char const *argv0);
 
 int main(int argc, char **argv)
 {
+#ifndef NDEBUG
+    if (auto logger = spdlog::default_logger(); logger->level() < spdlog::level::debug)
+        logger->set_level(spdlog::level::debug);
+#endif
+
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif
     try {
-
-        constexpr int width = 640, height = 480;
-
         for (int i = 0; i < argc; ++i) {
             if (argv[i] == "-h"sv || argv[i] == "--help"sv) {
                 fmt::print(
@@ -62,10 +62,11 @@ int main(int argc, char **argv)
                 for (int i = 0; i < drivers; ++i)
                     spdlog::info("\t{}) {}\n", i + 1, SDL_GetVideoDriver(i));
             } else if (argv[i] == "--sdl-audio-drivers"sv) {
-                int drivers = SDL_GetNumAudioDrivers();
-                spdlog::info("Available audio drivers ({}):\n", drivers);
-                for (int i = 0; i < drivers; ++i)
-                    spdlog::info("\t{}) {}\n", i + 1, SDL_GetAudioDriver(i));
+                auto const drivers = SDL::Audio::drivers();
+                spdlog::info("Available audio drivers ({}):\n", drivers.size());
+                for (char const *driver : drivers)
+                    spdlog::info("\t{}) {}\n", i + 1, driver);
+
             } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
                 g_verbose = true;
                 spdlog::info("Verbose output enabled");
@@ -73,60 +74,42 @@ int main(int argc, char **argv)
         }
         fix_current_directory(argv[0]);
 
-        if (SDL_Init(0) < 0)
-            utils::show_error("Error initializing SDL: "s + SDL_GetError());
-
+        auto sdl = SDL { 0 };
         auto &config = engine::load_engine_config();
+        sdl.init_video(config.sdl.video_driver.c_str());
+        sdl.init_audio(config.sdl.audio_driver.c_str());
 
-        if (SDL_VideoInit(config.sdl.video_driver.empty() ? nullptr : config.sdl.video_driver.data()) < 0)
-            utils::show_error("Error initializing SDL Video subsystem"sv, SDL_GetError());
+        constexpr int width = 640, height = 480;
 
-        if (SDL_AudioInit(config.sdl.audio_driver.empty() ? nullptr : config.sdl.audio_driver.data()) < 0)
-            utils::show_error("Error initializing SDL Audio subsystem"sv, SDL_GetError());
-
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-#define SET_GL_ATTRIBUTE(attribute, value)                                           \
-    if (value >= 0) {                                                                \
-        if (SDL_GL_SetAttribute(attribute, value) < 0)                               \
-            utils::show_error(fmt::format("Can't set " #attribute " to {}", value)); \
-    }
-        SET_GL_ATTRIBUTE(SDL_GL_RED_SIZE, config.opengl.red_bits);
-        SET_GL_ATTRIBUTE(SDL_GL_GREEN_SIZE, config.opengl.green_bits);
-        SET_GL_ATTRIBUTE(SDL_GL_BLUE_SIZE, config.opengl.blue_bits);
-        SET_GL_ATTRIBUTE(SDL_GL_ALPHA_SIZE, config.opengl.alpha_bits);
-        SET_GL_ATTRIBUTE(SDL_GL_DEPTH_SIZE, config.opengl.depth_bits);
-        SET_GL_ATTRIBUTE(SDL_GL_STENCIL_SIZE, config.opengl.stencil_bits);
-
-#undef SET_GL_ATTRIBUTE
-
+        auto window = sdl
+                          .video()
+                          .window_builder()
+                          .set_title("My little game")
+                          .set_dimensions(width, height)
+                          .resizable()
+                          .shown()
+                          .opengl()
+                          .set_gl_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
+                          .set_gl_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
+                          .set_gl_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)
+                          .set_gl_attribute(SDL_GL_RED_SIZE, config.opengl.red_bits)
+                          .set_gl_attribute(SDL_GL_GREEN_SIZE, config.opengl.green_bits)
+                          .set_gl_attribute(SDL_GL_BLUE_SIZE, config.opengl.blue_bits)
+                          .set_gl_attribute(SDL_GL_ALPHA_SIZE, config.opengl.alpha_bits)
+                          .set_gl_attribute(SDL_GL_DEPTH_SIZE, config.opengl.depth_bits)
+                          .set_gl_attribute(SDL_GL_STENCIL_SIZE, config.opengl.stencil_bits)
 #ifndef NDEBUG
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+                          .set_gl_attribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG)
 #endif
-
-        s_window = SDL_CreateWindow(
-            /*Title*/ "My little game",
-            /*Position (x, y)*/ SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            /*Size (width, height)*/ width, height,
-            /*Flags*/ SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-
-        if (!s_window)
-            utils::show_error("Can't create window."sv, SDL_GetError());
+                          .create();
 
 #ifndef NDEBUG
         if (SDL_SetRelativeMouseMode(SDL_TRUE))
             utils::show_error("Can't set mouse to relative mode!"sv);
 #endif
 
-        SDL_GLContext gl_context = SDL_GL_CreateContext(s_window);
-
-        if (!gl_context)
-            utils::show_error("Can't create OpenGL 3.3 context"sv, SDL_GetError());
-
-        if (SDL_GL_MakeCurrent(s_window, gl_context) < 0)
-            utils::show_error("Can't set OpenGL context current."sv, SDL_GetError());
+        auto gl_context = window.opengl_context();
+        gl_context.make_current();
 
         if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
             utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
@@ -184,7 +167,7 @@ int main(int argc, char **argv)
         // TODO: Make color scheme of imgui configurable
         ImGui::StyleColorsDark();
 
-        ImGui_ImplSDL2_InitForOpenGL(s_window, gl_context); // always returns true
+        ImGui_ImplSDL2_InitForOpenGL(window.get(), gl_context.get()); // always returns true
 
         // See imgui/examples/imgui_impl_opengl3.cpp
         ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
@@ -222,7 +205,7 @@ int main(int argc, char **argv)
             }
 
             ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplSDL2_NewFrame(s_window);
+            ImGui_ImplSDL2_NewFrame(window.get());
             ImGui::NewFrame();
 
             game.update(delta);
@@ -234,7 +217,7 @@ int main(int argc, char **argv)
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             // swap the buffer (present to the window surface)
-            SDL_GL_SwapWindow(s_window);
+            SDL_GL_SwapWindow(window.get());
         }
 
         game.cleanup();
@@ -243,27 +226,21 @@ int main(int argc, char **argv)
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
 
-        SDL_GL_DeleteContext(gl_context);
-        SDL_DestroyWindow(s_window);
-        s_window = nullptr;
-        SDL_AudioQuit();
-        SDL_VideoQuit();
-        SDL_Quit();
         return 0;
     } catch (sol::error const &e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lua panic!", e.what(), s_window);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lua panic!", e.what(), nullptr);
         spdlog::critical("Lua panic!: {}", e.what());
         throw;
     } catch (utils::application_error const &e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), s_window);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), nullptr);
         spdlog::critical("{}: {}", e.title(), e.body());
         throw;
     } catch (std::exception const &e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), s_window);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), nullptr);
         spdlog::critical("std::exception raised: {}", e.what());
         throw;
     } catch (...) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", s_window);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", nullptr);
         spdlog::critical("Unkown exception raised");
         throw;
     }
