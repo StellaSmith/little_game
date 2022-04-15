@@ -2,14 +2,15 @@
 
 set -e
 
-if [ ! -e build/tools-build/.timestamp ] || [ -n "$(find tools/ -newer build/tools-build/.timestamp -print -quit)" ]; then
-    cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
-    cmake --build build/tools-build/ --parallel
-    cmake --install build/tools-build/ --prefix build/tools-install/
-    touch -m build/tools-build/.timestamp
+mkdir -p build
+if [ ! -e build/.tools_timestamp ] || [ -n "$(find tools/ -newer build/.tools_timestamp -print -quit)" ]; then
+    conan create recipes/vgame_tools/ vgame_tools/latest@ -u -b missing -s compiler.cppstd=20
+    touch -m build/.tools_timestamp
 fi
 
-export PATH=build/tools-install/bin:$PATH
+if [ ! -e build/.install_timestamp ] || [ -n "$(find recipes/vgame/ -newer build/.install_timestamp -print -quit)" ]; then
+    conan install recipes/vgame/ vgame/latest@ -if build/ -of build/ -u -b missing -s compiler.cppstd=20
+    touch -m build/.install_timestamp
+fi
 
-cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=Release
-exec cmake --build build/ --parallel
+exec conan build recipes/vgame -bf build/
