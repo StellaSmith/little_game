@@ -42,25 +42,14 @@ jobs:
         path: ~/.cache/ccache
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:ccache
 
-    - name: Configure & Build Tools
+    - name: Build Tools
       shell: /usr/bin/bash --login -eo pipefail {0}
-      run: |
-        set -e
-        cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
-        cmake --build build/tools-build/ --parallel
-        exec cmake --install build/tools-build/ --prefix build/tools-install/
+      run: conan create recipes/vgame_tools vgame_tools/$(git log -1 --format='%H')@ -u -b missing -s compiler.cppstd=20
 
-    - name: Configure
+    - name: Install
       shell: /usr/bin/bash --login -eo pipefail {0}
-      env:
-        CC: ${{ matrix.compiler.c }}
-        CXX: ${{ matrix.compiler.cxx }}
-      run: |
-        export PATH="build/tools-install/bin:$PATH"
-        exec cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: conan install recipes/vgame vgame/$(git log -1 --format='%H')@ -u -b missing -s compiler.cppstd=20 -if build -of build -s build_type=${{ build_type }}
 
     - name: Build
       shell: /usr/bin/bash --login -eo pipefail {0}
-      run: |
-        export PATH="build/tools-install/bin:$PATH"
-        exec cmake --build build --parallel
+      run: conan build recipes/vgame -bf build
