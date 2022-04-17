@@ -43,7 +43,9 @@ int main(int argc, char **argv)
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif
+#ifdef NDEBUG
     try {
+#endif
         for (int i = 0; i < argc; ++i) {
             if (argv[i] == "-h"sv || argv[i] == "--help"sv) {
                 fmt::print(
@@ -149,7 +151,7 @@ int main(int argc, char **argv)
                 glDebugMessageCallback(glDebugOutput, nullptr);
                 glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
                 if (g_verbose)
-                    std::puts("\tDebug output enabled.\n");
+                    spdlog::info("\tDebug output enabled.\n");
             }
         }
 #endif
@@ -227,6 +229,7 @@ int main(int argc, char **argv)
         ImGui::DestroyContext();
 
         return 0;
+#ifdef NDEBUG
     } catch (sol::error const &e) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lua panic!", e.what(), nullptr);
         spdlog::critical("Lua panic!: {}", e.what());
@@ -244,6 +247,7 @@ int main(int argc, char **argv)
         spdlog::critical("Unkown exception raised");
         throw;
     }
+#endif
     return -1;
 }
 
