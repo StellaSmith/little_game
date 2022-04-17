@@ -1,6 +1,8 @@
 #ifndef ENGINE_STREAM_HPP
 #define ENGINE_STREAM_HPP
 
+#include <utils/FileHandle.hpp>
+
 #include <cstdio>
 #include <filesystem>
 #include <resources.cpp>
@@ -16,7 +18,7 @@
 
 namespace engine {
 
-    inline static std::FILE *open_file(std::filesystem::path const &path, char const *mode, std::error_code &ec) noexcept
+    inline static utils::FileHandle open_file(std::filesystem::path const &path, char const *mode, std::error_code &ec) noexcept
     {
         std::FILE *fp;
         int err_nr;
@@ -36,13 +38,16 @@ namespace engine {
         else
             ec.clear();
 
-        return fp;
+        if constexpr (BUFSIZ < 1024 * 8)
+            std::setvbuf(fp, nullptr, _IOFBF, 1024 * 8);
+
+        return utils::FileHandle { fp };
     }
 
-    inline static std::FILE *open_file(std::filesystem::path const &path, char const *mode)
+    inline static utils::FileHandle open_file(std::filesystem::path const &path, char const *mode)
     {
         std::error_code ec;
-        std::FILE *fp = open_file(path, mode, ec);
+        auto fp = open_file(path, mode, ec);
         if (!fp)
             throw std::system_error(ec);
         return fp;

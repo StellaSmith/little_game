@@ -3,7 +3,7 @@
 
 #include <engine/BlockType.hpp>
 #include <engine/NamedRegistry.hpp>
-#include <engine/assets/BlockModel.hpp>
+#include <engine/assets/BlockMesh.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/rendering/Mesh.hpp>
@@ -98,7 +98,7 @@ namespace engine {
         entt::basic_storage<entt::id_type, engine::BlockType> m_block_types;
 
         boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_model_names;
-        entt::basic_storage<entt::id_type, engine::assets::BlockModel> m_block_models;
+        entt::basic_storage<entt::id_type, engine::assets::BlockMesh> m_block_models;
 
         std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>, VectorHasher> m_chunk_meshes;
         std::unordered_map<glm::i32vec4, rendering::Mesh, VectorHasher> m_translucent_mesh_data; // needed to sort indices when the camera moves

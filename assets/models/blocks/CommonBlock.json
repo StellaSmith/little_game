@@ -283,7 +283,7 @@
             "sides": [
                 "top"
             ],
-            "texture": "base",
+            "texture": 0,
             "solid": true
         },
         {
@@ -296,7 +296,7 @@
             "sides": [
                 "north"
             ],
-            "texture": "base",
+            "texture": 0,
             "solid": true
         },
         {
@@ -309,7 +309,7 @@
             "sides": [
                 "west"
             ],
-            "texture": "base",
+            "texture": 0,
             "solid": true
         },
         {
@@ -322,7 +322,7 @@
             "sides": [
                 "south"
             ],
-            "texture": "base",
+            "texture": 0,
             "solid": true
         },
         {
@@ -335,7 +335,7 @@
             "sides": [
                 "east"
             ],
-            "texture": "base",
+            "texture": 0,
             "solid": true
         },
         {
@@ -348,7 +348,7 @@
             "sides": [
                 "bottom"
             ],
-            "texture": "base",
+            "texture": 0,
             "solid": true
         }
     ]

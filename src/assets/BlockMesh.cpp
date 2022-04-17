@@ -1,9 +1,10 @@
 #include <engine/Sides.hpp>
 #include <engine/Stream.hpp>
-#include <engine/assets/BlockModel.hpp>
+#include <engine/assets/BlockMesh.hpp>
 #include <engine/errors/UnsupportedFileType.hpp>
 #include <utils/strings.hpp>
 
+#include <boost/container/flat_set.hpp>
 #include <glm/fwd.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
@@ -14,7 +15,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <cstdio>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
@@ -51,7 +51,7 @@ struct ModelFace {
     unsigned char quad : 1;
 };
 
-static rapidjson::SchemaDocument const model_schema = []() {
+static rapidjson::SchemaDocument const s_model_schema = []() {
     resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json");
     if (schema == nullptr)
         throw std::runtime_error("Can't open resources://schemas/ModelSchema.json");
@@ -65,35 +65,32 @@ static rapidjson::SchemaDocument const model_schema = []() {
 
 using namespace std::literals;
 
-engine::assets::BlockModel engine::assets::BlockModel::load(std::filesystem::path const &path)
+engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path const &path)
 {
-    if (utils::ends_with(path.native(), TEXT(".json"sv)))
+    if (utils::ends_with(path.native(), TEXT(".json"sv)) || utils::ends_with(path.native(), TEXT(".cjson"sv)))
         return load_json(path);
-    throw engine::errors::UnsupportedFileType("engine::assets::BlockModel");
+    throw engine::errors::UnsupportedFileType("engine::assets::BlockMesh");
 }
 
-engine::assets::BlockModel engine::assets::BlockModel::load_json(std::filesystem::path const &path)
+engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 {
 
     spdlog::info("Loading model from json {}"sv, string_path(path));
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
-    std::vector<std::string> textures;
+    boost::container::flat_set<std::uint32_t> textures;
 
     {
-        std::FILE *fp = engine::open_file(path, "r");
-        if (!fp)
-            throw /* can't open file */;
+        auto fp = engine::open_file(path, "r");
 
         char buf[1024 * 8] {}; // 8KiB
 
-        rapidjson::FileReadStream stream(fp, buf, sizeof(buf));
-        rapidjson::SchemaValidatingReader<rapidjson::kParseDefaultFlags, rapidjson::FileReadStream, rapidjson::UTF8<>> reader(stream, model_schema);
+        rapidjson::FileReadStream stream(fp.get(), buf, sizeof(buf));
+        rapidjson::SchemaValidatingReader<rapidjson::kParseDefaultFlags, rapidjson::FileReadStream, rapidjson::UTF8<>> reader(stream, s_model_schema);
         rapidjson::Document doc;
         doc.Populate(reader);
-        std::fclose(fp);
-        fp = nullptr;
+        fp.reset();
 
         if (auto const result = reader.GetParseResult(); !result) {
             if (result.Code() == rapidjson::kParseErrorTermination) {
@@ -164,15 +161,8 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::filesystem
                     throw /* index out of range */;
             }
 
-            {
-                std::string_view const texture { face_object["texture"].GetString(), face_object["texture"].GetStringLength() };
-                if (auto it = std::find(textures.begin(), textures.end(), texture); it == textures.end()) {
-                    textures.emplace_back(texture);
-                    face.texture_index = textures.size() - 1;
-                } else {
-                    face.texture_index = static_cast<std::uint32_t>(std::distance(textures.begin(), it));
-                }
-            }
+            face.texture_index = face_object["texture"].GetUint(); // we normalize these later
+            textures.emplace(face.texture_index);
 
             {
                 auto const sides_array = face_object["sides"].GetArray();
@@ -205,46 +195,50 @@ engine::assets::BlockModel engine::assets::BlockModel::load_json(std::filesystem
     }
 
     spdlog::info("Compiling block model from json {}"sv, string_path(path));
-    engine::assets::BlockModel result;
-    result.m_textures = std::move(textures);
+    engine::assets::BlockMesh result;
+    result.m_textures = std::vector<std::uint32_t> { textures.cbegin(), textures.cend() };
+    std::for_each(faces.begin(), faces.end(), [&textures](ModelFace &face) {
+        face.texture_index = static_cast<std::uint32_t>(textures.index_of(textures.find(face.texture_index)));
+    });
 
-    auto const append_face = [](engine::assets::BlockModel &model, ModelFace const &face, std::vector<ModelVertex> const &vertices) {
+    auto const append_face = [](engine::assets::BlockMesh &model, ModelFace const &face, std::vector<ModelVertex> const &vertices) {
         std::size_t const i = face.sides + (!face.solid * 64);
-        if (!model.m_meshes[i].has_value()) model.m_meshes[i].emplace();
-        std::uint32_t const current = model.m_meshes[i]->indices.size();
+
+        auto &current = model.get_or_emplace(i);
+        std::uint32_t const current_index = current.indices.size();
         if (face.quad) {
-            model.m_meshes[i]->vertices.insert(
-                model.m_meshes[i]->vertices.end(),
+            current.vertices.insert(
+                current.vertices.end(),
                 {
                     vertices[face.vertex_indices[0]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[1]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[2]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[3]].to_vertex(face.texture_index),
                 });
-            model.m_meshes[i]->indices.insert(
-                model.m_meshes[i]->indices.end(),
+            current.indices.insert(
+                current.indices.end(),
                 {
-                    current + 0,
-                    current + 1,
-                    current + 2,
-                    current + 1,
-                    current + 2,
-                    current + 3,
+                    current_index + 0,
+                    current_index + 1,
+                    current_index + 2,
+                    current_index + 1,
+                    current_index + 2,
+                    current_index + 3,
                 });
         } else {
-            model.m_meshes[i]->vertices.insert(
-                model.m_meshes[i]->vertices.end(),
+            current.vertices.insert(
+                current.vertices.end(),
                 {
                     vertices[face.vertex_indices[0]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[1]].to_vertex(face.texture_index),
                     vertices[face.vertex_indices[2]].to_vertex(face.texture_index),
                 });
-            model.m_meshes[i]->indices.insert(
-                model.m_meshes[i]->indices.end(),
+            current.indices.insert(
+                current.indices.end(),
                 {
-                    current + 0,
-                    current + 1,
-                    current + 2,
+                    current_index + 0,
+                    current_index + 1,
+                    current_index + 2,
                 });
         }
     };
