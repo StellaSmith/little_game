@@ -64,10 +64,7 @@ class SDL {
 public:
     class Error : public std::runtime_error {
     private:
-        explicit Error(char const *msg)
-            : std::runtime_error(msg)
-        {
-        }
+        using std::runtime_error::runtime_error;
 
     public:
         static Error current()
@@ -291,10 +288,6 @@ public:
                 int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED, w = 800, h = 600;
                 std::uint32_t flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN;
             };
-
-            Window(SDL_Window *)
-            {
-            }
 
             OpenGLContext opengl_context()
             {
