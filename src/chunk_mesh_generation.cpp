@@ -70,6 +70,7 @@ static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
     }
 }
 
+#if 0
 static void calculate_light(engine::Game const &game, engine::rendering::Mesh &mesh_data, engine::C_ChunkData const &chunk)
 {
     struct LightData {
@@ -108,6 +109,7 @@ static void calculate_light(engine::Game const &game, engine::rendering::Mesh &m
         }
     }
 }
+#endif
 
 static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
 {
@@ -160,18 +162,24 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
     }
 
     using namespace std::literals;
-    // {
-    //     utils::TimeIt timer { "solid vertex deduplication"sv };
-    //     remove_duplicate_vertices(result);
-    // }
-    // {
-    //     // utils::TimeIt timer { "solid unreferenced vertex removal"sv };
-    //     remove_unreferenced_vertices(result);
-    // }
+#if 0
     {
-        // utils::TimeIt timer { "solid lights"sv };
+        utils::TimeIt timer { "solid vertex deduplication"sv };
+        remove_duplicate_vertices(result);
+    }
+#endif
+#if 0
+    {
+        utils::TimeIt timer { "solid unreferenced vertex removal"sv };
+        remove_unreferenced_vertices(result);
+    }
+#endif
+#if 0
+    {
+        utils::TimeIt timer { "solid lights"sv };
         calculate_light(*this, result, chunk_data);
     }
+#endif
 
     for (auto &vertex : result.vertices) // transform to world coords
         vertex.position += static_cast<glm::vec3>(static_cast<glm::ivec4>(chunk_position)) * static_cast<float>(chunk_size);
@@ -206,16 +214,18 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 chu
 
     using namespace std::literals;
     {
-        // utils::TimeIt timer { "translucent vertex duplication removal"sv };
+        utils::TimeIt timer { "translucent vertex duplication removal"sv };
         remove_duplicate_vertices(result);
     }
     {
-        // utils::TimeIt timer { "translucent unreferenced vertex removal"sv };
+        utils::TimeIt timer { "translucent unreferenced vertex removal"sv };
         remove_unreferenced_vertices(result);
     }
     {
-        // utils::TimeIt timer { "translucent lights"sv };
+#if 0
+        utils::TimeIt timer { "translucent lights"sv };
         calculate_light(*this, result, chunk_data);
+#endif
     }
 
     return result;

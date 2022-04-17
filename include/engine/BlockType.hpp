@@ -7,7 +7,6 @@ namespace engine {
 
     struct BlockType {
         glm::uint32 model_id;
-        glm::u8vec4 produced_light;
     };
 
 } // namespace engine
