@@ -1,15 +1,14 @@
 #ifndef ENGINE_BLOCK_HPP
 #define ENGINE_BLOCK_HPP
 
-#include <glm/ext/scalar_uint_sized.hpp>
+#include <entt/core/fwd.hpp>
+#include <entt/entity/entity.hpp>
 
 namespace engine {
 
-    struct BlockType;
-
     struct Block {
-        glm::uint32 type;
-        glm::uint32 data;
+        entt::id_type type = entt::null;
+        entt::id_type data = entt::null;
     };
 
 } // namespace engine

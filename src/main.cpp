@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 #endif
                           .create();
 
-#ifndef NDEBUG
+#ifdef NDEBUG
         if (SDL_SetRelativeMouseMode(SDL_TRUE))
             utils::show_error("Can't set mouse to relative mode!"sv);
 #endif
