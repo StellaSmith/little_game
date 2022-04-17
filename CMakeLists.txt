@@ -175,8 +175,6 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set_target_properties(little_game PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 endif()
 
-
-set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 include(GNUInstallDirs)
 install(TARGETS little_game
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
