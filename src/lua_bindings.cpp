@@ -56,7 +56,7 @@ static int exception_handler(lua_State *L, sol::optional<std::exception const &>
 
 namespace {
     struct Printer {
-        std::deque<std::string> &console_text;
+        boost::circular_buffer<std::string> &console_text;
         void operator()(sol::variadic_args args, sol::this_state L)
         {
             // this looks ugly
@@ -99,9 +99,7 @@ namespace {
             line.pop_back();
             spdlog::info("[{}lua{}] {}", "\033[36m" /* cyan */, "\033[m" /* reset */, line);
 
-            console_text.emplace_back(std::move(line));
-            while (console_text.size() > static_cast<unsigned>(engine::config().terminal.max_lines))
-                console_text.pop_front();
+            console_text.push_back(std::move(line));
         }
     };
 } // namespace

@@ -1,5 +1,6 @@
 #include <engine/BlockType.hpp>
 #include <engine/Camera.hpp>
+#include <engine/Config.hpp>
 #include <engine/Game.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
@@ -27,6 +28,8 @@ engine::Game::~Game()
 
 void engine::Game::start()
 {
+    m_console_text.set_capacity(engine::config().terminal.max_lines);
+
     setup_lua();
 
     glClearColor(0.0, 0.25, 0.5, 1.0);

@@ -9,6 +9,7 @@
 #include <engine/rendering/Mesh.hpp>
 #include <engine/textures.hpp>
 
+#include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <entt/entt.hpp>
@@ -16,7 +17,6 @@
 #include <sol/state.hpp>
 
 #include <chrono>
-#include <deque>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -81,7 +81,7 @@ namespace engine {
 
     private:
         sol::state m_lua;
-        std::deque<std::string> m_console_text;
+        boost::circular_buffer<std::string> m_console_text;
 
         GLuint m_vao;
         GLuint m_shader;
