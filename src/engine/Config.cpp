@@ -80,24 +80,22 @@ engine::Config const &engine::load_engine_config()
         utils::show_error("Error loading engine config file."sv, "/SDL/audio_driver must be an string");
     }
 
-    auto get_integer = [&doc](char const *path) {
-        if (auto *value = rapidjson::Pointer(path).Get(doc); value && value->IsInt()) {
-            return value->GetInt();
-        } else if (value) {
+    auto set_integer = [&doc](char const *path, int &value) {
+        if (auto *pointer = rapidjson::Pointer(path).Get(doc); pointer && pointer->IsInt()) {
+            value = pointer->GetInt();
+        } else if (pointer) {
             utils::show_error("Error loading engine config file."sv, fmt::format("{} must be an integer", path));
-        } else {
-            return -1;
         }
     };
 
-    s_config.opengl.red_bits = get_integer("/SDL/OpenGL/red_bits");
-    s_config.opengl.green_bits = get_integer("/SDL/OpenGL/green_bits");
-    s_config.opengl.blue_bits = get_integer("/SDL/OpenGL/blue_bits");
-    s_config.opengl.alpha_bits = get_integer("/SDL/OpenGL/alpha_bits");
-    s_config.opengl.depth_bits = get_integer("/SDL/OpenGL/depth_bits");
-    s_config.opengl.stencil_bits = get_integer("/SDL/OpenGL/stencil_bits");
+    set_integer("/SDL/OpenGL/red_bits", s_config.opengl.red_bits);
+    set_integer("/SDL/OpenGL/green_bits", s_config.opengl.green_bits);
+    set_integer("/SDL/OpenGL/blue_bits", s_config.opengl.blue_bits);
+    set_integer("/SDL/OpenGL/alpha_bits", s_config.opengl.alpha_bits);
+    set_integer("/SDL/OpenGL/depth_bits", s_config.opengl.depth_bits);
+    set_integer("/SDL/OpenGL/stencil_bits", s_config.opengl.stencil_bits);
 
-    s_config.terminal.max_lines = get_integer("/Terminal/max_lines");
+    set_integer("/Terminal/max_lines", s_config.terminal.max_lines);
 
     if (auto *value = rapidjson::Pointer("/ImGui/font_path").Get(doc); value && value->IsString()) {
         s_config.imgui.font_path = std::string { value->GetString(), value->GetStringLength() };
