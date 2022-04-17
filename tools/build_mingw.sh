@@ -17,7 +17,7 @@ set -e
 mkdir -p build
 
 if [ ! -e build/.tools_timestamp ] || [ -n "$(find recipes/vgame_tools tools/ -newer build/.tools_timestamp -print -quit)" ]; then
-    conan create recipes/vgame_tools vgame_tools/latest@ -u -b missing -s compiler.cppstd=20
+    conan create recipes/vgame_tools vgame_tools/latest@ -u -b missing -s compiler.cppstd=gnu20
     touch -m build/.tools_timestamp
 fi
 
@@ -29,36 +29,39 @@ os=Windows
 arch=$arch
 compiler=gcc
 compiler.version=$GCC_VERSION
-compiler.cppstd=20
+compiler.cppstd=gnu20
 compiler.libcxx=libstdc++11
 compiler.threads=win32
-compiler.exception=seh"
+compiler.exception=seh
+[options]
+boost:i18n_backend_iconv=libiconv
+boost:without_stacktrace=True
+[env]
+CONAN_BASH_PATH=$(realpath $(command -v sh))
+CONAN_CMAKE_SYSROOT=$toolchain
+CONAN_CMAKE_FIND_ROOT_PATH=$toolchain
+CONAN_CMAKE_SYSROOT=$toolchain
+CONAN_CMAKE_SYSTEM_NAME=Windows
+CONAN_CMAKE_SYSTEM_PROCESSOR=$arch
+CHOST=$target_host
+AR=$target_host-ar
+AS=$target_host-as
+RANLIB=$target_host-ranlib
+CC=$target_host-cc
+CXX=$target_host-c++
+STRIP=$target_host-strip
+RC=$target_host-windres
+CXXFLAGS=-fext-numeric-literals
+LDFLAGS=-Wl,-push-state -Wl,-Bstatic,--whole-archive -Wl,-as-needed -static-libgcc -static-libstdc++ -lwinpthread -Wl,-pop-state"
 cat <<< "$mingw_profile" > build/mingw64_profile
 
-export CONAN_BASH_PATH=$(realpath $(command -v sh))
-# export CONAN_SYSREQUIRES_MODE=enabled
-export CONAN_CMAKE_SYSROOT="$toolchain"
-export CONAN_CMAKE_FIND_ROOT_PATH="$toolchain"
-export CONAN_CMAKE_SYSROOT="$toolchain"
-export CONAN_CMAKE_SYSTEM_NAME="Windows"
-export CONAN_CMAKE_SYSTEM_PROCESSOR=$arch
-export CHOST="$target_host"
-export AR="$target_host-ar"
-export AS="$target_host-as"
-export RANLIB="$target_host-ranlib"
-export CC="$target_host-cc"
-export CXX="$target_host-c++"
-export STRIP="$target_host-strip"
-export RC="$target_host-windres"
-
 # statically link against libgcc, libstdc++, and libwinpthread
-export LDFLAGS="-Wl,-push-state -Wl,-Bstatic,--whole-archive -Wl,-as-needed -static-libgcc -static-libstdc++ -lwinpthread -Wl,-pop-state"
 
 echo Using mingw toolchain at $toolchain 1>&2
 echo Targeting $target_host 1>&2
 
 if [ ! -e build/.install_timestamp ] || [ -n "$(find recipes/vgame/ -newer build/.install_timestamp -print -quit)" ]; then
-    conan install recipes/vgame/ vgame/latest@ -if build/ -of build/ -pr:b ./mingw64_profile -u -b missing
+    conan install recipes/vgame/ vgame/latest@ -if build/ -of build/ -u -pr:b default -s:b compiler.cppstd=gnu20 -pr:h ./build/mingw64_profile -b missing 
     touch -m build/.install_timestamp
 fi
 
