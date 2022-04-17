@@ -312,6 +312,7 @@ public:
 
     Audio &init_audio(char const *driver = nullptr)
     {
+        driver = driver && *driver != 0 ? driver : nullptr;
         if (SDL_AudioInit(driver) < 0)
             throw Error::current();
         to_quit |= QuitAudio;
@@ -329,6 +330,7 @@ public:
 
     Video &init_video(char const *driver = nullptr)
     {
+        driver = driver && *driver != 0 ? driver : nullptr;
         if (SDL_VideoInit(driver) < 0)
             throw Error::current();
         to_quit |= QuitVideo;
