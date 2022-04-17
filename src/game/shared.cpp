@@ -10,6 +10,7 @@
 #include <entt/entt.hpp>
 #include <glad/glad.h>
 #include <lua.hpp>
+#include <spdlog/spdlog.h>
 
 #include <cstdint>
 #include <optional>
@@ -78,7 +79,7 @@ void engine::Game::start()
         }
     }
 }
-#include <spdlog/spdlog.h>
+
 void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check

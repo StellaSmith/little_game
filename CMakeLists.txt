@@ -90,6 +90,7 @@ add_executable(little_game
     # src/game/blocks/Grass.cpp
 
     src/assets/BlockMesh.cpp
+    src/assets/Image.cpp
 
     include/engine/Game.hpp
     include/engine/Block.hpp
@@ -112,6 +113,7 @@ add_executable(little_game
     include/engine/Stream.hpp
 
     include/engine/assets/BlockMesh.hpp
+    include/engine/assets/Image.hpp
 
     include/engine/errors/AlreadyRegistered.hpp
     include/engine/errors/UnsupportedFileType.hpp

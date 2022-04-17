@@ -1,4 +1,5 @@
 #include <engine/Stream.hpp>
+#include <engine/assets/Image.hpp>
 #include <engine/textures.hpp>
 #include <utils/error.hpp>
 
@@ -16,6 +17,14 @@
 #include <unordered_map>
 
 using namespace std::literals;
+namespace {
+    struct ImageDeleter {
+        void operator()(stbi_uc *buf) const noexcept
+        {
+            stbi_image_free(buf);
+        }
+    };
+}
 
 engine::Textures engine::load_textures()
 {
@@ -90,40 +99,19 @@ engine::Textures engine::load_textures()
             name_path = name_path.substr(idx + 1);
 
         auto const path = std::filesystem::current_path() / "assets"sv / name_path;
-
-        int x, y, c;
-        std::FILE *f = engine::open_file(path, "rb");
-        if (!f) {
-            std::string str_error;
-            if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>)
-                str_error = fmt::format("Error openning image {}", path.native());
-            else
-                str_error = fmt::format("Error openning image {}", path.string());
-            utils::show_error(str_error);
-        }
-        stbi_uc *buf = stbi_load_from_file(f, &x, &y, &c, 4);
-        std::fclose(f);
-        if (!buf) {
-            std::string str_error;
-            if constexpr (std::is_same_v<typename std::filesystem::path::value_type, char>)
-                str_error = fmt::format("Error loading image {}\n{}", path.native(), stbi_failure_reason());
-            else
-                str_error = fmt::format("Error loading image {}\n{}", path.string(), stbi_failure_reason());
-            utils::show_error(str_error);
-        }
+        auto const image = engine::assets::Image::load(path);
 
         if (width == -1) { // first iteration
-            width = x;
-            height = y;
+            width = image.width();
+            height = image.height();
 
             glGenTextures(1, &result.texture2d_array);
             glBindTexture(GL_TEXTURE_2D_ARRAY, result.texture2d_array);
             glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, textures.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        } else if (x != width || y != height) {
+        } else if (image.width() != width || image.height() != height) {
             utils::show_error("Image sizes differ!");
         }
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, buf);
-        stbi_image_free(buf);
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image.data());
         result.name_to_index.emplace(name, i);
         ++i;
     }
