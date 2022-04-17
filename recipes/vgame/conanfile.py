@@ -27,6 +27,7 @@ class VGameConan(ConanFile):
         "use_mold": False,
         "with_luajit": False,
 
+        "pulseaudio:shared": True,
         "glad:gl_profile": "core",
         "glad:gl_version": "3.3",
         "glad:no_loader": True,
