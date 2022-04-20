@@ -81,6 +81,7 @@ add_executable(little_game
 
     src/engine/errors/AlreadyRegistered.cpp
     src/engine/errors/UnsupportedFileType.cpp
+    src/engine/errors/InvalidResourceName.cpp
 
 
     # src/game/blocks/Air.cpp
@@ -117,6 +118,7 @@ add_executable(little_game
 
     include/engine/errors/AlreadyRegistered.hpp
     include/engine/errors/UnsupportedFileType.hpp
+    include/engine/errors/InvalidResourceName.hpp
 )
 
 find_program(RESOURCE_COMPILER resource_compiler REQUIRED)
