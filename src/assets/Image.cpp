@@ -26,24 +26,18 @@ static decltype(auto) string_path(std::filesystem::path const &p) noexcept
 
 using namespace std::literals;
 
-engine::assets::Image engine::assets::Image::load(std::filesystem::path const &path, engine::ImageFormat desired_format)
+engine::assets::Image engine::assets::Image::load(std::span<std::byte const> buffer, engine::ImageFormat desired_format)
 {
-    spdlog::info("Loading image from {}"sv, string_path(path));
+    spdlog::info("Loading image from memory"sv);
 
-    boost::interprocess::file_mapping file(path.string().c_str(), boost::interprocess::read_only);
-    boost::interprocess::mapped_region mapped_region(file, boost::interprocess::read_only);
-
-    auto const buffer = static_cast<stbi_uc const *>(mapped_region.get_address());
-    int const len = mapped_region.get_size();
     int x, y;
-
     void *result = nullptr;
     if (desired_format.type() == ImageFormat::uint && desired_format.channel_width() == ImageFormat::b1)
-        result = stbi_load_from_memory(buffer, len, &x, &y, nullptr, desired_format.channels());
+        result = stbi_load_from_memory(reinterpret_cast<stbi_uc const *>(buffer.data()), buffer.size(), &x, &y, nullptr, desired_format.channels());
     else if (desired_format.type() == ImageFormat::uint && desired_format.channel_width() == ImageFormat::b2)
-        result = stbi_load_16_from_memory(buffer, len, &x, &y, nullptr, desired_format.channels());
+        result = stbi_load_16_from_memory(reinterpret_cast<stbi_uc const *>(buffer.data()), buffer.size(), &x, &y, nullptr, desired_format.channels());
     else if (desired_format.type() == ImageFormat::floating && desired_format.channel_width() == ImageFormat::b4)
-        result = stbi_loadf_from_memory(buffer, len, &x, &y, nullptr, desired_format.channels());
+        result = stbi_loadf_from_memory(reinterpret_cast<stbi_uc const *>(buffer.data()), buffer.size(), &x, &y, nullptr, desired_format.channels());
     else
         throw engine::errors::UnsupportedImageFormat(desired_format);
 
@@ -55,4 +49,17 @@ engine::assets::Image engine::assets::Image::load(std::filesystem::path const &p
     image.m_height = y;
     image.m_data.reset(result);
     return image;
+}
+
+engine::assets::Image engine::assets::Image::load(std::filesystem::path const &path, engine::ImageFormat desired_format)
+{
+    spdlog::info("Mapping file {} into memory"sv, string_path(path));
+
+    boost::interprocess::file_mapping file(path.string().c_str(), boost::interprocess::read_only);
+    boost::interprocess::mapped_region mapped_region(file, boost::interprocess::read_only);
+
+    auto const *const buffer = static_cast<std::byte const *>(mapped_region.get_address());
+    auto const len = mapped_region.get_size();
+
+    return Image::load({ buffer, len }, desired_format);
 }

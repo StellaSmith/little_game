@@ -110,6 +110,7 @@ namespace engine::assets {
     class Image {
     public:
         static Image load(std::filesystem::path const &path, ImageFormat desired_format = { ImageFormat::uint, ImageFormat::rgba, ImageFormat::b1, 4 });
+        static Image load(std::span<std::byte const> data, ImageFormat desired_format = { ImageFormat::uint, ImageFormat::rgba, ImageFormat::b1, 4 });
 
         ImageFormat format() const noexcept { return m_format; }
         std::uint32_t width() const noexcept { return m_width; }

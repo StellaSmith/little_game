@@ -75,7 +75,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path 
 engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 {
 
-    spdlog::info("Loading model from json {}"sv, string_path(path));
+    spdlog::info("Loading model from file {}"sv, string_path(path));
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
@@ -194,7 +194,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
         }
     }
 
-    spdlog::info("Compiling block model from json {}"sv, string_path(path));
+    spdlog::info("Compiling block model from file {}"sv, string_path(path));
     engine::assets::BlockMesh result;
     result.m_textures = std::vector<std::uint32_t> { textures.cbegin(), textures.cend() };
     std::for_each(faces.begin(), faces.end(), [&textures](ModelFace &face) {
