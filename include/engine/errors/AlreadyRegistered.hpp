@@ -9,12 +9,8 @@ namespace engine::errors {
 
     public:
         explicit AlreadyRegistered() noexcept;
-        explicit AlreadyRegistered(char const *message) noexcept;
 
         char const *what() const noexcept override;
-
-    private:
-        char const *m_message;
     };
 
 }

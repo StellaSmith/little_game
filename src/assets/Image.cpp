@@ -41,8 +41,10 @@ engine::assets::Image engine::assets::Image::load(std::span<std::byte const> buf
     else
         throw engine::errors::UnsupportedImageFormat(desired_format);
 
-    if (!result)
-        throw engine::errors::UnsupportedFileType(stbi_failure_reason());
+    if (!result) {
+        spdlog::error("Failed to load image: {}", stbi_failure_reason());
+        throw engine::errors::UnsupportedFileType();
+    }
 
     auto image = Image { desired_format };
     image.m_width = x;

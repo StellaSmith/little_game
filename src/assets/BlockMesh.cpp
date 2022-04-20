@@ -69,7 +69,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path 
 {
     if (utils::ends_with(path.native(), TEXT(".json"sv)) || utils::ends_with(path.native(), TEXT(".cjson"sv)))
         return load_json(path);
-    throw engine::errors::UnsupportedFileType("engine::assets::BlockMesh");
+    throw engine::errors::UnsupportedFileType();
 }
 
 engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
