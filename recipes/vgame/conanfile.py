@@ -19,13 +19,17 @@ class VGameConan(ConanFile):
     options = {
         "use_ccache": [True, False],
         "use_mold": [True, False],
-        "with_luajit": [True, False]
+        "with_luajit": [True, False],
+        "with_opengl": [True, False],
+        "with_vulkan": [True, False]
     }
 
     default_options = {
         "use_ccache": True,
         "use_mold": False,
         "with_luajit": False,
+        "with_opengl": True,
+        "with_vulkan": False,
 
         "libalsa:shared": True,
         "pulseaudio:shared": True,
@@ -79,15 +83,24 @@ class VGameConan(ConanFile):
             self.requires("lua/5.4.4")
         self.requires("sol2/3.2.3")
         self.requires("imgui/1.86")
-        self.requires("glad/0.1.34")
         self.requires("assimp/5.2.2")
         self.requires("sdl/2.0.20")
         self.requires("boost/1.78.0")
 
+        if self.options.with_opengl:
+            self.requires("glad/0.1.35")
+        if self.options.with_vulkan:
+            self.requires("vulkan-headers/1.3.211.0")
+            if self.settings.os in ("Macos", "iOS", "tvOS", "watchOS"):
+                self.requires("moltenvk/1.1.9")
+
     def validate(self):
         tools.check_min_cppstd(self, 20)
+
+        if self.options.with_opengl and self.options.with_vulkan:
+            raise ConanInvalidConfiguration("Either OpenGL or Vulkan can be enabled at the same time for the time being")
         
-        if tools.Version(self.options["glad"].gl_version) < "3.3":
+        if self.options.with_opengl and tools.Version(self.options["glad"].gl_version) < "3.3":
             raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
 
     def config_options(self):
@@ -116,6 +129,8 @@ class VGameConan(ConanFile):
         cmake = CMake(self)
         cmake.definitions["USE_CONAN"] = True
         cmake.definitions["WITH_LUAJIT"] = self.options.with_luajit
+        cmake.definitions["WITH_OPENGL"] = self.options.with_opengl
+        cmake.definitions["WITH_VULKAN"] = self.options.with_vulkan
         if not self.options.use_mold:
             cmake.definitions["MOLD_PROGRAM"] = ""
         if not self.options.use_ccache:

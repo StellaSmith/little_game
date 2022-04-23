@@ -8,7 +8,9 @@
 #include <math/bits.hpp>
 
 #include <entt/entt.hpp>
+#ifdef ENGINE_WITH_OPENGL
 #include <glad/glad.h>
+#endif
 #include <lua.hpp>
 #include <spdlog/spdlog.h>
 
@@ -22,9 +24,11 @@ engine::Camera g_camera;
 
 engine::Game::~Game()
 {
+#ifdef ENGINE_WITH_OPENGL
     glDeleteVertexArrays(1, &m_vao);
     glDeleteProgram(m_shader);
     glDeleteTextures(1, &m_textures.texture2d_array);
+#endif
 }
 
 void engine::Game::start()
@@ -33,6 +37,7 @@ void engine::Game::start()
 
     setup_lua();
 
+#ifdef ENGINE_WITH_OPENGL
     glClearColor(0.0, 0.25, 0.5, 1.0);
 
     setup_shader();
@@ -46,6 +51,7 @@ void engine::Game::start()
 
     glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
     glUseProgram(0);
+#endif
 
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);

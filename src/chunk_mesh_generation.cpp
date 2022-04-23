@@ -7,7 +7,6 @@
 #include <math/constexpr.hpp>
 #include <utils/timeit.hpp>
 
-#include <glad/glad.h>
 #include <glm/gtx/norm.hpp>
 
 #include <algorithm>

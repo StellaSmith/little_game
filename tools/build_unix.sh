@@ -9,7 +9,8 @@ if [ ! -e build/.tools_timestamp ] || [ -n "$(find tools/ -newer build/.tools_ti
 fi
 
 if [ ! -e build/.install_timestamp ] || [ -n "$(find recipes/vgame/ -newer build/.install_timestamp -print -quit)" ]; then
-    conan install recipes/vgame/ vgame/latest@ -if build/ -of build/ -u -b missing -s compiler.cppstd=gnu20
+    conan install recipes/vgame/ vgame/latest@ -if build/ -of build/ -u -b missing -s compiler.cppstd=gnu20 \
+     -s build_type=Debug -o vgame:with_opengl=False -o vgame:with_vulkan=True
     touch -m build/.install_timestamp
 fi
 

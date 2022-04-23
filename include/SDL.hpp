@@ -263,6 +263,16 @@ public:
                     return set_flag<SDL_WINDOW_OPENGL>();
                 }
 
+                Builder vulkan() &&
+                {
+                    return std::move(*this).set_flag<SDL_WINDOW_VULKAN>();
+                }
+
+                Builder vulkan() const &
+                {
+                    return set_flag<SDL_WINDOW_OPENGL>();
+                }
+
                 Builder resizable() &&
                 {
                     return std::move(*this).set_flag<SDL_WINDOW_RESIZABLE>();

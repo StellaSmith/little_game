@@ -18,7 +18,9 @@ void engine::Game::input(SDL_Event const &event)
         stop();
     else if (event.type == SDL_WINDOWEVENT) {
         if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+#ifdef ENGINE_WITH_OPENGL
             glViewport(0, 0, event.window.data1, event.window.data2);
+#endif
         }
     } else if (event.type == SDL_MOUSEMOTION) {
         float const speed_multipler = g_mouse_sensitivity * -0.01f;

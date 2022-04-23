@@ -13,7 +13,9 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <entt/entt.hpp>
+#ifdef ENGINE_WITH_OPENGL
 #include <glad/glad.h>
+#endif
 #include <sol/state.hpp>
 
 #include <chrono>
@@ -83,11 +85,13 @@ namespace engine {
         sol::state m_lua;
         boost::circular_buffer<std::string> m_console_text;
 
+#ifdef ENGINE_WITH_OPENGL
         GLuint m_vao;
         GLuint m_shader;
 
         GLuint m_projection_uniform;
         GLuint m_view_uniform;
+#endif
 
         engine::Textures m_textures;
 

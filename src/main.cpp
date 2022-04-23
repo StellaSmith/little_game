@@ -1,13 +1,22 @@
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
+#ifdef ENGINE_WITH_OPENGL
 #include <glDebug.h>
+#endif
 #include <utils/error.hpp>
 
 #include <SDL.h>
 #include <fmt/format.h>
-#include <glad/glad.h>
+
 #include <imgui.h>
+#ifdef ENGINE_WITH_OPENGL
 #include <imgui_impl_opengl3.h>
+#endif
+#ifdef ENGINE_WITH_VULKAN
+#include <SDL_vulkan.h>
+#include <imgui_impl_vulkan.h>
+#include <vulkan/vulkan.hpp>
+#endif
 #include <imgui_impl_sdl.h>
 #include <spdlog/spdlog.h>
 
@@ -27,6 +36,8 @@
 #endif
 
 #include <SDL.hpp>
+
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 using namespace std::literals;
 
@@ -90,6 +101,7 @@ int main(int argc, char **argv)
                           .set_dimensions(width, height)
                           .resizable()
                           .shown()
+#ifdef ENGINE_WITH_OPENGL
                           .opengl()
                           .set_gl_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
                           .set_gl_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
@@ -103,6 +115,10 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
                           .set_gl_attribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG)
 #endif
+#endif
+#ifdef ENGINE_WITH_VULKAN
+                          .vulkan()
+#endif
                           .create();
 
 #ifdef NDEBUG
@@ -110,6 +126,7 @@ int main(int argc, char **argv)
             utils::show_error("Can't set mouse to relative mode!"sv);
 #endif
 
+#if ENGINE_WITH_OPENGL
         auto gl_context = window.opengl_context();
         gl_context.make_current();
 
@@ -156,10 +173,52 @@ int main(int argc, char **argv)
         }
 #endif
         SDL_GL_SetSwapInterval(0);
+#endif
+
+        static auto const pfn_vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr());
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(pfn_vkGetInstanceProcAddr);
+
+        vk::Instance instance = [&]() {
+            std::vector<char const *> instance_extensions;
+            unsigned count = 0;
+            SDL_Vulkan_GetInstanceExtensions(window.get(), &count, nullptr);
+            instance_extensions.resize(count);
+            SDL_Vulkan_GetInstanceExtensions(window.get(), &count, &instance_extensions[0]);
+
+            vk::InstanceCreateInfo ici;
+            ici.setPEnabledExtensionNames(instance_extensions);
+            return vk::createInstance(std::move(ici), nullptr);
+        }();
+
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
+
+        auto physical_device = instance.enumeratePhysicalDevices().front();
+        auto device = physical_device.createDevice({}, nullptr);
+
+        if (!ImGui_ImplVulkan_LoadFunctions(
+                +[](char const *function_name, void *udata) {
+                    auto &instance = *reinterpret_cast<vk::Instance *>(udata);
+                    auto pfn = pfn_vkGetInstanceProcAddr(instance, function_name);
+                    spdlog::info("Loaded {}: {}", function_name, (void *)pfn);
+                    return pfn;
+                },
+                &instance)) {
+            spdlog::critical("Cannot load Vulkan functions");
+            std::exit(-1);
+        };
+
         if (!IMGUI_CHECKVERSION())
             utils::show_error("ImGui version mismatch!\nYou may need to recompile the game."sv);
 
         ImGui::CreateContext();
+
+        ImGui_ImplVulkan_InitInfo vulkanInitInfo {};
+        vulkanInitInfo.Instance = instance;
+        vulkanInitInfo.PhysicalDevice = physical_device;
+        vulkanInitInfo.Device = device;
+
+        ImGui_ImplVulkan_Init(&vulkanInitInfo, VK_NULL_HANDLE);
+
         ImGuiIO &imgui_io = ImGui::GetIO();
         imgui_io.IniFilename = "cfg/imgui.ini";
         imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
@@ -169,10 +228,17 @@ int main(int argc, char **argv)
         // TODO: Make color scheme of imgui configurable
         ImGui::StyleColorsDark();
 
+#if ENGINE_WITH_OPENGL
         ImGui_ImplSDL2_InitForOpenGL(window.get(), gl_context.get()); // always returns true
 
         // See imgui/examples/imgui_impl_opengl3.cpp
         ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
+#endif
+
+#if ENGINE_WITH_VULKAN
+        // ImGui_ImplVulkan_Init();
+        ImGui_ImplSDL2_InitForVulkan(window.get());
+#endif
 
         if (!config.imgui.font_path.empty()) {
             if (!imgui_io.Fonts->AddFontFromFileTTF(config.imgui.font_path.data(), 14)) {
@@ -206,7 +272,12 @@ int main(int argc, char **argv)
                 game.input(event);
             }
 
+#if ENGINE_WITH_OPENGL
             ImGui_ImplOpenGL3_NewFrame();
+#endif
+#ifdef ENGINE_WITH_VULKAN
+            ImGui_ImplVulkan_NewFrame();
+#endif
             ImGui_ImplSDL2_NewFrame(window.get());
             ImGui::NewFrame();
 
@@ -216,15 +287,19 @@ int main(int argc, char **argv)
 
             // Draw ImGui on top of the game stuff
             ImGui::Render();
+#if ENGINE_WITH_OPENGL
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             // swap the buffer (present to the window surface)
             SDL_GL_SwapWindow(window.get());
+#endif
         }
 
         game.cleanup();
 
+#if ENGINE_WITH_OPENGL
         ImGui_ImplOpenGL3_Shutdown();
+#endif
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
 
@@ -253,7 +328,7 @@ int main(int argc, char **argv)
 
 static void fix_current_directory(char const *argv0)
 {
-#ifdef __unix__
+#ifndef _WIN32
     {
         auto path = std::string { argv0 };
         if (path.back() == '/') path.pop_back();
@@ -276,7 +351,7 @@ static void fix_current_directory(char const *argv0)
         if (g_verbose)
             spdlog::info("Working directory: {}", path);
     }
-#elif defined(_WIN32)
+#else
     {
         std::vector<wchar_t> buf(MAX_PATH);
         DWORD err;
@@ -309,9 +384,5 @@ static void fix_current_directory(char const *argv0)
                 fmt::format("SetCurrentDirectoryW failed: Couldn't change current working directory to {}", narrow_buf.get()));
         }
     }
-#else
-#error Unsupported OS.\
-Please add a way to change the current directory to the executable installation path here for your OS\
-and do a pull request.
 #endif
 }

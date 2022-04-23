@@ -3,18 +3,25 @@
 #include <engine/textures.hpp>
 #include <utils/error.hpp>
 
+#include <boost/container/flat_map.hpp>
+#include <boost/container/small_vector.hpp>
 #include <fmt/format.h>
-#include <glad/glad.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/pointer.h>
 #include <stb_image.h>
 
+#ifdef ENGINE_WITH_OPENGL
+#include <glad/glad.h>
+#endif
+#ifdef ENGINE_WITH_VULKAN
+#include <vulkan/vulkan.h>
+#endif
+
 #include <cstdio>
 #include <filesystem>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 using namespace std::literals;
 namespace {
@@ -62,11 +69,7 @@ engine::Textures engine::load_textures()
             fmt::format("Error at line {} column {}: {}"sv, lineno + 1, offset - lineat, message));
     }
 
-    int max_layers;
-    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &max_layers);
-
-    using map_type = std::unordered_map<std::string_view, std::string_view>;
-
+    using map_type = boost::container::small_flat_map<std::string_view, std::string_view, 16u>;
     map_type textures;
 
     if (auto *value = rapidjson::Pointer("/textures").Get(texture_pack); value && value->IsObject()) {
@@ -83,10 +86,14 @@ engine::Textures engine::load_textures()
         utils::show_error("Error loading textures pack."sv, "Can't obtain /textures");
     }
 
+#ifdef ENGINE_WITH_OPENGL
+    int max_layers;
+    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &max_layers);
     if (textures.size() > static_cast<unsigned>(max_layers)) {
         std::string str_error = fmt::format("The maximun amount of textures in your system is {} but {}  where specified.", max_layers, textures.size());
         utils::show_error(str_error);
     }
+#endif
 
     Textures result;
 
@@ -105,17 +112,23 @@ engine::Textures engine::load_textures()
             width = image.width();
             height = image.height();
 
+#ifdef ENGINE_WITH_OPENGL
             glGenTextures(1, &result.texture2d_array);
             glBindTexture(GL_TEXTURE_2D_ARRAY, result.texture2d_array);
             glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, textures.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+#endif
         } else if (image.width() != width || image.height() != height) {
             utils::show_error("Image sizes differ!");
         }
+#ifdef ENGINE_WITH_OPENGL
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image.data());
+#endif
         result.name_to_index.emplace(name, i);
         ++i;
     }
+#ifdef ENGINE_WITH_OPENGL
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+#endif
 
     return result;
 }

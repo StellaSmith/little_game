@@ -7,7 +7,9 @@
 #include <math/bits.hpp>
 
 #include <SDL.h>
+#ifdef ENGINE_WITH_OPENGL
 #include <glad/glad.h>
+#endif
 #include <imgui.h>
 
 #include <algorithm>
@@ -126,9 +128,11 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
         if (m_entity_registry.any_of<engine::C_Dirty>(chunk)) {
             auto it = m_chunk_meshes.find(chunk_position);
             if (it == m_chunk_meshes.end()) {
+#ifdef ENGINE_WITH_OPENGL
                 GLuint buffers[4];
                 glGenBuffers(std::size(buffers), buffers);
                 std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk_position, std::make_pair(rendering::MeshHandle { buffers[0], buffers[1], 0 }, rendering::MeshHandle { buffers[2], buffers[3], 0 }));
+#endif
             }
 
             auto const solid_mesh = generate_solid_mesh(chunk_position, chunk_data);
@@ -137,21 +141,26 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
             auto const sorted_indices = get_sorted_indices(translucent_mesh);
 
             // TODO: Vertex deduplication
-
+#ifdef ENGINE_WITH_OPENGL
             glBindBuffer(GL_ARRAY_BUFFER, it->second.first.vertex_buffer);
             glBufferData(GL_ARRAY_BUFFER, solid_mesh.vertices.size() * sizeof(*solid_mesh.vertices.data()), solid_mesh.vertices.data(), GL_DYNAMIC_DRAW);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.first.index_buffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, solid_mesh.indices.size() * sizeof(*solid_mesh.indices.data()), solid_mesh.indices.data(), GL_DYNAMIC_DRAW);
+#endif
             it->second.first.index_count = solid_mesh.indices.size();
 
+#ifdef ENGINE_WITH_OPENGL
             glBindBuffer(GL_ARRAY_BUFFER, it->second.second.vertex_buffer);
             glBufferData(GL_ARRAY_BUFFER, translucent_mesh.vertices.size() * sizeof(*translucent_mesh.vertices.data()), translucent_mesh.vertices.data(), GL_DYNAMIC_DRAW);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.second.index_buffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
+#endif
             it->second.second.index_count = sorted_indices.size();
 
+#ifdef ENGINE_WITH_OPENGL
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+#endif
 
             if (auto mesh_data = m_translucent_mesh_data.find(chunk_position); mesh_data != m_translucent_mesh_data.end())
                 mesh_data->second = std::move(translucent_mesh);
@@ -164,9 +173,11 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
             auto p_data = m_translucent_mesh_data.find(chunk_position);
             if (p_mesh != m_chunk_meshes.end() && p_data != m_translucent_mesh_data.end()) {
                 auto const sorted_indices = get_sorted_indices(p_data->second);
+#ifdef ENGINE_WITH_OPENGL
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.second.index_buffer);
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+#endif
             }
         }
     }

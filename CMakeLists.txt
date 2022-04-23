@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.14)
 project(little_game)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(USE_CONAN   "Use the Conan C/C++ package manager" OFF)
 option(WITH_LUAJIT "Use LuaJIT instead of Lua" ON)
-option(USE_CONAN "Use the Conan C/C++ package manager" OFF)
+option(WITH_OPENGL "Use OpenGL as the graphics API" ON)
+option(WITH_VULKAN "Use Vulkan as the graphics API" ON)
 
 if (USE_CONAN)
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -46,6 +48,14 @@ else()
     find_package(lua REQUIRED)
 endif()
 
+if (WITH_OPENGL)
+    find_package(glad REQUIRED)
+endif()
+
+if (WITH_VULKAN)
+    find_package(Vulkan REQUIRED)
+endif()
+
 find_package(glm REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(fmt REQUIRED)
@@ -53,7 +63,6 @@ find_package(spdlog REQUIRED)
 find_package(EnTT REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
-find_package(glad REQUIRED)
 find_package(ctre REQUIRED)
 find_package(Boost REQUIRED)
 
@@ -61,7 +70,6 @@ add_subdirectory(external)
 
 add_executable(little_game
     src/main.cpp
-    src/glDebug.c
     src/fast_math.cpp
     src/chunk_mesh_generation.cpp
     src/cache.cpp
@@ -77,7 +85,6 @@ add_executable(little_game
     src/game/shared.cpp
     src/game/input.cpp
     src/game/update.cpp
-    src/game/render.cpp
 
     src/engine/errors/AlreadyRegistered.cpp
     src/engine/errors/UnsupportedFileType.cpp
@@ -99,7 +106,6 @@ add_executable(little_game
     include/engine/rendering/Mesh.hpp
     include/engine/rendering/Vertex.hpp
     include/engine/Config.hpp
-    include/glDebug.h
     include/math/fast.hpp
     include/math/bits.hpp
     include/math/constexpr.hpp
@@ -121,6 +127,21 @@ add_executable(little_game
     include/engine/errors/InvalidResourceName.hpp
 )
 
+if (WITH_OPENGL)
+    target_sources(little_game PRIVATE
+        src/glDebug.c
+        src/engine/rendering/opengl/render.cpp
+
+        include/glDebug.h
+    )
+endif()
+
+if (WITH_VULKAN)
+    target_sources(little_game PRIVATE
+        src/engine/rendering/vulkan/render.cpp
+    )
+endif()
+
 find_program(RESOURCE_COMPILER resource_compiler REQUIRED)
 
 add_custom_command(
@@ -138,8 +159,16 @@ target_include_directories(resources PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include/
 target_link_libraries(little_game
 PRIVATE
     resources
-    glad::glad SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_opengl3 imgui_impl_sdl RapidJSON::RapidJSON
+    SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl RapidJSON::RapidJSON
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost)
+
+if (WITH_OPENGL)
+    target_link_libraries(little_game PRIVATE glad::glad imgui_impl_opengl3)
+endif()
+
+if (WITH_VULKAN)
+    target_link_libraries(little_game PRIVATE Vulkan::Headers imgui_impl_vulkan)
+endif()
 
 if (WITH_LUAJIT)
     target_link_libraries(little_game PRIVATE luajit::luajit)
@@ -156,6 +185,14 @@ target_compile_definitions(little_game PUBLIC
 
 if (WITH_LUAJIT)
     target_compile_definitions(little_game PUBLIC SOL_LUAJIT)
+endif()
+
+if (WITH_OPENGL)
+    target_compile_definitions(little_game PUBLIC ENGINE_WITH_OPENGL)
+endif()
+
+if (WITH_VULKAN)
+    target_compile_definitions(little_game PUBLIC ENGINE_WITH_VULKAN VK_NO_PROTOTYPES VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT (MINGW OR CYGWIN))
