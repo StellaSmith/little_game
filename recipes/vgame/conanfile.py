@@ -82,7 +82,7 @@ class VGameConan(ConanFile):
         else:
             self.requires("lua/5.4.4")
         self.requires("sol2/3.2.3")
-        self.requires("imgui/1.86")
+        self.requires("imgui/1.87")
         self.requires("assimp/5.2.2")
         self.requires("sdl/2.0.20")
         self.requires("boost/1.78.0")
