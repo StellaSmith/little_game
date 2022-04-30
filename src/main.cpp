@@ -1,22 +1,23 @@
+#include <SDL.hpp>
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
+#include <utils/error.hpp>
 #ifdef ENGINE_WITH_OPENGL
 #include <glDebug.h>
 #endif
-#include <utils/error.hpp>
 
-#include <SDL.h>
-#include <fmt/format.h>
-
-#include <imgui.h>
 #ifdef ENGINE_WITH_OPENGL
 #include <imgui_impl_opengl3.h>
 #endif
 #ifdef ENGINE_WITH_VULKAN
+#include <volk.h>
+
 #include <SDL_vulkan.h>
 #include <imgui_impl_vulkan.h>
-#include <vulkan/vulkan.hpp>
 #endif
+
+#include <fmt/format.h>
+#include <imgui.h>
 #include <imgui_impl_sdl.h>
 #include <spdlog/spdlog.h>
 
@@ -25,24 +26,75 @@
 #include <string>
 #include <system_error>
 
-#ifdef __linux__
-#include <unistd.h>
-#else
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
-#include <SDL.hpp>
-
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-
 using namespace std::literals;
 
 bool g_verbose = false;
 static void fix_current_directory(char const *argv0);
+
+struct VulkanState {
+    VkInstance instance = VK_NULL_HANDLE;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device = VK_NULL_HANDLE;
+
+    VolkDeviceTable deviceTable {};
+
+    struct {
+        uint32_t graphics = UINT32_MAX;
+        uint32_t compute = UINT32_MAX;
+    } queueFamiliyIndices;
+
+    struct {
+        VkQueue graphics = VK_NULL_HANDLE;
+        VkQueue compute = VK_NULL_HANDLE;
+    } queues;
+
+    VkRenderPass imgui_renderpass = VK_NULL_HANDLE;
+};
+
+static std::error_category const &vulkan_category() noexcept
+{
+
+    class VulkanErrorCode final : public std::error_category {
+    public:
+        char const *name() const noexcept override
+        {
+            return "VkError";
+        }
+        std::string message(int code) const override
+        {
+            auto const result = static_cast<VkResult>(code);
+            switch (result) {
+            case VkResult::VK_SUCCESS:
+                return "Command successfully completed";
+            case VkResult::VK_NOT_READY:
+                return "A fence or query has not yet completed";
+            case VkResult::VK_TIMEOUT:
+                return "A wait operation has not completed in the specified time";
+            case VkResult::VK_EVENT_SET:
+                return "An event is signaled";
+            case VkResult::VK_EVENT_RESET:
+                return "An event is unsignaled";
+            case VkResult::VK_INCOMPLETE:
+                return "A return array was too small for the result";
+            default: return "An unknown error has occurred; either the application has provided invalid input, or an implementation failure has occurred";
+            }
+        }
+    };
+
+    static auto const s_category = VulkanErrorCode {};
+    return s_category;
+}
+
+static std::error_code make_error_code(VkResult result) noexcept
+{
+    return std::error_code(static_cast<int>(result), vulkan_category());
+}
+
+static void CHECK_VK(VkResult result)
+{
+    if (result != VK_SUCCESS)
+        throw std::system_error(make_error_code(result));
+}
 
 int main(int argc, char **argv)
 {
@@ -54,7 +106,7 @@ int main(int argc, char **argv)
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif
-#ifdef NDEBUG
+#ifndef NDEBUG
     try {
 #endif
         for (int i = 0; i < argc; ++i) {
@@ -121,7 +173,7 @@ int main(int argc, char **argv)
 #endif
                           .create();
 
-#ifdef NDEBUG
+#ifndef NDEBUG
         if (SDL_SetRelativeMouseMode(SDL_TRUE))
             utils::show_error("Can't set mouse to relative mode!"sv);
 #endif
@@ -175,49 +227,267 @@ int main(int argc, char **argv)
         SDL_GL_SetSwapInterval(0);
 #endif
 
-        static auto const pfn_vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr());
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(pfn_vkGetInstanceProcAddr);
+#ifdef ENGINE_WITH_VULKAN
+        VulkanState vulkan;
 
-        vk::Instance instance = [&]() {
+        volkInitializeCustom(reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
+
+        vulkan.instance = [&]() {
             std::vector<char const *> instance_extensions;
-            unsigned count = 0;
-            SDL_Vulkan_GetInstanceExtensions(window.get(), &count, nullptr);
-            instance_extensions.resize(count);
-            SDL_Vulkan_GetInstanceExtensions(window.get(), &count, &instance_extensions[0]);
+            std::vector<char const *> instance_layers;
 
-            vk::InstanceCreateInfo ici;
-            ici.setPEnabledExtensionNames(instance_extensions);
-            return vk::createInstance(std::move(ici), nullptr);
+            {
+                std::vector<char const *> required_extensions;
+                std::vector<char const *> desired_extensions;
+
+                unsigned count = 0;
+                SDL_Vulkan_GetInstanceExtensions(window.get(), &count, nullptr);
+                required_extensions.resize(count);
+                SDL_Vulkan_GetInstanceExtensions(window.get(), &count, &required_extensions[0]);
+
+                desired_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+                uint32_t extensionPropertiesCount;
+                CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, nullptr));
+                auto extensionProperties = std::make_unique_for_overwrite<VkExtensionProperties[]>(extensionPropertiesCount);
+                CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, extensionProperties.get()));
+                if (g_verbose) {
+                    spdlog::info("Avaible extensions ({}):", extensionPropertiesCount);
+                    for (std::size_t i = 0; i < extensionPropertiesCount; ++i) {
+                        auto const major = VK_VERSION_MAJOR(extensionProperties[i].specVersion);
+                        auto const minor = VK_VERSION_MINOR(extensionProperties[i].specVersion);
+                        auto const patch = VK_VERSION_PATCH(extensionProperties[i].specVersion);
+                        spdlog::info("\t{}: {}.{}.{}", extensionProperties[i].extensionName, major, minor, patch);
+                    }
+                }
+
+                instance_extensions.insert(instance_extensions.end(), required_extensions.begin(), required_extensions.end());
+
+                for (auto const desired : desired_extensions) {
+                    for (uint32_t i = 0; i < extensionPropertiesCount; ++i) {
+                        if (std::strcmp(extensionProperties[i].extensionName, desired) == 0) {
+                            instance_extensions.push_back(desired);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            {
+                std::vector<char const *> required_layers;
+                std::vector<char const *> desired_layers;
+#ifndef NDEBUG
+                desired_layers.push_back("VK_LAYER_KHRONOS_validation");
+#endif
+
+                uint32_t layerPropertiesCount;
+                CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, nullptr));
+                auto layerProperties = std::make_unique_for_overwrite<VkLayerProperties[]>(layerPropertiesCount);
+                CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, layerProperties.get()));
+                if (g_verbose) {
+                    spdlog::info("Avaible extensions ({}):", layerPropertiesCount);
+                    for (std::size_t i = 0; i < layerPropertiesCount; ++i) {
+                        auto const major = VK_VERSION_MAJOR(layerProperties[i].specVersion);
+                        auto const minor = VK_VERSION_MINOR(layerProperties[i].specVersion);
+                        auto const patch = VK_VERSION_PATCH(layerProperties[i].specVersion);
+
+                        auto const impl_major = VK_VERSION_MAJOR(layerProperties[i].implementationVersion);
+                        auto const impl_minor = VK_VERSION_MINOR(layerProperties[i].implementationVersion);
+                        auto const impl_patch = VK_VERSION_PATCH(layerProperties[i].implementationVersion);
+
+                        spdlog::info("\t{}: {}.{}.{} ({}.{}.{})",
+                            layerProperties[i].layerName,
+                            major, minor, patch,
+                            impl_major, impl_minor, impl_patch);
+                        spdlog::info("\t\t{}", layerProperties[i].description);
+                    }
+                }
+
+                instance_layers.insert(instance_layers.end(), required_layers.begin(), required_layers.end());
+
+                for (auto const desired : desired_layers) {
+                    for (uint32_t i = 0; i < layerPropertiesCount; ++i) {
+                        if (std::strcmp(layerProperties[i].layerName, desired) == 0) {
+                            instance_layers.push_back(desired);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            VkApplicationInfo const applicationInfo {
+                .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                .pApplicationName = "vgame",
+                .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
+                .pEngineName = "vengine",
+                .engineVersion = VK_MAKE_VERSION(0, 1, 0),
+                .apiVersion = VK_API_VERSION_1_0,
+            };
+
+            VkInstanceCreateInfo instanceCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                .pApplicationInfo = &applicationInfo,
+                .enabledLayerCount = static_cast<uint32_t>(instance_layers.size()),
+                .ppEnabledLayerNames = instance_layers.data(),
+                .enabledExtensionCount = static_cast<uint32_t>(instance_extensions.size()),
+                .ppEnabledExtensionNames = instance_extensions.data(),
+            };
+
+            VkInstance instance;
+            CHECK_VK(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+
+            return instance;
         }();
 
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
+        volkLoadInstanceOnly(vulkan.instance);
 
-        auto physical_device = instance.enumeratePhysicalDevices().front();
-        auto device = physical_device.createDevice({}, nullptr);
+        vulkan.physicalDevice = [&] {
+            uint32_t physicalDeviceCount {};
+            CHECK_VK(vkEnumeratePhysicalDevices(vulkan.instance, &physicalDeviceCount, nullptr));
+            auto physicalDevices = std::make_unique_for_overwrite<VkPhysicalDevice[]>(physicalDeviceCount);
+            CHECK_VK(vkEnumeratePhysicalDevices(vulkan.instance, &physicalDeviceCount, physicalDevices.get()));
 
+            if (g_verbose)
+                spdlog::info("Vulkan devices ({}):", physicalDeviceCount);
+            for (uint32_t i = 0; i < physicalDeviceCount; ++i) {
+
+                VkPhysicalDeviceProperties physicalDeviceProperties;
+                vkGetPhysicalDeviceProperties(physicalDevices[i], &physicalDeviceProperties);
+                VkPhysicalDeviceFeatures physicalDeviceFeatures;
+                vkGetPhysicalDeviceFeatures(physicalDevices[i], &physicalDeviceFeatures);
+
+                if (g_verbose) {
+                    auto const deviceType = [&] {
+                        switch (physicalDeviceProperties.deviceType) {
+                        case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                            return "CPU"sv;
+                        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                            return "Discrete GPU"sv;
+                        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                            return "Integrated GPU"sv;
+                        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                            return "Virtual GPU"sv;
+                        default:
+                            return "Unkown"sv;
+                        }
+                    }();
+                    spdlog::info("\t{} ID: {}\tName: {} ({})",
+                        i, physicalDeviceProperties.deviceID,
+                        physicalDeviceProperties.deviceName, deviceType);
+                }
+            }
+
+            return physicalDevices[0];
+        }();
+
+        vulkan.queueFamiliyIndices = [&] {
+            uint32_t queueFamilyPropertiesCount;
+            vkGetPhysicalDeviceQueueFamilyProperties(vulkan.physicalDevice, &queueFamilyPropertiesCount, nullptr);
+            auto const queueFamilyProperties = std::make_unique_for_overwrite<VkQueueFamilyProperties[]>(queueFamilyPropertiesCount);
+            vkGetPhysicalDeviceQueueFamilyProperties(vulkan.physicalDevice, &queueFamilyPropertiesCount, queueFamilyProperties.get());
+
+            auto result = decltype(vulkan.queueFamiliyIndices) {};
+
+            for (uint32_t i = 0; i < queueFamilyPropertiesCount; ++i) {
+                if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                    result.graphics = i;
+                if (queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+                    result.compute = i;
+            }
+
+            return result;
+        }();
+
+        vulkan.device = [&] {
+            if (vulkan.queueFamiliyIndices.compute == vulkan.queueFamiliyIndices.graphics) {
+                float const priorities[] = { 1.0f, 1.0f };
+                VkDeviceQueueCreateInfo const deviceQueueCreateInfos {
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                    .queueFamilyIndex = vulkan.queueFamiliyIndices.graphics,
+                    .queueCount = 2,
+                    .pQueuePriorities = &priorities[0],
+                };
+
+                VkDeviceCreateInfo const deviceCreateInfo {
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                    .queueCreateInfoCount = 1,
+                    .pQueueCreateInfos = &deviceQueueCreateInfos,
+                };
+                VkDevice device;
+                CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, nullptr, &device));
+                return device;
+            } else {
+                float const priorities = 1.0f;
+                VkDeviceQueueCreateInfo const deviceQueueCreateInfos[2] {
+                    {
+                        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                        .queueFamilyIndex = vulkan.queueFamiliyIndices.graphics,
+                        .queueCount = 1,
+                        .pQueuePriorities = &priorities,
+                    },
+                    {
+                        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                        .queueFamilyIndex = vulkan.queueFamiliyIndices.compute,
+                        .queueCount = 1,
+                        .pQueuePriorities = &priorities,
+                    }
+                };
+
+                VkDeviceCreateInfo const deviceCreateInfo {
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                    .queueCreateInfoCount = std::size(deviceQueueCreateInfos),
+                    .pQueueCreateInfos = &deviceQueueCreateInfos[0],
+                };
+                VkDevice device;
+                CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, nullptr, &device));
+                return device;
+            }
+        }();
+
+        volkLoadDeviceTable(&vulkan.deviceTable, vulkan.device);
+
+        vulkan.queues = [&] {
+            auto result = decltype(vulkan.queues) {};
+            if (vulkan.queueFamiliyIndices.compute == vulkan.queueFamiliyIndices.graphics) {
+                vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.graphics, 0, &result.graphics);
+                vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.graphics, 1, &result.compute);
+            } else {
+                vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.graphics, 0, &result.graphics);
+                vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.compute, 0, &result.compute);
+            }
+            return result;
+        }();
+
+        // vulkan handles are always 64bit,
+        // so it's not enough to reinterpret_cast a handle to a pointer
         if (!ImGui_ImplVulkan_LoadFunctions(
                 +[](char const *function_name, void *udata) {
-                    auto &instance = *reinterpret_cast<vk::Instance *>(udata);
-                    auto pfn = pfn_vkGetInstanceProcAddr(instance, function_name);
-                    spdlog::info("Loaded {}: {}", function_name, (void *)pfn);
-                    return pfn;
+                    auto const instance = *reinterpret_cast<VkInstance const *>(udata);
+                    return vkGetInstanceProcAddr(instance, function_name);
                 },
-                &instance)) {
+                const_cast<void *>(static_cast<void const *>(&vulkan.instance)))) {
             spdlog::critical("Cannot load Vulkan functions");
             std::exit(-1);
         };
+#endif
 
         if (!IMGUI_CHECKVERSION())
             utils::show_error("ImGui version mismatch!\nYou may need to recompile the game."sv);
 
         ImGui::CreateContext();
 
-        ImGui_ImplVulkan_InitInfo vulkanInitInfo {};
-        vulkanInitInfo.Instance = instance;
-        vulkanInitInfo.PhysicalDevice = physical_device;
-        vulkanInitInfo.Device = device;
+#ifdef ENGINE_WITH_VULKAN
+        ImGui_ImplVulkan_InitInfo vulkanInitInfo {
+            .Instance = vulkan.instance,
+            .PhysicalDevice = vulkan.physicalDevice,
+            .Device = vulkan.device,
+            .QueueFamily = vulkan.queueFamiliyIndices.graphics,
+            .Queue = vulkan.queues.graphics,
+            .CheckVkResultFn = &CHECK_VK,
+        };
 
         ImGui_ImplVulkan_Init(&vulkanInitInfo, VK_NULL_HANDLE);
+#endif
 
         ImGuiIO &imgui_io = ImGui::GetIO();
         imgui_io.IniFilename = "cfg/imgui.ini";
@@ -304,7 +574,7 @@ int main(int argc, char **argv)
         ImGui::DestroyContext();
 
         return 0;
-#ifdef NDEBUG
+#ifndef NDEBUG
     } catch (sol::error const &e) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lua panic!", e.what(), nullptr);
         spdlog::critical("Lua panic!: {}", e.what());
@@ -325,6 +595,16 @@ int main(int argc, char **argv)
 #endif
     return -1;
 }
+
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 static void fix_current_directory(char const *argv0)
 {

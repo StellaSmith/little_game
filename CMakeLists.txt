@@ -54,6 +54,7 @@ endif()
 
 if (WITH_VULKAN)
     find_package(Vulkan REQUIRED)
+    find_package(volk REQUIRED)
 endif()
 
 find_package(glm REQUIRED)
@@ -163,11 +164,16 @@ PRIVATE
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost)
 
 if (WITH_OPENGL)
-    target_link_libraries(little_game PRIVATE glad::glad imgui_impl_opengl3)
+    target_link_libraries(little_game PRIVATE
+        glad::glad
+        imgui_impl_opengl3)
 endif()
 
 if (WITH_VULKAN)
-    target_link_libraries(little_game PRIVATE Vulkan::Headers imgui_impl_vulkan)
+    target_link_libraries(little_game PRIVATE
+        Vulkan::Headers
+        volk::volk
+        imgui_impl_vulkan)
 endif()
 
 if (WITH_LUAJIT)

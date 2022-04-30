@@ -90,7 +90,9 @@ class VGameConan(ConanFile):
         if self.options.with_opengl:
             self.requires("glad/0.1.35")
         if self.options.with_vulkan:
-            self.requires("vulkan-headers/1.3.211.0")
+            sdk_version = "1.3.204"
+            self.requires(f"volk/{sdk_version}")
+            self.requires(f"vulkan-headers/{sdk_version}")
             if self.settings.os in ("Macos", "iOS", "tvOS", "watchOS"):
                 self.requires("moltenvk/1.1.9")
 
