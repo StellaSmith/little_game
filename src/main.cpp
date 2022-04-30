@@ -48,6 +48,7 @@ struct VulkanState {
         VkQueue compute = VK_NULL_HANDLE;
     } queues;
 
+    VkSurfaceKHR sdl2_surface = VK_NULL_HANDLE;
     VkRenderPass imgui_renderpass = VK_NULL_HANDLE;
 };
 
@@ -341,6 +342,21 @@ int main(int argc, char **argv)
 
         volkLoadInstanceOnly(vulkan.instance);
 
+        // vulkan handles are always 64bit,
+        // so it's not enough to reinterpret_cast a handle to a pointer
+        if (!ImGui_ImplVulkan_LoadFunctions(
+                +[](char const *function_name, void *udata) {
+                    auto const instance = *reinterpret_cast<VkInstance const *>(udata);
+                    return vkGetInstanceProcAddr(instance, function_name);
+                },
+                const_cast<void *>(static_cast<void const *>(&vulkan.instance)))) {
+            spdlog::critical("Cannot load Vulkan functions");
+            std::exit(-1);
+        };
+
+        if (!SDL_Vulkan_CreateSurface(window.get(), vulkan.instance, &vulkan.sdl2_surface))
+            throw SDL::Error::current();
+
         vulkan.physicalDevice = [&] {
             uint32_t physicalDeviceCount {};
             CHECK_VK(vkEnumeratePhysicalDevices(vulkan.instance, &physicalDeviceCount, nullptr));
@@ -458,17 +474,6 @@ int main(int argc, char **argv)
             return result;
         }();
 
-        // vulkan handles are always 64bit,
-        // so it's not enough to reinterpret_cast a handle to a pointer
-        if (!ImGui_ImplVulkan_LoadFunctions(
-                +[](char const *function_name, void *udata) {
-                    auto const instance = *reinterpret_cast<VkInstance const *>(udata);
-                    return vkGetInstanceProcAddr(instance, function_name);
-                },
-                const_cast<void *>(static_cast<void const *>(&vulkan.instance)))) {
-            spdlog::critical("Cannot load Vulkan functions");
-            std::exit(-1);
-        };
 #endif
 
         if (!IMGUI_CHECKVERSION())
