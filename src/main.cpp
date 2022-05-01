@@ -36,6 +36,37 @@ private:
     std::optional<VkAllocationCallbacks> m_allocationCallbacks = std::nullopt;
 
 public:
+    static VulkanState with_malloc() noexcept
+    {
+        VulkanState result;
+
+        result.m_allocationCallbacks = VkAllocationCallbacks {
+            .pfnAllocation = [](void *, size_t bytes, size_t alignment, VkSystemAllocationScope) -> void * {
+#if defined(HAS_C11_ALIGNED_ALLOC)
+                return aligned_alloc(alignment, bytes);
+#elif defined(HAS_POSIX_MEMALIGN)
+                void *ptr = nullptr;
+                posix_memalign(&ptr, alignment, bytes);
+                return ptr;
+#elif defined(HAS_WIN32_ALIGNED_MALLOC)
+                return _aligned_malloc(bytes, alignment);
+#else
+#error "There's no aligned allocation support for your platform"
+#endif
+            },
+            .pfnFree = [](void *, void *ptr) {
+#if defined(HAS_C11_ALIGNED_ALLOC) || defined(HAS_POSIX_MEMALIGN)
+                return free(ptr);
+#elif defined(HAS_WIN32_ALIGNED_MALLOC)
+                return _aligned_free(ptr);
+#else
+#error "There's no aligned allocation support for your platform"
+#endif
+            }
+        };
+
+        return result;
+    }
 
     VkInstance instance = VK_NULL_HANDLE;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
