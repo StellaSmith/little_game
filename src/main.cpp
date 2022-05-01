@@ -601,73 +601,11 @@ int main(int argc, char **argv)
     return -1;
 }
 
-#ifndef _WIN32
-#include <unistd.h>
-#else
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
 static void fix_current_directory(char const *argv0)
 {
-#ifndef _WIN32
-    {
-        auto path = std::string { argv0 };
-        if (path.back() == '/') path.pop_back();
+    auto const path = std::filesystem::path(argv0, std::filesystem::path::native_format).parent_path().parent_path();
+    std::filesystem::current_path(path);
 
-        // go up two levels, one for bin/
-
-        if (auto pos = path.rfind('/'); pos != std::string::npos) {
-            path.resize(pos);
-        }
-
-        if (auto pos = path.rfind('/'); pos != std::string::npos) {
-            path.resize(pos);
-        }
-
-        if (chdir(path.c_str()) < 0) {
-            int const err = errno;
-            std::string const err_str = std::system_category().message(err);
-            utils::show_error("Couldn't chdir", fmt::format("Couldn't change current working directory to {}\n{}", path, err_str));
-        }
-        if (g_verbose)
-            spdlog::info("Working directory: {}", path);
-    }
-#else
-    {
-        std::vector<wchar_t> buf(MAX_PATH);
-        DWORD err;
-        while (true) {
-            DWORD len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
-            if ((err = GetLastError()) == ERROR_INSUFFICIENT_BUFFER || len == buf.size()) {
-                buf.resize(buf.size() * 2);
-            } else {
-                break;
-            }
-        }
-
-        if (err)
-            throw std::system_error(err, std::system_category(),
-                "GetModuleFileNameW failed: Couldn't get executable path");
-
-        *wcsrchr(buf.data(), L'\\') = L'\0';
-        if (auto *p = wcsrchr(buf.data(), L'\\'); p) {
-            *p = L'\0';
-        } else {
-            utils::show_error("Couldn't chdir", "Couldn't change current working above root");
-        }
-
-        auto len = std::wcslen(buf.data());
-        if (SetCurrentDirectoryW(buf.data()) == 0) {
-            err = GetLastError();
-            auto narrow_buf = std::make_unique<char[]>(len * 4 + 1);
-            WideCharToMultiByte(CP_ACP, 0, buf.data(), -1, narrow_buf.get(), len * 4 + 1, nullptr, nullptr);
-            throw std::system_error(err, std::system_category(),
-                fmt::format("SetCurrentDirectoryW failed: Couldn't change current working directory to {}", narrow_buf.get()));
-        }
-    }
-#endif
+    if (g_verbose)
+        spdlog::info("Working directory: {}", path.string());
 }
