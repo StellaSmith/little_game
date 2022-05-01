@@ -32,6 +32,11 @@ bool g_verbose = false;
 static void fix_current_directory(char const *argv0);
 
 struct VulkanState {
+private:
+    std::optional<VkAllocationCallbacks> m_allocationCallbacks = std::nullopt;
+
+public:
+
     VkInstance instance = VK_NULL_HANDLE;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device = VK_NULL_HANDLE;
@@ -50,6 +55,34 @@ struct VulkanState {
 
     VkSurfaceKHR sdl2_surface = VK_NULL_HANDLE;
     VkRenderPass imgui_renderpass = VK_NULL_HANDLE;
+
+    VkAllocationCallbacks *allocationCallbacks() noexcept
+    {
+        if (m_allocationCallbacks.has_value())
+            return &m_allocationCallbacks.value();
+        else
+            return nullptr;
+    }
+
+    VkAllocationCallbacks const *allocationCallbacks() const noexcept
+    {
+        if (m_allocationCallbacks.has_value())
+            return &m_allocationCallbacks.value();
+        else
+            return nullptr;
+    }
+
+    ~VulkanState()
+    {
+        if (imgui_renderpass != VK_NULL_HANDLE)
+            deviceTable.vkDestroyRenderPass(device, std::exchange(imgui_renderpass, VK_NULL_HANDLE), allocationCallbacks());
+        if (sdl2_surface != VK_NULL_HANDLE)
+            vkDestroySurfaceKHR(instance, std::exchange(sdl2_surface, VK_NULL_HANDLE), allocationCallbacks());
+        if (device != VK_NULL_HANDLE)
+            deviceTable.vkDestroyDevice(std::exchange(device, VK_NULL_HANDLE), allocationCallbacks());
+        if (instance != VK_NULL_HANDLE)
+            vkDestroyInstance(std::exchange(instance, VK_NULL_HANDLE), allocationCallbacks());
+    }
 };
 
 static std::error_category const &vulkan_category() noexcept
@@ -335,7 +368,7 @@ int main(int argc, char **argv)
             };
 
             VkInstance instance;
-            CHECK_VK(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+            CHECK_VK(vkCreateInstance(&instanceCreateInfo, vulkan.allocationCallbacks(), &instance));
 
             return instance;
         }();
@@ -430,7 +463,7 @@ int main(int argc, char **argv)
                     .pQueueCreateInfos = &deviceQueueCreateInfos,
                 };
                 VkDevice device;
-                CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, nullptr, &device));
+                CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, vulkan.allocationCallbacks(), &device));
                 return device;
             } else {
                 float const priorities = 1.0f;
@@ -455,7 +488,7 @@ int main(int argc, char **argv)
                     .pQueueCreateInfos = &deviceQueueCreateInfos[0],
                 };
                 VkDevice device;
-                CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, nullptr, &device));
+                CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, vulkan.allocationCallbacks(), &device));
                 return device;
             }
         }();
