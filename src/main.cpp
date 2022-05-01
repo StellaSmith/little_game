@@ -652,6 +652,9 @@ int main(int argc, char **argv)
 #if ENGINE_WITH_OPENGL
         ImGui_ImplOpenGL3_Shutdown();
 #endif
+#ifdef ENGINE_WITH_VULKAN
+        ImGui_ImplVulkan_Shutdown();
+#endif
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
 
