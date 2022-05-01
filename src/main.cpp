@@ -19,6 +19,7 @@
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_impl_sdl.h>
+#include <oneapi/tbb/scalable_allocator.h>
 #include <spdlog/spdlog.h>
 
 #include <cstdio>
@@ -65,6 +66,18 @@ public:
             }
         };
 
+        return result;
+    }
+
+    static VulkanState with_tbbmalloc()
+    {
+        VulkanState result;
+
+        result.m_allocationCallbacks = VkAllocationCallbacks {
+            .pfnAllocation = [](void *, size_t bytes, size_t alignment, VkSystemAllocationScope scope) { return scalable_aligned_malloc(bytes, alignment); },
+            .pfnReallocation = [](void *, void *ptr, size_t bytes, size_t alignment, VkSystemAllocationScope scope) { return scalable_aligned_realloc(ptr, bytes, alignment); },
+            .pfnFree = [](void *, void *ptr) { scalable_aligned_free(ptr); }
+        };
         return result;
     }
 
@@ -293,7 +306,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef ENGINE_WITH_VULKAN
-        VulkanState vulkan;
+        auto vulkan = VulkanState::with_tbbmalloc();
 
         volkInitializeCustom(reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
 
