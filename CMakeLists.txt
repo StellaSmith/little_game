@@ -68,6 +68,11 @@ find_package(TBB REQUIRED)
 
 add_subdirectory(external)
 
+include(CheckCXXSymbolExists)
+check_cxx_symbol_exists(aligned_alloc stdlib.h HAS_C11_ALIGNED_ALLOC)
+check_cxx_symbol_exists(posix_memalign stdlib.h HAS_POSIX_MEMALIGN)
+check_cxx_symbol_exists(_aligned_malloc malloc.h HAS_WIN32_ALIGNED_MALLOC)
+
 add_executable(little_game
     src/main.cpp
     src/fast_math.cpp
@@ -186,7 +191,10 @@ target_compile_features(little_game PUBLIC cxx_std_20)
 target_include_directories(little_game PRIVATE include)
 target_compile_definitions(little_game PUBLIC
     GLM_FORCE_XYZW_ONLY
-    SOL_ALL_SAFETIES_ON)
+    SOL_ALL_SAFETIES_ON
+    $<$<BOOL:HAS_C11_ALIGNED_ALLOC>:HAS_C11_ALIGNED_ALLOC>
+    $<$<BOOL:HAS_POSIX_MEMALIGN>:HAS_POSIX_MEMALIGN>
+    $<$<BOOL:HAS_WIN32_ALIGNED_MALLOC>:HAS_WIN32_ALIGNED_MALLOC>)
 
 if (WITH_LUAJIT)
     target_compile_definitions(little_game PUBLIC SOL_LUAJIT)
