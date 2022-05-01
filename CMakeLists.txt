@@ -40,8 +40,6 @@ else()
     set_property(GLOBAL APPEND PROPERTY COMPILE_FLAGS "-Wall" "-Wextra" "-Wpedantic-errors")
 endif()
 
-
-
 if (WITH_LUAJIT)
     find_package(luajit REQUIRED)
 else()
@@ -66,6 +64,7 @@ find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
 find_package(ctre REQUIRED)
 find_package(Boost REQUIRED)
+find_package(TBB REQUIRED)
 
 add_subdirectory(external)
 
@@ -161,7 +160,7 @@ target_link_libraries(little_game
 PRIVATE
     resources
     SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost TBB::tbbmalloc)
 
 if (WITH_OPENGL)
     target_link_libraries(little_game PRIVATE
