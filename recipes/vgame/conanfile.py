@@ -75,7 +75,7 @@ class VGameConan(ConanFile):
         self.requires("entt/3.9.0")
         self.requires("stb/cci.20210910")
         self.requires("ctre/3.6")
-        self.requires("onetbb/2020.3")
+        self.requires("onetbb/2021.5.0")
 
         self.requires("fmt/8.1.1")
         self.requires("spdlog/1.9.2")
