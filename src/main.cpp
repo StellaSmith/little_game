@@ -10,7 +10,7 @@
 #include <imgui_impl_opengl3.h>
 #endif
 #ifdef ENGINE_WITH_VULKAN
-#include <volk.h>
+#include <engine/rendering/vulkan/State.hpp>
 
 #include <SDL_vulkan.h>
 #include <imgui_impl_vulkan.h>
@@ -19,7 +19,6 @@
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_impl_sdl.h>
-#include <oneapi/tbb/scalable_allocator.h>
 #include <spdlog/spdlog.h>
 
 #include <cstdio>
@@ -31,148 +30,6 @@ using namespace std::literals;
 
 bool g_verbose = false;
 static void fix_current_directory(char const *argv0);
-
-struct VulkanState {
-private:
-    std::optional<VkAllocationCallbacks> m_allocationCallbacks = std::nullopt;
-
-public:
-    static VulkanState with_malloc() noexcept
-    {
-        VulkanState result;
-
-        result.m_allocationCallbacks = VkAllocationCallbacks {
-            .pfnAllocation = [](void *, size_t bytes, size_t alignment, VkSystemAllocationScope) -> void * {
-#if defined(HAS_C11_ALIGNED_ALLOC)
-                return aligned_alloc(alignment, bytes);
-#elif defined(HAS_POSIX_MEMALIGN)
-                void *ptr = nullptr;
-                posix_memalign(&ptr, alignment, bytes);
-                return ptr;
-#elif defined(HAS_WIN32_ALIGNED_MALLOC)
-                return _aligned_malloc(bytes, alignment);
-#else
-#error "There's no aligned allocation support for your platform"
-#endif
-            },
-            .pfnFree = [](void *, void *ptr) {
-#if defined(HAS_C11_ALIGNED_ALLOC) || defined(HAS_POSIX_MEMALIGN)
-                return free(ptr);
-#elif defined(HAS_WIN32_ALIGNED_MALLOC)
-                return _aligned_free(ptr);
-#else
-#error "There's no aligned allocation support for your platform"
-#endif
-            }
-        };
-
-        return result;
-    }
-
-    static VulkanState with_tbbmalloc()
-    {
-        VulkanState result;
-
-        result.m_allocationCallbacks = VkAllocationCallbacks {
-            .pfnAllocation = [](void *, size_t bytes, size_t alignment, VkSystemAllocationScope scope) { return scalable_aligned_malloc(bytes, alignment); },
-            .pfnReallocation = [](void *, void *ptr, size_t bytes, size_t alignment, VkSystemAllocationScope scope) { return scalable_aligned_realloc(ptr, bytes, alignment); },
-            .pfnFree = [](void *, void *ptr) { scalable_aligned_free(ptr); }
-        };
-        return result;
-    }
-
-    VkInstance instance = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device = VK_NULL_HANDLE;
-
-    VolkDeviceTable deviceTable {};
-
-    struct {
-        uint32_t graphics = UINT32_MAX;
-        uint32_t compute = UINT32_MAX;
-    } queueFamiliyIndices;
-
-    struct {
-        VkQueue graphics = VK_NULL_HANDLE;
-        VkQueue compute = VK_NULL_HANDLE;
-    } queues;
-
-    VkSurfaceKHR sdl2_surface = VK_NULL_HANDLE;
-    VkRenderPass imgui_renderpass = VK_NULL_HANDLE;
-
-    VkAllocationCallbacks *allocationCallbacks() noexcept
-    {
-        if (m_allocationCallbacks.has_value())
-            return &m_allocationCallbacks.value();
-        else
-            return nullptr;
-    }
-
-    VkAllocationCallbacks const *allocationCallbacks() const noexcept
-    {
-        if (m_allocationCallbacks.has_value())
-            return &m_allocationCallbacks.value();
-        else
-            return nullptr;
-    }
-
-    ~VulkanState()
-    {
-        if (imgui_renderpass != VK_NULL_HANDLE)
-            deviceTable.vkDestroyRenderPass(device, std::exchange(imgui_renderpass, VK_NULL_HANDLE), allocationCallbacks());
-        if (sdl2_surface != VK_NULL_HANDLE)
-            vkDestroySurfaceKHR(instance, std::exchange(sdl2_surface, VK_NULL_HANDLE), allocationCallbacks());
-        if (device != VK_NULL_HANDLE)
-            deviceTable.vkDestroyDevice(std::exchange(device, VK_NULL_HANDLE), allocationCallbacks());
-        if (instance != VK_NULL_HANDLE)
-            vkDestroyInstance(std::exchange(instance, VK_NULL_HANDLE), allocationCallbacks());
-    }
-};
-
-static std::error_category const &vulkan_category() noexcept
-{
-
-    class VulkanErrorCode final : public std::error_category {
-    public:
-        char const *name() const noexcept override
-        {
-            return "VkError";
-        }
-        std::string message(int code) const override
-        {
-            auto const result = static_cast<VkResult>(code);
-            switch (result) {
-            case VkResult::VK_SUCCESS:
-                return "Command successfully completed";
-            case VkResult::VK_NOT_READY:
-                return "A fence or query has not yet completed";
-            case VkResult::VK_TIMEOUT:
-                return "A wait operation has not completed in the specified time";
-            case VkResult::VK_EVENT_SET:
-                return "An event is signaled";
-            case VkResult::VK_EVENT_RESET:
-                return "An event is unsignaled";
-            case VkResult::VK_INCOMPLETE:
-                return "A return array was too small for the result";
-            default: return "An unknown error has occurred; either the application has provided invalid input, or an implementation failure has occurred";
-            }
-        }
-    };
-
-    static auto const s_category = VulkanErrorCode {};
-    return s_category;
-}
-
-static std::error_code make_error_code(VkResult result) noexcept
-{
-    return std::error_code(static_cast<int>(result), vulkan_category());
-}
-
-static void CHECK_VK(VkResult result)
-{
-    if (result != VK_SUCCESS)
-        throw std::system_error(make_error_code(result));
-}
 
 int main(int argc, char **argv)
 {
@@ -306,7 +163,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef ENGINE_WITH_VULKAN
-        auto vulkan = VulkanState::with_tbbmalloc();
+        auto vulkan = engine::rendering::VulkanState::with_tbbmalloc();
 
         volkInitializeCustom(reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
 

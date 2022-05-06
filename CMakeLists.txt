@@ -144,6 +144,9 @@ endif()
 if (WITH_VULKAN)
     target_sources(little_game PRIVATE
         src/engine/rendering/vulkan/render.cpp
+        src/engine/rendering/vulkan/State.cpp
+
+        include/engine/rendering/vulkan/State.hpp
     )
 endif()
 
