@@ -88,7 +88,7 @@ class VGameConan(ConanFile):
         self.requires("imgui/1.87")
         self.requires("assimp/5.2.2")
         self.requires("sdl/2.0.20")
-        self.requires("boost/1.78.0")
+        self.requires("boost/1.79.0")
 
         if self.options.with_opengl:
             self.requires("glad/0.1.35")
