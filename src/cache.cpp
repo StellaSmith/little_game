@@ -1,7 +1,14 @@
 #include <utils/cache.hpp>
 
+#include <engine/Stream.hpp>
+
+#include <spdlog/spdlog.h>
+
+#include <algorithm>
 #include <cassert>
 #include <cstdlib> // std::getenv
+#include <optional>
+#include <vector>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -9,95 +16,95 @@
 #define NOMINMAX
 #endif
 #include <shlobj.h> // SHGetFolderPathW
-// #include <windows.h>
 #else
-#include <limits.h>
 #include <pwd.h> // getpwuid
 #include <unistd.h> // getuid
 #endif
 
 using namespace std::literals;
 
-std::filesystem::path const &utils::cache_directory()
-{
-    static std::filesystem::path cache_dir;
-    if (!cache_dir.empty())
-        return cache_dir;
-
+static std::filesystem::path const s_cache_directory = []() -> std::filesystem::path {
     if (char const *const cache_env = std::getenv("CACHE_PATH"))
-        return cache_dir = cache_env;
-
+        return cache_env;
+    else if (char const *cache_env = std::getenv("XDG_CACHE_HOME"); cache_env != nullptr)
+        return std::filesystem::path { cache_env } / "little_game"sv;
 #ifdef _WIN32
     wchar_t c_homedir[MAX_PATH] {};
-    SHGetFolderPathW(nullptr, CSIDL_PROFILE, nullptr, 0, c_homedir);
-    return cache_dir = std::filesystem::path { c_homedir } / L"little_game\\cache\\"sv;
+    SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA | CSIDL_FLAG_CREATE, nullptr, 0, c_homedir);
+    return cache_dir = std::filesystem::path(c_homedir, std::filesystem::path::native_format) / L"little_game\\cache\\"sv;
 #else
-
-    if (char const *cache_env = std::getenv("XDG_CACHE_HOME"); cache_env != nullptr)
-        return cache_dir = std::filesystem::path { cache_env } / "little_game"sv;
     else if (char const *home_env = std::getenv("HOME"); home_env != nullptr)
-        return cache_dir = std::filesystem::path { home_env } / ".cache/little_game"sv;
+        return std::filesystem::path { home_env } / ".cache/little_game"sv;
     else
-        return cache_dir = std::filesystem::path { getpwuid(getuid())->pw_dir } / ".cache/little_game"sv;
+        return std::filesystem::path(getpwuid(getuid())->pw_dir, std::filesystem::path::native_format) / ".cache/little_game"sv;
 #endif
+}();
+
+std::filesystem::path const &utils::cache_directory()
+{
+    return s_cache_directory;
 }
 
-std::FILE *utils::create_cache_file(std::string_view name)
+static utils::FileHandle open_cache_file(std::string_view name, char const *mode)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
     assert(!name.empty());
 
-    std::filesystem::path const &cache_path = cache_directory();
+    auto const cache_file = s_cache_directory / name;
+    auto const cache_file_directory = cache_file.parent_path();
 
-    auto const cache_file_path = (cache_path / name).remove_filename();
-    if (!std::filesystem::exists(cache_file_path)) {
+    if (!cache_file_directory.lexically_relative(s_cache_directory).native().starts_with(s_cache_directory.native())) {
+        spdlog::warn("Tried to open a cache file outside the cache directory: {}", name);
+        return nullptr;
+    }
+
+    if (!std::filesystem::exists(cache_file_directory)) {
         std::error_code ec;
-        if (!std::filesystem::create_directories(cache_file_path, ec) || ec)
+        if (!std::filesystem::create_directories(cache_file_directory, ec) || ec)
             return nullptr;
     }
 
-    if (!std::filesystem::is_directory(cache_file_path))
+    if (!std::filesystem::is_directory(cache_file_directory))
         return nullptr;
 
-    auto const cache_file = cache_path / name;
-
-    return std::fopen(cache_file.string().c_str(), "wb");
+    return engine::open_file(cache_file, mode);
 }
 
-std::FILE *utils::get_cache_file(std::string_view name, std::vector<std::string_view> const &ref_files)
+utils::FileHandle utils::create_cache_file(std::string_view name)
 {
-    while (!name.empty() && name.back() == '/')
-        name.remove_suffix(1);
-    assert(!name.empty());
+    return open_cache_file(name, "wb");
+}
 
-    std::filesystem::path const &cache_path = cache_directory();
-
-    auto cache_file = cache_path / name;
-
-    if (!std::filesystem::is_regular_file(cache_file))
-        return nullptr;
-
+utils::FileHandle utils::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
+{
     if (ref_files.empty())
-        return std::fopen(cache_file.string().c_str(), "rb");
+        return open_cache_file(name, "rb");
 
     std::error_code ec;
-    auto cache_time = std::filesystem::last_write_time(cache_file, ec).time_since_epoch().count();
-    if (ec)
-        return nullptr;
+    auto cache_time = std::filesystem::last_write_time(s_cache_directory / name, ec);
+    if (ec) return nullptr;
 
-    auto max_time = std::filesystem::last_write_time(ref_files.front(), ec).time_since_epoch().count();
-    if (ec)
-        return nullptr;
+    auto const maybe_max_time = [&] {
+        std::vector<std::filesystem::file_time_type> times;
+        times.reserve(ref_files.size());
 
-    for (auto it = ref_files.begin() + 1; it != ref_files.end(); ++it) {
-        max_time = std::max(max_time, std::filesystem::last_write_time(*it, ec).time_since_epoch().count());
-        if (ec)
-            return nullptr;
-    }
+        for (auto const &ref_file : ref_files) {
+            std::error_code ec;
+            auto write_time = std::filesystem::last_write_time(ref_file, ec);
+            if (!ec)
+                times.push_back(write_time);
+        }
 
-    if (max_time < cache_time)
-        return std::fopen(cache_file.string().c_str(), "rb");
+        auto it = std::max_element(times.begin(), times.end());
+        if (it == times.end())
+            return std::optional<std::filesystem::file_time_type> { std::nullopt };
+        else
+            return std::optional<std::filesystem::file_time_type>(std::in_place, std::move(*it));
+    }();
+
+    if (maybe_max_time.has_value() && maybe_max_time.value() < cache_time)
+        return open_cache_file(name, "rb");
 
     return nullptr;
 }
