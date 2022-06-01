@@ -25,18 +25,18 @@ void engine::Game::setup_shader()
 
 #ifdef GL_ARB_get_program_binary
     if (GLAD_GL_ARB_get_program_binary) {
-        std::FILE *fp = utils::get_cache_file("shaders/terrain/basic.bin"sv, { "assets/terrain/basic.vert"sv, "assets/terrain/basic.frag"sv });
+        static std::filesystem::path const ref_files[] = { "assets/terrain/basic.vert", "assets/terrain/basic.frag" };
+        auto fp = utils::get_cache_file("shaders/terrain/basic.bin"sv, ref_files);
         if (fp) {
             GLenum format;
-            std::fread(&format, sizeof(format), 1, fp);
-            auto start = std::ftell(fp);
-            std::fseek(fp, 0, SEEK_END);
-            auto stop = std::ftell(fp);
+            std::fread(&format, sizeof(format), 1, fp.get());
+            auto start = std::ftell(fp.get());
+            std::fseek(fp.get(), 0, SEEK_END);
+            auto stop = std::ftell(fp.get());
             auto len = static_cast<std::size_t>(stop - start);
-            std::fseek(fp, start, SEEK_SET);
+            std::fseek(fp.get(), start, SEEK_SET);
             auto data = std::make_unique<std::byte[]>(len);
-            std::fread(data.get(), 1, len, fp);
-            std::fclose(fp);
+            std::fread(data.get(), 1, len, fp.get());
 
             m_shader = glCreateProgram();
             glProgramBinary(m_shader, format, data.get(), len);
@@ -121,7 +121,7 @@ void engine::Game::setup_shader()
 
 #ifdef GL_ARB_get_program_binary
     if (GLAD_GL_ARB_get_program_binary) {
-        std::FILE *fp = utils::create_cache_file("shaders/terrain/basic.bin");
+        auto fp = utils::create_cache_file("shaders/terrain/basic.bin");
         if (!fp)
             return;
         GLint bufSize;
@@ -131,9 +131,8 @@ void engine::Game::setup_shader()
         GLenum format;
         glGetProgramBinary(m_shader, bufSize, &length, &format, data.get());
 
-        std::fwrite(&format, sizeof(format), 1, fp);
-        std::fwrite(data.get(), length, 1, fp);
-        std::fclose(fp);
+        std::fwrite(&format, sizeof(format), 1, fp.get());
+        std::fwrite(data.get(), length, 1, fp.get());
     }
 #endif
 }
