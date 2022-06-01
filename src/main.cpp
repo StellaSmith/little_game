@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef ENGINE_WITH_VULKAN
-        auto vulkan = engine::rendering::VulkanState::with_tbbmalloc();
+        auto vulkan = engine::rendering::VulkanState {};
 
         volkInitializeCustom(reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
 

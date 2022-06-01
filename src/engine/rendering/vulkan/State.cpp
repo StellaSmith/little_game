@@ -1,59 +1,8 @@
 #include <engine/rendering/vulkan/State.hpp>
 
-#if defined(HAS_C11_ALIGNED_ALLOC) || defined(HAS_POSIX_MEMALIGN)
-#include <stdlib.h>
-#endif
-
-#ifdef HAS_WIN32_ALIGNED_MALLOC
-#include <malloc.h>
-#endif
-
 #include <fmt/core.h>
-#include <oneapi/tbb/scalable_allocator.h>
 
-engine::rendering::VulkanState engine::rendering::VulkanState::with_malloc() noexcept
-{
-    VulkanState result;
-
-    result.m_allocationCallbacks = VkAllocationCallbacks {
-        .pfnAllocation = [](void *, size_t bytes, size_t alignment, VkSystemAllocationScope) -> void * {
-#if defined(HAS_C11_ALIGNED_ALLOC)
-            return aligned_alloc(alignment, bytes);
-#elif defined(HAS_POSIX_MEMALIGN)
-            void *ptr = nullptr;
-            posix_memalign(&ptr, alignment, bytes);
-            return ptr;
-#elif defined(HAS_WIN32_ALIGNED_MALLOC)
-            return _aligned_malloc(bytes, alignment);
-#else
-#error "There's no aligned allocation support for your platform"
-#endif
-        },
-        .pfnFree = [](void *, void *ptr) {
-#if defined(HAS_C11_ALIGNED_ALLOC) || defined(HAS_POSIX_MEMALIGN)
-            return free(ptr);
-#elif defined(HAS_WIN32_ALIGNED_MALLOC)
-            return _aligned_free(ptr);
-#else
-#error "There's no aligned allocation support for your platform"
-#endif
-        }
-    };
-
-    return result;
-}
-
-engine::rendering::VulkanState engine::rendering::VulkanState::with_tbbmalloc() noexcept
-{
-    VulkanState result;
-
-    result.m_allocationCallbacks = VkAllocationCallbacks {
-        .pfnAllocation = [](void *, size_t bytes, size_t alignment, VkSystemAllocationScope) { return scalable_aligned_malloc(bytes, alignment); },
-        .pfnReallocation = [](void *, void *ptr, size_t bytes, size_t alignment, VkSystemAllocationScope) { return scalable_aligned_realloc(ptr, bytes, alignment); },
-        .pfnFree = [](void *, void *ptr) { scalable_aligned_free(ptr); }
-    };
-    return result;
-}
+#include <utility>
 
 engine::rendering::VulkanState::~VulkanState()
 {

@@ -75,7 +75,6 @@ class VGameConan(ConanFile):
         self.requires("entt/3.9.0")
         self.requires("stb/cci.20210910")
         self.requires("ctre/3.6")
-        self.requires("onetbb/2021.5.0")
 
         self.requires("fmt/8.1.1")
         self.requires("spdlog/1.9.2")
@@ -107,9 +106,6 @@ class VGameConan(ConanFile):
         
         if self.options.with_opengl and tools.Version(self.options["glad"].gl_version) < "3.3":
             raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
-
-        if not self.options["onetbb"].tbbmalloc:
-            raise ConanInvalidConfiguration("tbbmalloc is required")
 
     def config_options(self):
         if self.options.use_mold:

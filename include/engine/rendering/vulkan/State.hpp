@@ -16,9 +16,6 @@ namespace engine::rendering {
         std::optional<VkAllocationCallbacks> m_allocationCallbacks = std::nullopt;
 
     public:
-        static VulkanState with_malloc() noexcept;
-        static VulkanState with_tbbmalloc() noexcept;
-
         VkInstance instance = VK_NULL_HANDLE;
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice device = VK_NULL_HANDLE;

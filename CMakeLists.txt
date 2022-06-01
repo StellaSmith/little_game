@@ -64,14 +64,8 @@ find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
 find_package(ctre REQUIRED)
 find_package(Boost REQUIRED)
-find_package(TBB REQUIRED)
 
 add_subdirectory(external)
-
-include(CheckCXXSymbolExists)
-check_cxx_symbol_exists(aligned_alloc stdlib.h HAS_C11_ALIGNED_ALLOC)
-check_cxx_symbol_exists(posix_memalign stdlib.h HAS_POSIX_MEMALIGN)
-check_cxx_symbol_exists(_aligned_malloc malloc.h HAS_WIN32_ALIGNED_MALLOC)
 
 add_executable(little_game
     src/main.cpp
@@ -168,7 +162,7 @@ target_link_libraries(little_game
 PRIVATE
     resources
     SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost TBB::tbbmalloc)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost)
 
 if (WITH_OPENGL)
     target_link_libraries(little_game PRIVATE
