@@ -90,14 +90,23 @@ void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chu
 {
     assert(&m_entity_registry == &registry); // sanity check
     glm::i32vec4 chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
-    m_chunks.emplace(chunk_position, chunk);
+    m_chunks.emplace(
+        std::array {
+            chunk_position.x,
+            chunk_position.y,
+            chunk_position.z },
+        chunk);
 }
 
 void engine::Game::on_chunk_destroy(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
     glm::i32vec4 chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
-    m_chunks.erase(chunk_position);
+    m_chunks.erase({
+        chunk_position.x,
+        chunk_position.y,
+        chunk_position.z,
+    });
 }
 
 void engine::Game::stop()

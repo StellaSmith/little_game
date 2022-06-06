@@ -184,7 +184,11 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
 
     for (entt::entity chunk : to_delete) {
         auto const &chunk_position = m_entity_registry.get<engine::C_ChunkPosition>(chunk);
-        m_chunks.erase(chunk_position);
+        m_chunks.erase({
+            chunk_position.x,
+            chunk_position.y,
+            chunk_position.z,
+        });
         m_translucent_mesh_data.erase(chunk_position);
         m_chunk_meshes.erase(chunk_position);
     }

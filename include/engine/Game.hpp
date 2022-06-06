@@ -8,6 +8,7 @@
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/rendering/Mesh.hpp>
 #include <engine/textures.hpp>
+#include <utils/trees.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
@@ -96,7 +97,7 @@ namespace engine {
         engine::Textures m_textures;
 
         entt::registry m_entity_registry;
-        std::unordered_map<glm::i32vec4, entt::entity, VectorHasher> m_chunks;
+        utils::octtree<std::int32_t, entt::entity> m_chunks;
 
         boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_type_names;
         entt::basic_storage<entt::id_type, engine::BlockType> m_block_types;
