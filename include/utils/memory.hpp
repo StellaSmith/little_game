@@ -26,7 +26,7 @@ namespace utils {
     }
 
     template <typename Alloc, typename... Args>
-    auto new_object(Alloc &allocator, Args &&...args) -> typename std::allocator_traits<Alloc>::pointer
+    requires(!std::allocator_traits<Alloc>::is_always_equal::value) auto new_object(Alloc &allocator, Args &&...args) -> typename std::allocator_traits<Alloc>::pointer
     {
         auto ptr = std::allocator_traits<Alloc>::allocate(allocator, 1);
         try {
@@ -39,10 +39,23 @@ namespace utils {
     }
 
     template <typename Alloc>
-    void delete_object(Alloc &allocator, typename std::allocator_traits<Alloc>::pointer ptr) noexcept
+    requires(!std::allocator_traits<Alloc>::is_always_equal::value) void delete_object(Alloc &allocator, typename std::allocator_traits<Alloc>::pointer ptr) noexcept
     {
         std::allocator_traits<Alloc>::destroy(allocator, ptr);
         std::allocator_traits<Alloc>::deallocate(allocator, ptr, 1);
+    }
+
+    template <typename Alloc, typename... Args>
+    requires(std::allocator_traits<Alloc>::is_always_equal::value) auto new_object(Alloc allocator, Args &&...args) -> typename std::allocator_traits<Alloc>::pointer
+    {
+
+        return new_object(allocator, std::forward<Args>(args)...);
+    }
+
+    template <typename Alloc>
+    requires(std::allocator_traits<Alloc>::is_always_equal::value) void delete_object(Alloc allocator, typename std::allocator_traits<Alloc>::pointer ptr) noexcept
+    {
+        delete_object(allocator, ptr);
     }
 
 }
