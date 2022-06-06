@@ -29,14 +29,17 @@ static std::filesystem::path const s_cache_directory = []() -> std::filesystem::
     else if (char const *cache_env = std::getenv("XDG_CACHE_HOME"); cache_env != nullptr)
         return std::filesystem::path { cache_env } / "little_game"sv;
 #ifdef _WIN32
-    wchar_t c_homedir[MAX_PATH] {};
-    SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA | CSIDL_FLAG_CREATE, nullptr, 0, c_homedir);
-    return cache_dir = std::filesystem::path(c_homedir, std::filesystem::path::native_format) / L"little_game\\cache\\"sv;
+    else {
+        wchar_t c_homedir[MAX_PATH] {};
+        SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA | CSIDL_FLAG_CREATE, nullptr, 0, c_homedir);
+        return std::filesystem::path(c_homedir, std::filesystem::path::native_format) / L"little_game\\cache\\"sv;
+    }
 #else
-    else if (char const *home_env = std::getenv("HOME"); home_env != nullptr)
+    else if (char const *home_env = std::getenv("HOME"); home_env != nullptr) {
         return std::filesystem::path { home_env } / ".cache/little_game"sv;
-    else
+    } else {
         return std::filesystem::path(getpwuid(getuid())->pw_dir, std::filesystem::path::native_format) / ".cache/little_game"sv;
+    }
 #endif
 }();
 
