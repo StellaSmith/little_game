@@ -71,13 +71,15 @@ class VGameConan(ConanFile):
                 self.copy(export, src=os.path.join("..", ".."), dst=self._source_subfolder)
 
     def requirements(self):
+        self.requires("openssl/1.1.1o", override=True)
+
         self.requires("glm/0.9.9.8")
         self.requires("entt/3.9.0")
         self.requires("stb/cci.20210910")
         self.requires("ctre/3.6")
 
         self.requires("fmt/8.1.1")
-        self.requires("spdlog/1.9.2")
+        self.requires("spdlog/1.10.0")
         self.requires("rapidjson/cci.20211112")
         if self.options.with_luajit:
             self.requires("luajit/2.0.5")
