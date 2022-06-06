@@ -95,6 +95,7 @@ class VGameConan(ConanFile):
             sdk_version = "1.3.204"
             self.requires(f"volk/{sdk_version}")
             self.requires(f"vulkan-headers/{sdk_version}")
+            self.requires("vulkan-memory-allocator/3.0.0")
             if self.settings.os in ("Macos", "iOS", "tvOS", "watchOS"):
                 self.requires("moltenvk/1.1.9")
 
