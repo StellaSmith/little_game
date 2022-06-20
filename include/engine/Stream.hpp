@@ -1,11 +1,13 @@
 #ifndef ENGINE_STREAM_HPP
 #define ENGINE_STREAM_HPP
 
+#include <resources.cpp> // auto-generated
 #include <utils/FileHandle.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include <cstdio>
 #include <filesystem>
-#include <resources.cpp>
 #include <system_error>
 
 #ifdef _WIN32
@@ -33,10 +35,12 @@ namespace engine {
         fp = std::fopen(path.native().c_str(), mode);
         err_nr = errno;
 #endif
-        if (!fp)
+        if (!fp) {
             ec.assign(err_nr, std::generic_category());
-        else
+            spdlog::error("Failed to open {}", path.string());
+        } else {
             ec.clear();
+        }
 
         if constexpr (BUFSIZ < 1024 * 8)
             std::setvbuf(fp, nullptr, _IOFBF, 1024 * 8);

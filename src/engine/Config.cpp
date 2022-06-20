@@ -1,10 +1,12 @@
 
 
 #include <engine/Config.hpp>
+#include <engine/Stream.hpp>
 #include <rapidjson/error/error.h>
 #include <rapidjson/reader.h>
 #include <string_view>
 #include <utils/error.hpp>
+#include <utils/file.hpp>
 
 #include <fmt/format.h>
 #include <rapidjson/document.h>
@@ -27,25 +29,21 @@ engine::Config const &engine::config()
 engine::Config const &engine::load_engine_config()
 {
 
-    char const *fname = "./cfg/engine.json";
-    FILE *fp = std::fopen(fname, "r");
-    if (!fp)
-        utils::show_error(fmt::format("Error opening engine configuration file. ({})", fname));
-
-    std::fseek(fp, 0, SEEK_END);
-    std::size_t filesize = std::ftell(fp);
-    std::fseek(fp, 0, SEEK_SET);
-    auto content = std::make_unique<char[]>(filesize + 1);
-    if (!std::fread(content.get(), 1, filesize, fp)) {
-        if (std::ferror(fp))
-            utils::show_error(fmt::format("Error reading engine configuration file. ({})", fname));
-    }
-    std::fclose(fp);
+    auto content = []() {
+        char const *fname = "./cfg/engine.json";
+        try {
+            auto fp = engine::open_file(fname, "r");
+            return utils::load_file(fp.get());
+        } catch (...) {
+            spdlog::critical("Error opening engine configuration file. ({})", fname);
+            throw;
+        }
+    }();
 
     rapidjson::Document doc;
     {
         using namespace rapidjson;
-        doc.ParseInsitu<kParseInsituFlag | kParseCommentsFlag | kParseTrailingCommasFlag | kParseNanAndInfFlag>(content.get());
+        doc.ParseInsitu<kParseInsituFlag | kParseCommentsFlag | kParseTrailingCommasFlag | kParseNanAndInfFlag>(content.data());
     }
 
     if (doc.HasParseError()) {
