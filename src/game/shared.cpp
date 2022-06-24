@@ -38,19 +38,7 @@ void engine::Game::start()
     setup_lua();
 
 #ifdef ENGINE_WITH_OPENGL
-    glClearColor(0.0, 0.25, 0.5, 1.0);
-
-    setup_shader();
-    glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
-    setup_texture();
-
-    glUseProgram(m_shader);
-    m_projection_uniform = glGetUniformLocation(m_shader, "projection");
-    m_view_uniform = glGetUniformLocation(m_shader, "view");
-
-    glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
-    glUseProgram(0);
+    setup_opengl();
 #endif
 
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);

@@ -20,6 +20,23 @@ extern int g_render_distance_vertical;
 
 using namespace std::literals;
 
+void engine::Game::setup_opengl()
+{
+    glClearColor(0.0, 0.25, 0.5, 1.0);
+
+    setup_shader();
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+    setup_texture();
+
+    glUseProgram(m_shader);
+    m_projection_uniform = glGetUniformLocation(m_shader, "projection");
+    m_view_uniform = glGetUniformLocation(m_shader, "view");
+
+    glUniform1i(glGetUniformLocation(m_shader, "texture0"), 0);
+    glUseProgram(0);
+}
+
 void engine::Game::setup_shader()
 {
 

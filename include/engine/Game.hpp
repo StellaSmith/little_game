@@ -59,6 +59,10 @@ namespace engine {
         void setup_texture();
         void setup_lua();
 
+#ifdef ENGINE_WITH_OPENGL
+        void setup_opengl();
+#endif
+
         static int l_print(lua_State *);
 
         void on_chunk_construct(entt::registry &, entt::entity chunk);
