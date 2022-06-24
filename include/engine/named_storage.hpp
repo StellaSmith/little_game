@@ -53,13 +53,11 @@ namespace engine {
 
         [[nodiscard]] value_type &get(entity_type idx) noexcept
         {
-            assert(idx < m_storage.size());
             return m_storage.get(idx);
         }
 
         [[nodiscard]] value_type const &get(entity_type idx) const noexcept
         {
-            assert(idx < m_storage.size());
             return m_storage.get(idx);
         }
 
