@@ -53,16 +53,19 @@ namespace engine::assets {
         engine::rendering::Mesh &get_or_emplace(std::size_t i) noexcept
         {
             if (has_mesh(i))
-                return *std::launder(&m_meshes[i].storage);
+                return m_meshes[i].storage;
             else
                 return *new (&m_meshes[i].storage) engine::rendering::Mesh;
         }
 
         static BlockMesh load_json(std::filesystem::path const &path);
 
+        ~BlockMesh();
+
     private:
-        struct MaybeMesh {
+        union MaybeMesh {
             engine::rendering::Mesh storage;
+            ~MaybeMesh() { }
         };
 
         char m_bits[128 / CHAR_BIT] {};

@@ -65,6 +65,14 @@ static rapidjson::SchemaDocument const s_model_schema = []() {
 
 using namespace std::literals;
 
+engine::assets::BlockMesh::~BlockMesh()
+{
+    for (std::size_t i = 0; i < std::size(m_meshes); ++i) {
+        if (has_mesh(i))
+            std::destroy_at(&m_meshes[i].storage);
+    }
+}
+
 engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path const &path)
 {
     if (utils::ends_with(path.native(), TEXT(".json"sv)) || utils::ends_with(path.native(), TEXT(".cjson"sv)))
