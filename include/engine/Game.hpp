@@ -2,10 +2,10 @@
 #define ENGINE_GAME_HPP
 
 #include <engine/BlockType.hpp>
-#include <engine/NamedRegistry.hpp>
 #include <engine/assets/BlockMesh.hpp>
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
+#include <engine/named_storage.hpp>
 #include <engine/rendering/Mesh.hpp>
 #include <engine/textures.hpp>
 #include <utils/trees.hpp>
@@ -74,11 +74,15 @@ namespace engine {
     public:
         bool running;
 
-        auto &block_types() noexcept { return m_block_types; }
-        auto const &block_types() const noexcept { return m_block_types; }
+        auto &block_registry() noexcept
+        {
+            return m_block_registry;
+        }
 
-        auto &block_type_names() noexcept { return m_block_type_names; }
-        auto const &block_type_names() const noexcept { return m_block_type_names; }
+        auto const &block_registry() const noexcept
+        {
+            return m_block_registry;
+        }
 
         auto &block_models() noexcept { return m_block_models; }
         auto const &block_models() const noexcept { return m_block_models; }
@@ -103,8 +107,8 @@ namespace engine {
         entt::registry m_entity_registry;
         utils::octtree<std::int32_t, entt::entity> m_chunks;
 
-        boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_type_names;
-        entt::basic_storage<entt::id_type, engine::BlockType> m_block_types;
+        engine::named_storage<engine::BlockType> m_block_registry;
+        entt::basic_storage<entt::id_type, engine::assets::BlockMesh> m_block_meshes;
 
         boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_model_names;
         entt::basic_storage<entt::id_type, engine::assets::BlockMesh> m_block_models;

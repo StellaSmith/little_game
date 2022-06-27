@@ -44,18 +44,12 @@ void engine::Game::start()
     m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
 
-    auto const maybe_colorful_id = [&]() -> std::optional<std::uint32_t> {
-        if (auto it = block_type_names().find("colorful_block"sv); it == block_type_names().end()) {
-            return std::nullopt;
-        } else {
-            return it->second;
-        }
-    }();
+    auto const maybe_colorful_id = m_block_registry.index("colorful_block");
 
     running = true;
     std::random_device rd {};
-    std::uniform_int_distribution<std::uint16_t> dist { 0, 255 };
-    std::uniform_int_distribution<std::size_t> id_dist { 0, m_block_types.size() };
+    std::uniform_int_distribution<std::uint16_t> color_dist { 0, 255 };
+    std::uniform_int_distribution<std::size_t> id_dist { 0, m_block_registry.size() };
 
     int32_t const max_x = 10;
     for (std::int32_t x = 0; x < max_x; ++x) {
@@ -65,9 +59,9 @@ void engine::Game::start()
         m_entity_registry.emplace<engine::C_Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
-            if (maybe_colorful_id) {
-                if ((block.type = id_dist(rd)) == maybe_colorful_id.value()) {
-                    block.data = math::pack_u32(dist(rd), dist(rd), dist(rd));
+            if (maybe_colorful_id != entt::null) {
+                if ((block.type_id = block_registry().storage()[id_dist(rd)]) == maybe_colorful_id) {
+                    block.data = math::pack_u32(color_dist(rd), color_dist(rd), color_dist(rd));
                 }
             }
         }
@@ -77,7 +71,7 @@ void engine::Game::start()
 void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
-    glm::i32vec4 chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
+    auto const &chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
     m_chunks.emplace(
         std::array {
             chunk_position.x,
@@ -89,7 +83,7 @@ void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chu
 void engine::Game::on_chunk_destroy(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
-    glm::i32vec4 chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
+    auto const &chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
     m_chunks.erase({
         chunk_position.x,
         chunk_position.y,

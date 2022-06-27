@@ -29,10 +29,17 @@ static engine::Sides get_visible_sides(engine::Game const &game, engine::C_Chunk
     constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
 
     auto const is_solid = [&](engine::Block block, engine::Sides side) -> bool {
-        if (block.type != entt::null)
-            return game.block_models().get(block.type).get_solid_mesh(side);
-        else
+        if (block.type_id == entt::null) [[unlikely]]
             return false;
+
+        auto const mesh_id = game.block_registry().get(block.type_id).mesh_id;
+        if (mesh_id == entt::null) [[unlikely]]
+            return false;
+
+        auto const &mesh = game.block_meshes().get(mesh_id);
+        auto const *maybe_solid = mesh.get_solid_mesh(side);
+
+        return maybe_solid != nullptr;
     };
 
     auto const [x, y, z] = block_pos;
@@ -146,7 +153,15 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
         Sides sides = get_visible_sides(*this, chunk_data, { x, y, z });
         if (!sides) continue;
 
-        engine::rendering::Mesh const *maybe_mesh = block.type != entt::null ? block_models().get(block_types().get(block.type).model_id).get_solid_mesh(sides) : nullptr;
+        auto const maybe_mesh = [&]() -> engine::rendering::Mesh const * {
+            if (block.type_id == entt::null) [[unlikely]]
+                return nullptr;
+            auto const mesh_id = block_registry().get(block.type_id).mesh_id;
+            if (mesh_id == entt::null) [[unlikely]]
+                return nullptr;
+            return block_meshes().get(mesh_id).get_solid_mesh(sides);
+        }();
+
         if (!maybe_mesh) continue;
         auto mesh = *maybe_mesh; // make a copy, we will transform it now
 
@@ -184,7 +199,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
 #endif
 
     for (auto &vertex : result.vertices) // transform to world coords
-        vertex.position += static_cast<glm::vec3>(static_cast<glm::ivec4>(chunk_position)) * static_cast<float>(chunk_size);
+        vertex.position += glm::vec3 { chunk_position.x, chunk_position.y, chunk_position.z } * static_cast<float>(chunk_size);
 
     return result;
 }

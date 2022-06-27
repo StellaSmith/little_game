@@ -7,7 +7,7 @@
 namespace engine {
 
     struct Block {
-        entt::id_type type = entt::null;
+        entt::entity type_id = entt::null;
         entt::id_type data = entt::null;
     };
 
