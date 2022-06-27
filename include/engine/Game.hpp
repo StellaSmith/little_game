@@ -108,10 +108,8 @@ namespace engine {
         utils::octtree<std::int32_t, entt::entity> m_chunks;
 
         engine::named_storage<engine::BlockType> m_block_registry;
-        entt::basic_storage<entt::id_type, engine::assets::BlockMesh> m_block_meshes;
+        entt::storage<engine::assets::BlockMesh> m_block_meshes;
 
-        boost::container::flat_map<std::string, entt::id_type, std::less<>> m_block_model_names;
-        entt::basic_storage<entt::id_type, engine::assets::BlockMesh> m_block_models;
 
         std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>, VectorHasher> m_chunk_meshes;
         std::unordered_map<glm::i32vec4, rendering::Mesh, VectorHasher> m_translucent_mesh_data; // needed to sort indices when the camera moves

@@ -8,7 +8,7 @@
 namespace engine {
 
     struct BlockType {
-        entt::id_type mesh_id = entt::null;
+        entt::entity mesh_id = entt::null;
         boost::container::small_vector<entt::entity, 4> texture_ids;
     };
 
