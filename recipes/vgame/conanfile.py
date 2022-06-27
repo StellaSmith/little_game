@@ -74,7 +74,7 @@ class VGameConan(ConanFile):
         self.requires("openssl/1.1.1o", override=True)
 
         self.requires("glm/0.9.9.8")
-        self.requires("entt/3.9.0")
+        self.requires("entt/3.10.1")
         self.requires("stb/cci.20210910")
         self.requires("ctre/3.6")
 

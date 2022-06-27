@@ -3,7 +3,7 @@
 
 #include <engine/errors/AlreadyRegistered.hpp>
 
-#include <entt/container/dense_hash_map.hpp>
+#include <entt/container/dense_map.hpp>
 #include <entt/entity/storage.hpp>
 
 #include <string>
@@ -27,7 +27,10 @@ namespace engine {
         using entity_type = typename table_type::entity_type;
 
     private:
-        using index_type = entt::dense_hash_map<std::string, entity_type>;
+        struct StringHasher : public std::hash<std::string_view> {
+            using is_transparent = std::string_view;
+        };
+        using index_type = entt::dense_map<std::string, entity_type, StringHasher, std::equal_to<>>;
 
     public:
         template <typename... Args>
