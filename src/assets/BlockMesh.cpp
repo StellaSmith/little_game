@@ -65,12 +65,48 @@ static rapidjson::SchemaDocument const s_model_schema = []() {
 
 using namespace std::literals;
 
+engine::assets::BlockMesh::BlockMesh()
+{
+}
+
+engine::assets::BlockMesh::BlockMesh(engine::assets::BlockMesh &&rhs) noexcept
+    : BlockMesh() // make sure we are default constructed
+{
+    swap(rhs);
+}
+
+engine::assets::BlockMesh &engine::assets::BlockMesh::operator=(engine::assets::BlockMesh &&rhs) noexcept
+{
+    swap(rhs);
+    return *this;
+}
+
 engine::assets::BlockMesh::~BlockMesh()
 {
     for (std::size_t i = 0; i < std::size(m_meshes); ++i) {
         if (has_mesh(i))
             std::destroy_at(&m_meshes[i].storage);
     }
+}
+
+void engine::assets::BlockMesh::swap(engine::assets::BlockMesh &other) noexcept
+{ // CAN'T MOVE HERE, move uses swap already
+    using std::swap;
+    for (std::size_t i = 0; i < std::size(m_meshes); ++i) {
+        auto const lhs_has_mesh = has_mesh(i);
+        auto const rhs_has_mesh = other.has_mesh(i);
+        if (lhs_has_mesh && rhs_has_mesh)
+            swap(m_meshes[i].storage, other.m_meshes[i].storage);
+        else if (lhs_has_mesh && !rhs_has_mesh) {
+            std::construct_at(&other.m_meshes[i].storage, std::move(m_meshes[i].storage));
+            std::destroy_at(&m_meshes[i].storage);
+        } else if (!lhs_has_mesh && rhs_has_mesh) {
+            std::construct_at(&m_meshes[i].storage, std::move(other.m_meshes[i].storage));
+            std::destroy_at(&other.m_meshes[i].storage);
+        }
+    }
+    swap(m_bits, other.m_bits);
+    swap(m_textures, other.m_textures);
 }
 
 engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path const &path)
@@ -204,7 +240,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
 
     spdlog::info("Compiling block model from file {}"sv, string_path(path));
     engine::assets::BlockMesh result;
-    result.m_textures = std::vector<std::uint32_t> { textures.cbegin(), textures.cend() };
+    result.m_textures.insert(result.m_textures.end(), textures.cbegin(), textures.cend());
     std::for_each(faces.begin(), faces.end(), [&textures](ModelFace &face) {
         face.texture_index = static_cast<std::uint32_t>(textures.index_of(textures.find(face.texture_index)));
     });

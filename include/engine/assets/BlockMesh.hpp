@@ -4,11 +4,10 @@
 #include <engine/Sides.hpp>
 #include <engine/rendering/Mesh.hpp>
 
-#include <array>
+#include <boost/container/small_vector.hpp>
+
 #include <filesystem>
-#include <optional>
 #include <string>
-#include <vector>
 
 namespace engine::assets {
 
@@ -28,7 +27,19 @@ namespace engine::assets {
             return get_mesh(i);
         }
 
+        BlockMesh(BlockMesh const &) = delete;
+        BlockMesh &operator=(BlockMesh const &) = delete;
+
+        BlockMesh(BlockMesh &&) noexcept;
+        BlockMesh &operator=(BlockMesh &&) noexcept;
+
+        void swap(BlockMesh &other) noexcept;
+
+        ~BlockMesh();
+
     private:
+        BlockMesh();
+
         bool has_mesh(std::size_t i) const noexcept
         {
             return m_bits[i / CHAR_BIT] & (1 << (i % CHAR_BIT));
@@ -60,17 +71,16 @@ namespace engine::assets {
 
         static BlockMesh load_json(std::filesystem::path const &path);
 
-        ~BlockMesh();
-
     private:
         union MaybeMesh {
+            MaybeMesh() { }
             engine::rendering::Mesh storage;
             ~MaybeMesh() { }
         };
 
         char m_bits[128 / CHAR_BIT] {};
         MaybeMesh m_meshes[128];
-        std::vector<std::uint32_t> m_textures;
+        boost::container::small_vector<std::uint32_t, 4> m_textures;
     };
 
 }
