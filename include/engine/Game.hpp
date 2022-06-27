@@ -29,16 +29,6 @@
 union SDL_Event;
 
 namespace engine {
-    struct VectorHasher {
-        template <glm::length_t L, typename T, glm::qualifier Q>
-        std::size_t operator()(glm::vec<L, T, Q> const &vec) const noexcept
-        {
-            return boost::hash_value([&]<std::size_t... I>(std::index_sequence<I...>) {
-                return std::make_tuple(vec[I]...);
-            }(std::make_index_sequence<L> {}));
-        }
-    };
-
     class Game {
     public:
         using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
@@ -69,7 +59,7 @@ namespace engine {
         void on_chunk_destroy(entt::registry &, entt::entity chunk);
 
         rendering::Mesh generate_solid_mesh(engine::C_ChunkPosition const &, engine::C_ChunkData const &);
-        rendering::Mesh generate_translucent_mesh(glm::i32vec4 coord);
+        rendering::Mesh generate_translucent_mesh(engine::C_ChunkPosition const &coord);
 
     public:
         bool running;
@@ -84,11 +74,10 @@ namespace engine {
             return m_block_registry;
         }
 
-        auto &block_models() noexcept { return m_block_models; }
-        auto const &block_models() const noexcept { return m_block_models; }
-
-        auto &block_model_names() noexcept { return m_block_model_names; }
-        auto const &block_model_names() const noexcept { return m_block_model_names; }
+        auto const &block_meshes() const noexcept
+        {
+            return m_block_meshes;
+        }
 
     private:
         sol::state m_lua;
@@ -110,9 +99,8 @@ namespace engine {
         engine::named_storage<engine::BlockType> m_block_registry;
         entt::storage<engine::assets::BlockMesh> m_block_meshes;
 
-
-        std::unordered_map<glm::i32vec4, std::pair<rendering::MeshHandle, rendering::MeshHandle>, VectorHasher> m_chunk_meshes;
-        std::unordered_map<glm::i32vec4, rendering::Mesh, VectorHasher> m_translucent_mesh_data; // needed to sort indices when the camera moves
+        std::unordered_map<engine::C_ChunkPosition, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
+        std::unordered_map<engine::C_ChunkPosition, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 
 } // namespace engine

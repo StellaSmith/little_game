@@ -205,7 +205,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
 }
 
 // will be called more frequently
-engine::rendering::Mesh engine::Game::generate_translucent_mesh(glm::i32vec4 chunk_position)
+engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::C_ChunkPosition const &chunk_position)
 {
     engine::rendering::Mesh result;
 
