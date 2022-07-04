@@ -94,7 +94,8 @@ namespace engine {
         engine::Textures m_textures;
 
         entt::registry m_entity_registry;
-        utils::octtree<std::int32_t, entt::entity> m_chunks;
+        std::unordered_map<engine::C_ChunkPosition, entt::entity> m_chunks;
+        // utils::octtree<std::int32_t, entt::entity> m_chunks;
 
         engine::named_storage<engine::BlockType> m_block_registry;
         entt::storage<engine::assets::BlockMesh> m_block_meshes;

@@ -72,23 +72,14 @@ void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chu
 {
     assert(&m_entity_registry == &registry); // sanity check
     auto const &chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
-    m_chunks.emplace(
-        std::array {
-            chunk_position.x,
-            chunk_position.y,
-            chunk_position.z },
-        chunk);
+    m_chunks.emplace(chunk_position, chunk);
 }
 
 void engine::Game::on_chunk_destroy(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
     auto const &chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
-    m_chunks.erase({
-        chunk_position.x,
-        chunk_position.y,
-        chunk_position.z,
-    });
+    m_chunks.erase(chunk_position);
 }
 
 void engine::Game::stop()

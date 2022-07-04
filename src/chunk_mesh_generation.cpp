@@ -209,15 +209,11 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::C_ChunkP
 {
     engine::rendering::Mesh result;
 
-    auto const *node = m_chunks.find({
-        chunk_position.x,
-        chunk_position.y,
-        chunk_position.z,
-    });
-    if (node == nullptr)
+    auto const it = m_chunks.find(chunk_position);
+    if (it == m_chunks.end())
         return result;
 
-    entt::entity const chunk = node->value.second;
+    entt::entity const chunk = it->second;
     auto const &chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
 
     // avoid small allocations
