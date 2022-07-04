@@ -36,14 +36,22 @@ static decltype(auto) string_path(std::filesystem::path const &p) noexcept
 struct ModelVertex {
     float x, y, z, u, v;
 
-    constexpr engine::rendering::Vertex to_vertex(std::uint32_t texture_index) const noexcept
+    constexpr engine::rendering::Vertex to_vertex(std::uint32_t texture_index, std::uint32_t color_mask_index) const noexcept
     {
-        return { glm::vec3 { x, y, z }, glm::vec3 { u, v, texture_index } };
+        return {
+            .position = { x, y, z },
+            .uv = { u, v },
+            .textures = {
+                texture_index,
+                color_mask_index,
+            }
+        };
     }
 };
 
 struct ModelFace {
-    std::uint32_t texture_index;
+    std::uint32_t texture;
+    std::uint32_t color_mask;
     std::uint32_t vertex_indices[4];
 
     engine::Sides sides;
@@ -118,12 +126,12 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path 
 
 engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 {
-
     spdlog::info("Loading model from file {}"sv, string_path(path));
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
     boost::container::flat_set<std::uint32_t> textures;
+    boost::container::flat_set<std::uint32_t> color_masks;
 
     {
         auto fp = engine::open_file(path, "r");
@@ -205,9 +213,10 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
                     throw /* index out of range */;
             }
 
-            face.texture_index = face_object["texture"].GetUint(); // we normalize these later
-            textures.emplace(face.texture_index);
-
+            face.texture = face_object["texture"].GetUint(); // we normalize these later
+            face.color_mask = face_object["color_mask"].GetUint();
+            textures.emplace(face.texture);
+            color_masks.emplace(face.color_mask);
             {
                 auto const sides_array = face_object["sides"].GetArray();
                 std::vector<std::string_view> sides;
@@ -234,6 +243,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
             face.solid = true;
             if (auto it = face_object.FindMember("solid"); it != face_object.end())
                 face.solid = it->value.GetBool();
+
             faces.push_back(face);
         }
     }
@@ -241,8 +251,9 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
     spdlog::info("Compiling block model from file {}"sv, string_path(path));
     engine::assets::BlockMesh result;
     result.m_textures.insert(result.m_textures.end(), textures.cbegin(), textures.cend());
-    std::for_each(faces.begin(), faces.end(), [&textures](ModelFace &face) {
-        face.texture_index = static_cast<std::uint32_t>(textures.index_of(textures.find(face.texture_index)));
+    std::for_each(faces.begin(), faces.end(), [&](ModelFace &face) {
+        face.texture = static_cast<std::uint32_t>(textures.index_of(textures.find(face.texture)));
+        face.color_mask = static_cast<std::uint32_t>(color_masks.index_of(color_masks.find(face.color_mask)));
     });
 
     auto const append_face = [](engine::assets::BlockMesh &model, ModelFace const &face, std::vector<ModelVertex> const &vertices) {
@@ -254,10 +265,10 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
             current.vertices.insert(
                 current.vertices.end(),
                 {
-                    vertices[face.vertex_indices[0]].to_vertex(face.texture_index),
-                    vertices[face.vertex_indices[1]].to_vertex(face.texture_index),
-                    vertices[face.vertex_indices[2]].to_vertex(face.texture_index),
-                    vertices[face.vertex_indices[3]].to_vertex(face.texture_index),
+                    vertices[face.vertex_indices[0]].to_vertex(face.texture, face.color_mask),
+                    vertices[face.vertex_indices[1]].to_vertex(face.texture, face.color_mask),
+                    vertices[face.vertex_indices[2]].to_vertex(face.texture, face.color_mask),
+                    vertices[face.vertex_indices[3]].to_vertex(face.texture, face.color_mask),
                 });
             current.indices.insert(
                 current.indices.end(),
@@ -273,9 +284,9 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
             current.vertices.insert(
                 current.vertices.end(),
                 {
-                    vertices[face.vertex_indices[0]].to_vertex(face.texture_index),
-                    vertices[face.vertex_indices[1]].to_vertex(face.texture_index),
-                    vertices[face.vertex_indices[2]].to_vertex(face.texture_index),
+                    vertices[face.vertex_indices[0]].to_vertex(face.texture, face.color_mask),
+                    vertices[face.vertex_indices[1]].to_vertex(face.texture, face.color_mask),
+                    vertices[face.vertex_indices[2]].to_vertex(face.texture, face.color_mask),
                 });
             current.indices.insert(
                 current.indices.end(),

@@ -5,14 +5,13 @@
 
 namespace engine {
     namespace rendering {
-
         struct Vertex {
             glm::vec3 position {};
-            glm::vec3 uv {};
-            glm::u8vec3 color { 0xFF, 0xFF, 0xFF };
-            glm::u8vec3 light {};
+            glm::vec2 uv {};
+            glm::vec3 color { 0xFF, 0xFF, 0xFF };
+            glm::vec3 light {};
+            glm::uvec2 textures {};
         };
-
     } // namespace rendering
 } // namespace engine
 
