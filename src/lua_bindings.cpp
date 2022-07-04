@@ -121,11 +121,11 @@ void engine::Game::setup_lua()
     // m_lua.open_libraries(sol::lib::os); disabled
     m_lua.open_libraries(sol::lib::math);
     m_lua.open_libraries(sol::lib::table);
-    // m_lua.open_libraries(sol::lib::debug); disabled (might enable some functionality later)
+    m_lua.open_libraries(sol::lib::debug);
     m_lua.open_libraries(sol::lib::bit32);
     // m_lua.open_libraries(sol::lib::io); disabled
-    // m_lua.open_libraries(sol::lib:ffi); disabled (might enable some functionality later)
-    // m_lua.open_libraries(sol::lib::jit); disabled (might enable some functionality later)
+    m_lua.open_libraries(sol::lib::ffi);
+    m_lua.open_libraries(sol::lib::jit);
     m_lua.open_libraries(sol::lib::utf8);
 
     {
