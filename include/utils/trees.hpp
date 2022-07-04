@@ -12,6 +12,25 @@
 
 namespace utils {
 
+    namespace impl {
+
+        template <typename Type, typename = void>
+        struct is_transparent : std::false_type {
+        };
+
+        template <typename Type>
+        struct is_transparent<Type, std::void_t<typename Type::is_transparent>> : std::true_type {
+        };
+
+    }
+
+    template <typename T>
+    struct is_transparent : public impl::is_transparent<T> {
+    };
+
+    template <typename T>
+    inline constexpr auto is_transparent_v = is_transparent<T>::value;
+
     template <typename T>
     struct intrusive_dynamic_tree {
         struct node_type {
@@ -241,7 +260,8 @@ namespace utils {
                 emplace(*start);
         }
 
-        node_type *find(node_type *node, key_type const &key) noexcept
+        template <typename Key>
+        node_type *find(node_type *node, Key &&key) noexcept
         {
             auto const [parent, index] = lower_bound(node, key);
             if (parent->children[index] && equal(parent->children[index]->value.first, key))
@@ -249,22 +269,46 @@ namespace utils {
             return nullptr;
         }
 
-        node_type *find(key_type const &key) noexcept
+        node_type *find(node_type *node, key_type const &key) noexcept
+        {
+            return find<key_type const &>(node, key);
+        }
+
+        template <typename Key>
+        node_type *find(Key &&key) noexcept
         {
             return find(head(), key);
         }
 
-        node_type const *find(node_type const *node, key_type const &key) const noexcept
+        node_type *find(key_type const &key) noexcept
+        {
+            return find<key_type const &>(key);
+        }
+
+        template <typename Key>
+        node_type const *find(node_type const *node, Key &&key) const noexcept
         {
             return const_cast<spatial_tree *>(this)->find(node, key);
         }
 
-        node_type const *find(key_type const &key) const noexcept
+        node_type *find(node_type const *node, key_type const &key) const noexcept
+        {
+            return find<key_type const &>(node, key);
+        }
+
+        template <typename Key>
+        node_type const *find(Key &&key) const noexcept
         {
             return const_cast<spatial_tree *>(this)->find(key);
         }
 
-        std::pair<node_type *, std::size_t> lower_bound(node_type *node, key_type const &key) noexcept
+        node_type *find(key_type const &key) const noexcept
+        {
+            return find<key_type const &>(key);
+        }
+
+        template <typename Key>
+        std::pair<node_type *, std::size_t> lower_bound(node_type *node, Key &&key) noexcept
         {
             assert(node != nullptr);
             for (;;) {
@@ -275,7 +319,8 @@ namespace utils {
             }
         }
 
-        std::pair<node_type *, std::size_t> lower_bound(key_type const &key) noexcept
+        template <typename Key>
+        std::pair<node_type *, std::size_t> lower_bound(Key &&key) noexcept
         {
             return lower_bound(head(), key);
         }
@@ -299,6 +344,7 @@ namespace utils {
         template <typename... Args>
         node_type *emplace_hint(node_type *parent, Args &&...args)
         {
+            assert(parent != nullptr);
             auto *node = utils::new_object(get_allocator(), std::in_place, std::forward<Args>(args)...);
             insert(parent, node);
             return node;
@@ -306,6 +352,7 @@ namespace utils {
 
         void insert(node_type *parent, node_type *node) noexcept
         {
+            // assert(parent != nullptr);
             auto const [real_parent, index] = lower_bound(parent, node->value.first);
             if (real_parent == nullptr)
                 head() = node;
@@ -315,20 +362,27 @@ namespace utils {
 
         void insert(node_type *node) noexcept
         {
-            return insert(head(), node);
+            // assert(node != nullptr);
+            if (head() == nullptr)
+                head() = node;
+            else
+                return insert(head(), node);
         }
 
         node_type *insert(node_type *parent, value_type const &value)
         {
+            assert(parent != nullptr);
             return emplace_hint(parent, value);
         }
 
         node_type *insert(node_type *parent, value_type &&value)
         {
+            assert(parent != nullptr);
             return emplace_hint(parent, static_cast<value_type &&>(value));
         }
 
-        bool erase(key_type const &key) noexcept
+        template <typename Key>
+        bool erase(Key &&key) noexcept
         {
             auto const [parent, index] = lower_bound(key);
             if (parent->children[index]->value.first == key) {
@@ -344,6 +398,11 @@ namespace utils {
             } else {
                 return false;
             }
+        }
+
+        bool erase(key_type const &key) noexcept
+        {
+            return erase<key_type const &>(key);
         }
 
         constexpr allocator_type get_allocator() const noexcept
@@ -367,20 +426,31 @@ namespace utils {
             clear();
         }
 
-    private:
-        constexpr std::size_t compare(key_type const &lhs, key_type const &rhs) noexcept
+        constexpr std::size_t compare(key_type const &lhs, key_type const &rhs) const noexcept
         {
             if constexpr (std::is_empty_v<key_compare>)
-                return key_compare {}(lhs, rhs);
+                return key_compare()(lhs, rhs);
             else
                 return m_impl.second.second(lhs, rhs);
         }
 
-        constexpr bool equal(key_type const &lhs, key_type const &rhs) noexcept
+        template <typename Lhs, typename Rhs>
+        requires is_transparent_v<key_compare>
+        constexpr std::size_t compare(Lhs &&lhs, Rhs &&rhs) const noexcept
+        {
+            if constexpr (std::is_empty_v<key_compare>)
+                return key_compare()(lhs, rhs);
+            else
+                return m_impl.second.second(lhs, rhs);
+        }
+
+        template <typename Lhs, typename Rhs>
+        constexpr bool equal(Lhs &&lhs, Rhs &&rhs) const noexcept
         {
             return !compare(lhs, rhs) && !compare(rhs, lhs);
         }
 
+    private:
         node_type *&head() noexcept
         {
             return m_impl.first.head;
