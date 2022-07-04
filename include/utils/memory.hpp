@@ -26,38 +26,38 @@ namespace utils {
     }
 
     template <typename Alloc, typename... Args>
-    requires(!std::allocator_traits<Alloc>::is_always_equal::value) auto new_object(Alloc &allocator, Args &&...args) -> typename std::allocator_traits<Alloc>::pointer
+    auto new_object(Alloc &&allocator, Args &&...args)
     {
-        auto ptr = std::allocator_traits<Alloc>::allocate(allocator, 1);
-        try {
-            std::allocator_traits<Alloc>::construct(allocator, ptr, std::forward<Args>(args)...);
-        } catch (...) {
-            std::allocator_traits<Alloc>::deallocate(allocator, ptr, 1);
-            throw;
+        if constexpr (std::allocator_traits<Alloc>::is_always_equal::value && std::is_const_v<std::remove_reference_t<Alloc>>) {
+            // we need a mutable reference
+            // since the allocator is empty copying should be pretty cheap
+            auto copy = allocator;
+            return new_object(copy, std::forward<Args>(args)...);
+        } else {
+            auto ptr = std::allocator_traits<Alloc>::allocate(allocator, 1);
+            try {
+                std::allocator_traits<Alloc>::construct(allocator, ptr, std::forward<Args>(args)...);
+            } catch (...) {
+                std::allocator_traits<Alloc>::deallocate(allocator, ptr, 1);
+                throw;
+            }
+            return ptr;
         }
-        return ptr;
     }
 
     template <typename Alloc>
-    requires(!std::allocator_traits<Alloc>::is_always_equal::value) void delete_object(Alloc &allocator, typename std::allocator_traits<Alloc>::pointer ptr) noexcept
+    void delete_object(Alloc &&allocator, typename std::allocator_traits<Alloc>::pointer ptr) noexcept
     {
-        std::allocator_traits<Alloc>::destroy(allocator, ptr);
-        std::allocator_traits<Alloc>::deallocate(allocator, ptr, 1);
+        if constexpr (std::allocator_traits<Alloc>::is_always_equal::value && std::is_const_v<std::remove_reference_t<Alloc>>) {
+            // we need a mutable reference
+            // since the allocator is empty copying should be pretty cheap
+            auto copy = allocator;
+            return delete_object(copy, ptr);
+        } else {
+            std::allocator_traits<Alloc>::destroy(allocator, ptr);
+            std::allocator_traits<Alloc>::deallocate(allocator, ptr, 1);
+        }
     }
-
-    template <typename Alloc, typename... Args>
-    requires(std::allocator_traits<Alloc>::is_always_equal::value) auto new_object(Alloc allocator, Args &&...args) -> typename std::allocator_traits<Alloc>::pointer
-    {
-
-        return new_object(allocator, std::forward<Args>(args)...);
-    }
-
-    template <typename Alloc>
-    requires(std::allocator_traits<Alloc>::is_always_equal::value) void delete_object(Alloc allocator, typename std::allocator_traits<Alloc>::pointer ptr) noexcept
-    {
-        delete_object(allocator, ptr);
-    }
-
 }
 
 #endif
