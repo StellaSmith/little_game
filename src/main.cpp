@@ -131,10 +131,10 @@ int main(int argc, char **argv)
             SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &d);
             SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &s);
 
-            char unsigned const *version = glGetString(GL_VERSION);
-            char unsigned const *vendor = glGetString(GL_VENDOR);
-            char unsigned const *renderer = glGetString(GL_RENDERER);
-            char unsigned const *shading_version = glGetString(GL_SHADING_LANGUAGE_VERSION);
+            char const *version = reinterpret_cast<char const *>(glGetString(GL_VERSION));
+            char const *vendor = reinterpret_cast<char const *>(glGetString(GL_VENDOR));
+            char const *renderer = reinterpret_cast<char const *>(glGetString(GL_RENDERER));
+            char const *shading_version = reinterpret_cast<char const *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
             spdlog::info("OpenGL profile: {}.{}", major, minor);
             spdlog::info("\tRGBA bits: {}, {}, {}, {}", r, g, b, a);

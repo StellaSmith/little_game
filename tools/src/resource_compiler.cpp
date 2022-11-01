@@ -97,9 +97,9 @@ std::unique_ptr<FileResource> add_file(boost::filesystem::path const &path)
     using namespace std::literals;
     if (path.extension().string() == ".json"sv || path.extension().string() == ".jsonc"sv) {
         result->data = minify_json(path, std::move(result->data));
-        if (g_verbose) fmt::print(stderr, "including file {} as minified json\n", std::quoted(path.string()));
+        if (g_verbose) fmt::print(stderr, "including file {} as minified json\n", fmt::streamed(std::quoted(path.string())));
     } else {
-        if (g_verbose) fmt::print(stderr, "including file {} as is\n", std::quoted(path.string()));
+        if (g_verbose) fmt::print(stderr, "including file {} as is\n", fmt::streamed(std::quoted(path.string())));
     }
     return result;
 }
@@ -110,7 +110,7 @@ std::vector<std::unique_ptr<BaseResource>> add_directory(boost::filesystem::path
     auto current = std::make_unique<DirectoryResource>();
     current->path = path;
 
-    if (g_verbose) fmt::print(stderr, "scanning directory {}\n", std::quoted(path.string()));
+    if (g_verbose) fmt::print(stderr, "scanning directory {}\n", fmt::streamed(std::quoted(path.string())));
     for (auto const &entry : boost::filesystem::directory_iterator(path)) {
 
         if (entry.symlink_status().type() == boost::filesystem::file_type::directory_file) {
@@ -123,7 +123,7 @@ std::vector<std::unique_ptr<BaseResource>> add_directory(boost::filesystem::path
         }
     }
     result.push_back(std::move(current));
-    if (g_verbose) fmt::print(stderr, "including directory {} as is\n", std::quoted(path.string()));
+    if (g_verbose) fmt::print(stderr, "including directory {} as is\n", fmt::streamed(std::quoted(path.string())));
     return result;
 }
 
@@ -231,7 +231,7 @@ static std::vector<std::byte> minify_json(boost::filesystem::path const &path, s
             | rapidjson::kParseNanAndInfFlag
             | rapidjson::kParseTrailingCommasFlag>(is, writer)) {
         fmt::print(stderr, "Error parsing json file {} at offset {} {}\n",
-            std::quoted(path.string()),
+            fmt::streamed(std::quoted(path.string())),
             reader.GetErrorOffset(), rapidjson::GetParseError_En(reader.GetParseErrorCode()));
         fmt::print(stderr, "Skiping minification\n");
 
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
         program.parse_args(argc, argv);
     } catch (std::runtime_error const &e) {
         fmt::print(stderr, "{}\n", e.what());
-        fmt::print(stderr, "{}\n", program);
+        fmt::print(stderr, "{}\n", fmt::streamed(program));
         std::exit(EXIT_FAILURE);
     }
 
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
     if (auto output_path = program.get<std::string>("--output"); output_path != "-") {
         output = std::fopen(output_path.c_str(), "wt");
         if (!output) {
-            fmt::print(stderr, "failed to open {} for writting: ({}) {}\n", std::quoted(output_path), errno, std::strerror(errno));
+            fmt::print(stderr, "failed to open {} for writting: ({}) {}\n", fmt::streamed(std::quoted(output_path)), errno, std::strerror(errno));
             std::exit(EXIT_FAILURE);
         }
         std::setvbuf(output, nullptr, _IOFBF, 1024 * 8);
