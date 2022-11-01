@@ -37,8 +37,6 @@ class VGameConan(ConanFile):
         "glad:gl_version": "3.3",
         "glad:no_loader": True,
         "glad:extensions": "GL_KHR_debug,GL_ARB_get_program_binary",
-        "onetbb:shared": False,
-        "onetbb:tbbmalloc": True,
     }
 
     @property
@@ -71,35 +69,35 @@ class VGameConan(ConanFile):
                 self.copy(export, src=os.path.join("..", ".."), dst=self._source_subfolder)
 
     def requirements(self):
-        self.requires("openssl/1.1.1o", override=True)
+        self.requires("zlib/1.2.13", override=True)
 
         self.requires("glm/0.9.9.8")
-        self.requires("entt/3.10.1")
+        self.requires("entt/3.10.3")
         self.requires("stb/cci.20210910")
-        self.requires("ctre/3.6")
+        self.requires("ctre/3.7.1")
 
-        self.requires("fmt/8.1.1")
+        self.requires("fmt/9.1.0")
         self.requires("spdlog/1.10.0")
-        self.requires("rapidjson/cci.20211112")
+        self.requires("rapidjson/cci.20220822")
         if self.options.with_luajit:
             self.requires("luajit/2.0.5")
         else:
             self.requires("lua/5.4.4")
-        self.requires("sol2/3.2.3")
-        self.requires("imgui/1.87")
+        self.requires("sol2/3.3.0")
+        self.requires("imgui/1.88")
         self.requires("assimp/5.2.2")
-        self.requires("sdl/2.0.20")
-        self.requires("boost/1.79.0")
+        self.requires("sdl/2.24.1")
+        self.requires("boost/1.80.0")
 
         if self.options.with_opengl:
-            self.requires("glad/0.1.35")
+            self.requires("glad/0.1.36")
         if self.options.with_vulkan:
-            sdk_version = "1.3.204"
+            sdk_version = "1.3.231.1"
             self.requires(f"volk/{sdk_version}")
             self.requires(f"vulkan-headers/{sdk_version}")
-            self.requires("vulkan-memory-allocator/3.0.0")
+            self.requires("vulkan-memory-allocator/3.0.1")
             if self.settings.os in ("Macos", "iOS", "tvOS", "watchOS"):
-                self.requires("moltenvk/1.1.9")
+                self.requires("moltenvk/1.1.10")
 
     def validate(self):
         tools.check_min_cppstd(self, 20)
@@ -114,7 +112,7 @@ class VGameConan(ConanFile):
         if self.options.use_mold:
             # mold is not in CCI
             # it requires onetbb 2021.5 which is not in CCI either
-            raise ConanInvalidConfiguration("mold is not supperted with this recipe yet")
+            raise ConanInvalidConfiguration("mold is not supported with this recipe yet")
 
     def build_requirements(self):
         self.tool_requires(f"vgame_tools/{self.version}")

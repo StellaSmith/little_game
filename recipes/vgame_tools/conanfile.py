@@ -34,10 +34,10 @@ class VGameToolsConan(ConanFile):
 
     def requirements(self):
         self.requires("argparse/2.4")
-        self.requires("fmt/8.1.1")
-        self.requires("rapidjson/cci.20211112")
-        self.requires("boost/1.79.0")
-        self.requires("ctre/3.6")
+        self.requires("fmt/9.1.0")
+        self.requires("rapidjson/cci.20220822")
+        self.requires("boost/1.80.0")
+        self.requires("ctre/3.7.1")
 
     def validate(self):
         tools.check_min_cppstd(self, 20)
