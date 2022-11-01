@@ -1,5 +1,3 @@
-
-
 #include <boost/container/flat_set.hpp>
 #include <fmt/format.h>
 #include <sol/sol.hpp>
