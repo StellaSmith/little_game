@@ -39,7 +39,6 @@ else()
     set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "-flto" "-Wl,--as-needed")
     set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "-Wall" "-Wextra" "-Werror")
 endif()
-add_compile_options()
 
 if (WITH_LUAJIT)
     find_package(luajit REQUIRED)
