@@ -16,27 +16,36 @@ namespace utils {
     private:
         static constexpr decltype(auto) invalid() noexcept
         {
-            if constexpr (requires { { deleter_type::invalid } -> std::equality_comparable_with<resource_type> ; }) {
+            if constexpr (requires { { resource_type::invalid } -> std::equality_comparable_with<resource_type> ; }) {
                 return resource_type::invalid;
             } else if constexpr (requires(deleter_type & deleter) { { deleter.invalid() } -> std::equality_comparable_with<resource_type> ; }) {
                 return Deleter::invalid();
+            } else if constexpr (std::is_constructible_v<resource_type, nullptr>) {
+                return resource_type(nullptr);
+            } else if constexpr (std::is_constructible_v<resource_type, std::nullopt_t>) {
+                return resource_type(std::nullopt)
+            } else if constexpr (std::is_default_constructible_v<resource_type>) {
+                return resource_type {};
             }
         }
 
     public:
-        unique_resource() noexcept requires std::is_default_constructible_v<deleter_type>
+        unique_resource() noexcept
+            requires std::is_default_constructible_v<deleter_type>
             : unique_resource(nullptr)
         {
         }
 
-        unique_resource(std::nullptr_t) noexcept requires std::is_default_constructible_v<deleter_type>
+        unique_resource(std::nullptr_t) noexcept
+            requires std::is_default_constructible_v<deleter_type>
             : unique_resource(invalid())
         {
         }
 
-        explicit unique_resource(resource_type resource) noexcept requires std::is_default_constructible_v<deleter_type>
-            : Deleter(),
-              m_resource(resource)
+        explicit unique_resource(resource_type resource) noexcept
+            requires std::is_default_constructible_v<deleter_type>
+            : Deleter()
+            , m_resource(resource)
         {
         }
 
@@ -78,14 +87,14 @@ namespace utils {
 
         [[nodiscard]] explicit operator bool() const noexcept
         {
-            return m_resource == invalid();
+            return !(m_resource == invalid());
         }
 
         void reset(resource_type resource) noexcept
         {
             if (*this)
                 std::invoke(get_deleter(), m_resource);
-            m_resource = resource;
+            m_resource = std::move(resource);
         }
 
         void reset(std::nullptr_t = nullptr) noexcept
