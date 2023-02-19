@@ -1,6 +1,7 @@
 install/
 build/
 .vscode/
+.venv/
 
 # Auto generated
 cfg/imgui.ini
