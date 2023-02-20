@@ -3,9 +3,14 @@
 
 #include <SDL.h>
 
+#include <algorithm>
+#include <exception>
+#include <tl/expected.hpp>
+
 #include <functional>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 namespace sdl_impl {
 
@@ -60,57 +65,62 @@ namespace sdl_impl {
 
 }
 
-class SDL {
-public:
-    class Error : public std::runtime_error {
+struct SDL {
+
+    struct Error : std::exception {
     private:
-        using std::runtime_error::runtime_error;
+        char const *m_str;
+        explicit Error(char const *str) noexcept
+            : m_str(str)
+        {
+        }
 
     public:
-        static Error current()
+        [[nodiscard]] static Error current() noexcept
         {
             return Error(SDL_GetError());
         }
+
+        char const *what() const noexcept override
+        {
+            return m_str;
+        }
     };
 
-    explicit SDL(std::uint32_t flags)
+    [[nodiscard]] static tl::expected<SDL, Error> create(std::uint32_t flags) noexcept
     {
         if (SDL_Init(flags) < 0)
-            throw Error::current();
+            return tl::make_unexpected(Error::current());
+        return {};
     }
 
-    explicit SDL()
-        : SDL(SDL_INIT_EVERYTHING)
+    [[nodiscard]] static tl::expected<SDL, Error> create() noexcept
     {
+        return SDL::create(SDL_INIT_EVERYTHING);
     }
 
-    class Audio {
-    public:
-        static auto drivers()
+    struct Audio {
+        [[nodiscard]] static tl::expected<sdl_impl::CountedIterator<decltype(&SDL_GetAudioDriver)>, Error> drivers() noexcept
         {
-            int n = SDL_GetNumAudioDrivers();
-            if (n < 0)
-                throw SDL::Error::current();
-            return ::sdl_impl::CountedIterator(n, [](std::size_t i) {
-                return SDL_GetAudioDriver(i);
-            });
+            if (int n = SDL_GetNumAudioDrivers(); n < 0)
+                return tl::make_unexpected(Error::current());
+            else
+                return sdl_impl::CountedIterator(n, &SDL_GetAudioDriver);
         }
     };
 
-    class Video {
-    public:
-        static auto drivers()
+    struct Video {
+        [[nodiscard]] static tl::expected<sdl_impl::CountedIterator<decltype(&SDL_GetVideoDriver)>, Error> drivers() noexcept
         {
-            int n = SDL_GetNumVideoDrivers();
-            if (n < 0)
-                throw SDL::Error::current();
-            return ::sdl_impl::CountedIterator(n, [](std::size_t i) {
-                return SDL_GetVideoDriver(i);
-            });
+            if (int n = SDL_GetNumAudioDrivers(); n < 0)
+                return tl::make_unexpected(Error::current());
+            else
+                return sdl_impl::CountedIterator(n, &SDL_GetVideoDriver);
         }
 
-        class Window;
+        struct Window;
 
+    private:
         struct OpenGLContextDeleter {
             void operator()(void *gl) const noexcept
             {
@@ -118,73 +128,76 @@ public:
             }
         };
 
-        class OpenGLContext : public std::unique_ptr<void, OpenGLContextDeleter> {
-        public:
+    public:
+        struct OpenGLContext : public std::unique_ptr<void, OpenGLContextDeleter> {
+
             using base_type = std::unique_ptr<void, OpenGLContextDeleter>;
             using base_type::base_type;
 
-            void make_current()
+            [[nodiscard]] tl::expected<void, Error> make_current(SDL_Window *window) noexcept
             {
-                if (SDL_GL_MakeCurrent(win, get()) < 0)
-                    throw Error::current();
+                if (SDL_GL_MakeCurrent(window, get()) < 0)
+                    return tl::make_unexpected(Error::current());
+                return {};
             }
 
-        private:
-            friend class Window;
-            SDL_Window *win;
+            [[nodiscard]] tl::expected<void, Error> make_current(Window &window) noexcept
+            {
+                return make_current(window.get());
+            }
         };
 
+    private:
         struct WindowDeleter {
-            void operator()(SDL_Window *win) const noexcept
+            using pointer = SDL_Window *;
+            void operator()(SDL_Window *window) const noexcept
             {
-                SDL_DestroyWindow(win);
+                SDL_DestroyWindow(window);
             }
         };
 
-        class Window : public std::unique_ptr<SDL_Window, WindowDeleter> {
-        public:
+    public:
+        struct Window : std::unique_ptr<SDL_Window, WindowDeleter> {
             using base_type = std::unique_ptr<SDL_Window, WindowDeleter>;
             using base_type::base_type;
 
-            class Builder {
-            public:
-                Window create()
+            struct Builder {
+                [[nodiscard]] tl::expected<Window, Error> build() noexcept
                 {
                     SDL_GL_ResetAttributes();
-                    std::for_each(gl_attributes.cbegin(), gl_attributes.cend(), [](auto const &p) {
-                        if (SDL_GL_SetAttribute(p.first, p.second) < 0)
-                            throw SDL::Error::current();
-                    });
+                    for (auto const &[name, value] : gl_attributes) {
+                        if (SDL_GL_SetAttribute(name, value) < 0)
+                            return tl::make_unexpected(Error::current());
+                    }
 
-                    auto result = Window(SDL_CreateWindow(title.c_str(), x, y, w, h, flags));
+                    auto result = Window(SDL_CreateWindow(title.c_str(), x, y, width, height, flags));
                     if (!result)
-                        throw SDL::Error::current();
-                    return result;
+                        return tl::make_unexpected(Error::current());
+                    return std::move(result);
                 }
 
                 template <typename S>
-                Builder set_title(S &&title) &&
+                [[nodiscard]] Builder set_title(S &&title) &&
                 {
-                    this->title = std::string(std::forward<S>(title));
+                    this->title = static_cast<std::string>(std::forward<S>(title));
                     return std::move(*this);
                 }
 
                 template <typename S>
-                Builder set_title(S &&title) const &
+                [[nodiscard]] Builder set_title(S &&title) const &
                 {
                     auto copy = *this;
-                    copy.title = std::string(std::forward<S>(title));
-                    copy.title = title;
+                    copy.title = static_cast<std::string>(std::forward<S>(title));
                     return copy;
                 }
 
-                Builder set_gl_attribute(SDL_GLattr attr, int value) &&
+                [[nodiscard]] Builder set_gl_attribute(SDL_GLattr attr, int value) &&
                 {
                     this->gl_attributes.emplace_back(attr, value);
                     return std::move(*this);
                 }
 
-                Builder set_gl_attribute(SDL_GLattr attr, int value) const &
+                [[nodiscard]] Builder set_gl_attribute(SDL_GLattr attr, int value) const &
                 {
                     auto copy = *this;
                     copy.gl_attributes.emplace_back(attr, value);
@@ -192,32 +205,32 @@ public:
                 }
 
                 template <typename It, typename Sentinel>
-                Builder set_gl_attributes(It start, Sentinel end) &&
+                [[nodiscard]] Builder set_gl_attributes(It start, Sentinel end) &&
                 {
                     if constexpr (std::is_same_v<typename std::iterator_traits<It>::iterator_category, std::random_access_iterator_tag>) {
                         this->gl_attributes.reserve(gl_attributes.size() + std::distance(start, end));
                     }
 
                     for (; start != end; ++start) {
-                        decltype(auto) pair = *start;
-                        this->gl_attributes.emplace_back(std::get<0>(pair), std::get<1>(pair));
+                        auto &&[name, value] = *start;
+                        this->gl_attributes.emplace_back(static_cast<decltype(name) &&>(name), static_cast<decltype(value) &&>(value));
                     }
 
                     return std::move(*this);
                 }
 
-                Builder set_dimensions(int w, int h) &&
+                [[nodiscard]] Builder set_dimensions(int width, int height) &&noexcept
                 {
-                    this->w = w;
-                    this->h = h;
+                    this->width = width;
+                    this->height = height;
                     return std::move(*this);
                 }
 
-                Builder set_dimensions(int w, int h) const &
+                [[nodiscard]] Builder set_dimensions(int width, int height) const &noexcept
                 {
                     auto copy = *this;
-                    copy.w = w;
-                    copy.h = h;
+                    copy.width = width;
+                    copy.height = height;
                     return copy;
                 }
 
@@ -253,106 +266,128 @@ public:
                 }
 
             public:
-                Builder opengl() &&
+                [[nodiscard]] Builder with_opengl() &&noexcept
                 {
                     return std::move(*this).set_flag<SDL_WINDOW_OPENGL>();
                 }
 
-                Builder opengl() const &
+                [[nodiscard]] Builder with_opengl() const &noexcept
                 {
                     return set_flag<SDL_WINDOW_OPENGL>();
                 }
 
-                Builder vulkan() &&
+                [[nodiscard]] Builder with_vulkan() &&noexcept
                 {
                     return std::move(*this).set_flag<SDL_WINDOW_VULKAN>();
                 }
 
-                Builder vulkan() const &
+                [[nodiscard]] Builder with_vulkan() const &noexcept
                 {
                     return set_flag<SDL_WINDOW_OPENGL>();
                 }
 
-                Builder resizable() &&
+                [[nodiscard]] Builder resizable(bool enabled = true) &&noexcept
                 {
-                    return std::move(*this).set_flag<SDL_WINDOW_RESIZABLE>();
+                    if (enabled)
+                        return std::move(*this).set_flag<SDL_WINDOW_RESIZABLE>();
+                    else
+                        return std::move(*this).unset_flag<SDL_WINDOW_RESIZABLE>();
                 }
 
-                Builder resizable() const &
+                [[nodiscard]] Builder resizable(bool enabled = true) const &noexcept
                 {
-                    return set_flag<SDL_WINDOW_RESIZABLE>();
+                    if (enabled)
+                        return set_flag<SDL_WINDOW_RESIZABLE>();
+                    else
+                        return unset_flag<SDL_WINDOW_RESIZABLE>();
                 }
 
-                Builder shown() &&
+                [[nodiscard]] Builder hidden(bool enabled = true) &&noexcept
                 {
-                    return std::move(*this).unset_flag<SDL_WINDOW_HIDDEN>();
+                    if (enabled)
+                        return std::move(*this).set_flag<SDL_WINDOW_HIDDEN>();
+                    else
+                        return std::move(*this).unset_flag<SDL_WINDOW_HIDDEN>();
                 }
 
-                Builder shown() const &
+                [[nodiscard]] Builder hidden(bool enabled = true) const &noexcept
                 {
-                    return unset_flag<SDL_WINDOW_HIDDEN>();
+                    if (enabled)
+                        return set_flag<SDL_WINDOW_HIDDEN>();
+                    else
+                        return unset_flag<SDL_WINDOW_HIDDEN>();
+                }
+
+                [[nodiscard]] Builder shown(bool enabled = true) &&noexcept
+                {
+                    return std::move(*this).hidden(!enabled);
+                }
+
+                [[nodiscard]] Builder shown(bool enabled = true) const &noexcept
+                {
+                    return hidden(!enabled);
                 }
 
                 std::vector<std::pair<SDL_GLattr, int>> gl_attributes;
                 std::string title;
-                int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED, w = 800, h = 600;
+                int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED;
+                int width = 800, height = 600;
                 std::uint32_t flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN;
             };
 
-            OpenGLContext opengl_context()
+            [[nodiscard]] tl::expected<OpenGLContext, Error> opengl_context() noexcept
             {
                 auto context = OpenGLContext(SDL_GL_CreateContext(get()));
                 if (!context)
-                    throw Error::current();
-                context.win = get();
-                return context;
+                    return tl::make_unexpected(Error::current());
+                return std::move(context);
             }
 
-            static Builder builder(Video &)
+            [[nodiscard]] static Builder builder(Video &video) noexcept
             {
                 return Builder {};
             }
         };
 
-        Window::Builder window_builder()
+        [[nodiscard]] Window::Builder window_builder() noexcept
         {
             return Window::builder(*this);
         }
     };
 
-    Audio &init_audio(char const *driver = nullptr)
+    [[nodiscard]] tl::expected<std::reference_wrapper<Audio>, Error> init_audio(char const *driver = nullptr) noexcept
     {
         driver = driver && *driver != 0 ? driver : nullptr;
         if (SDL_AudioInit(driver) < 0)
-            throw Error::current();
+            return tl::make_unexpected(Error::current());
         to_quit |= QuitAudio;
         return audio();
     }
 
-    [[nodiscard]] Audio &audio()
+    [[nodiscard]] tl::expected<std::reference_wrapper<Audio>, Error> audio() noexcept
     {
         static Audio audio {};
         if (!SDL_WasInit(SDL_INIT_AUDIO))
             if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0)
-                throw Error::current();
+                return tl::make_unexpected(Error::current());
         return audio;
     }
 
-    Video &init_video(char const *driver = nullptr)
+    [[nodiscard]] tl::expected<std::reference_wrapper<Video>, Error> init_video(char const *driver = nullptr) noexcept
     {
         driver = driver && *driver != 0 ? driver : nullptr;
         if (SDL_VideoInit(driver) < 0)
-            throw Error::current();
+            return tl::make_unexpected(Error::current());
         to_quit |= QuitVideo;
         return video();
     }
 
-    [[nodiscard]] Video &video()
+    [[nodiscard]] tl::expected<std::reference_wrapper<Video>, Error> video() noexcept
     {
         static Video video {};
         if (!SDL_WasInit(SDL_INIT_VIDEO))
             if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
-                throw Error::current();
+                return tl::make_unexpected(Error::current());
         return video;
     }
 
@@ -366,12 +401,12 @@ public:
     }
 
 private:
-    enum {
-        QuitAudio,
-        QuitVideo
+    enum : unsigned {
+        QuitAudio = 1 << 0,
+        QuitVideo = 1 << 1
     };
 
-    int to_quit = 0;
+    unsigned to_quit = 0;
 };
 
 #endif

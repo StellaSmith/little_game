@@ -19,4 +19,4 @@ fi
 
 echo "#### updating compile_commands.json ####"
 rm -f build/compile_commands.json;
-ln -s $(realpath build/cross/${target_host}/compile_commands.json) build/
+ln -s $(realpath build/vgame/compile_commands.json) build/

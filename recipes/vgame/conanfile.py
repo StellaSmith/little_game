@@ -6,6 +6,7 @@ import textwrap
 
 required_conan_version = ">=1.0"
 
+
 class VGameConan(ConanFile):
     name = "vgame"
     description = "VGame"
@@ -69,7 +70,8 @@ class VGameConan(ConanFile):
                 self.copy(export, src=os.path.join("..", ".."), dst=self._source_subfolder)
 
     def requirements(self):
-        self.requires("zlib/1.2.13", override=True)
+        self.requires("tl-expected/20190710")
+        self.requires("zlib/1.2.13")
 
         self.requires("glm/0.9.9.8")
         self.requires("entt/3.10.3")
@@ -104,7 +106,7 @@ class VGameConan(ConanFile):
 
         if self.options.with_opengl and self.options.with_vulkan:
             raise ConanInvalidConfiguration("Either OpenGL or Vulkan can be enabled at the same time for the time being")
-        
+
         if self.options.with_opengl and tools.Version(self.options["glad"].gl_version) < "3.3":
             raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
 
@@ -125,7 +127,8 @@ class VGameConan(ConanFile):
 
     def _patch_sources(self):
         if self.in_local_cache:
-            tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"), 
+            tools.replace_in_file(
+                os.path.join(self._source_subfolder, "CMakeLists.txt"),
                 "include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)",
                 "include(${CMAKE_CURRENT_LIST_DIR}/../conanbuildinfo.cmake)")
 
@@ -136,12 +139,12 @@ class VGameConan(ConanFile):
         cmake.definitions["WITH_LUAJIT"] = self.options.with_luajit
         cmake.definitions["WITH_OPENGL"] = self.options.with_opengl
         cmake.definitions["WITH_VULKAN"] = self.options.with_vulkan
+        cmake.definitions["imgui_RES_DIRS"] = self.deps_cpp_info["imgui"].res_paths[0]
         if not self.options.use_mold:
             cmake.definitions["MOLD_PROGRAM"] = ""
         if not self.options.use_ccache:
             cmake.definitions["CCACHE_PROGRAM"] = ""
-    
-        
+
         cmake.configure(source_folder=self._source_subfolder, build_folder=self._build_subfolder)
         return cmake
 

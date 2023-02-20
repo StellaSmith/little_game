@@ -57,16 +57,15 @@ int main(int argc, char **argv)
                     argv[0]);
                 return 0;
             } else if (argv[i] == "--sdl-video-drivers"sv) {
-                int drivers = SDL_GetNumVideoDrivers();
-                spdlog::info("Available video drivers ({}):\n", drivers);
-                for (int i = 0; i < drivers; ++i)
-                    spdlog::info("\t{}) {}\n", i + 1, SDL_GetVideoDriver(i));
+                auto const drivers = SDL::Video::drivers().value();
+                spdlog::info("Available video drivers ({}):\n", drivers.size());
+                for (char const *driver : drivers)
+                    spdlog::info("\t- {}\n", driver);
             } else if (argv[i] == "--sdl-audio-drivers"sv) {
-                auto const drivers = SDL::Audio::drivers();
+                auto const drivers = SDL::Audio::drivers().value();
                 spdlog::info("Available audio drivers ({}):\n", drivers.size());
                 for (char const *driver : drivers)
-                    spdlog::info("\t{}) {}\n", i + 1, driver);
-
+                    spdlog::info("\t- {}\n", driver);
             } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
                 g_verbose = true;
                 spdlog::info("Verbose output enabled");
@@ -74,15 +73,17 @@ int main(int argc, char **argv)
         }
         fix_current_directory(argv[0]);
 
-        auto sdl = SDL { 0 };
+        auto sdl = SDL::create(0).value();
         auto &config = engine::load_engine_config();
-        sdl.init_video(config.sdl.video_driver.c_str());
-        sdl.init_audio(config.sdl.audio_driver.c_str());
+        sdl.init_video(config.sdl.video_driver.c_str()).value();
+        sdl.init_audio(config.sdl.audio_driver.c_str()).value();
 
         constexpr int width = 640, height = 480;
 
         auto window = sdl
                           .video()
+                          .value()
+                          .get()
                           .window_builder()
                           .set_title("My little game")
                           .set_dimensions(width, height)
@@ -104,9 +105,10 @@ int main(int argc, char **argv)
 #endif
 #endif
 #ifdef ENGINE_WITH_VULKAN
-                          .vulkan()
+                          .with_vulkan()
 #endif
-                          .create();
+                          .build()
+                          .value();
 
 #ifndef NDEBUG
         if (SDL_SetRelativeMouseMode(SDL_TRUE))
