@@ -3,6 +3,7 @@
 #include <glm/vec3.hpp>
 
 namespace engine {
+    // TODO: Separate into its own components so we can have multiple camera entities
     struct Camera {
         glm::vec3 position = glm::vec3 { -8.0f, 0.0f, -8.0f };
         glm::vec3 forward = glm::vec3 { 0.0f, 0.0f, 1.0f };

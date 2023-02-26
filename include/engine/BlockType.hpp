@@ -3,14 +3,14 @@
 
 #include <entt/entity/entity.hpp>
 
-#include <boost/container/small_vector.hpp>
+#include <vector>
 
 namespace engine {
 
     struct BlockType {
-        entt::entity mesh_id = entt::null;
-        boost::container::small_vector<entt::entity, 4> texture_ids;
-        boost::container::small_vector<entt::entity, 4> masks_ids;
+        entt::id_type mesh_id = entt::null;
+        std::vector<entt::id_type> texture_ids;
+        std::vector<entt::id_type> masks_ids;
     };
 
 } // namespace engine

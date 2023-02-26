@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <engine/serializable_component.hpp>
 
 namespace engine::components {
 
@@ -22,18 +23,15 @@ namespace engine::components {
     }
 } // namespace engine::components
 
-namespace engine {
-    using C_ChunkPosition = engine::components::ChunkPosition;
-} // namespace engine
+SERIALIZABLE_COMPONENT(engine::components::ChunkPosition, x, y, z, dimension)
 
 #include <boost/container_hash/hash.hpp>
-#include <functional>
 
 namespace std {
 
     template <>
-    struct hash<engine::C_ChunkPosition> {
-        std::size_t operator()(engine::C_ChunkPosition const &position) const noexcept
+    struct hash<engine::components::ChunkPosition> {
+        std::size_t operator()(engine::components::ChunkPosition const &position) const noexcept
         {
             std::int32_t const arr[] = { position.x, position.y, position.z, position.dimension };
             return boost::hash_value(arr);

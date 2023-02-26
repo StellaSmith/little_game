@@ -2,13 +2,12 @@
 #define ENGINE_BLOCK_HPP
 
 #include <entt/core/fwd.hpp>
-#include <entt/entity/entity.hpp>
 
 namespace engine {
 
     struct Block {
-        entt::entity type_id = entt::null;
-        entt::id_type data = entt::null;
+        entt::id_type type_id = entt::null;
+        entt::id_type data_id = entt::null;
     };
 
 } // namespace engine
