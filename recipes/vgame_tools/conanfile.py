@@ -1,36 +1,34 @@
-from conans import CMake, ConanFile, tools
-from conans.errors import ConanInvalidConfiguration
+from conan import ConanFile
+from conan.errors import ConanInvalidConfiguration
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.microsoft import msvc_runtime_flag, is_msvc
-import functools
+from conan.tools.build import check_min_cppstd
+from conan.tools.env import VirtualBuildEnv
+from conan.tools.files import copy, rmdir, rm
+import pathlib
 import os
-import textwrap
 
-required_conan_version = ">=1.0"
 
 class VGameToolsConan(ConanFile):
     name = "vgame_tools"
     description = "Build tools for vgame"
+    package_type = "application"
     license = "GPL-2.0-only"
     url = homepage = "https://github.com/StellaSmith/little_game"
     author = "Stella Smith"
 
-    settings = "os", "arch", "compiler"
-    generators = "cmake", "cmake_find_package"
+    settings = "os", "arch", "compiler", "build_type"
 
     @property
-    def _source_subfolder(self):
-        return "source_subfolder"
+    def _project_root(self):
+        return str(pathlib.Path(self.recipe_folder).parent.parent)
 
-    @property
-    def _build_subfolder(self):
-        return "build_subfolder"
+    def layout(self):
+        cmake_layout(self, "src")
 
     def export_sources(self):
-        self.copy("CMakeLists.txt")
-        for export in (("..", "LICENSE"), "CMakeLists.txt", ("src", "*")):
-            if not isinstance(export, str):
-                export = os.path.join(*export)
-            self.copy(export, src=os.path.join("..", "..", "tools"), dst=self._source_subfolder)
+        copy(self, "CMakeLists.txt", src=os.path.join(self._project_root, "tools"), dst=self.export_sources_folder)
+        copy(self, "*", src=os.path.join(self._project_root, "tools", "src"), dst=os.path.join(self.export_sources_folder, "src"))
 
     def requirements(self):
         self.requires("argparse/2.4")
@@ -40,44 +38,35 @@ class VGameToolsConan(ConanFile):
         self.requires("ctre/3.7.1")
 
     def validate(self):
-        tools.check_min_cppstd(self, 20)
+        if self.settings.get_safe("compiler.cppstd"):
+            check_min_cppstd(self, 20)
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.16]")
         self.tool_requires("ninja/[*]")
 
-    def _patch_sources(self):
-        tools.save("CMakeLists.txt", textwrap.dedent(f"""\
-            cmake_minimum_required(VERSION 3.0)
-            project(cmake_wrapper)
-            include(conanbuildinfo.cmake)
-            conan_basic_setup(TARGETS KEEP_RPATHS)
-            add_subdirectory(source_subfolder)
-        """))
+    def generate(self):
+        env = VirtualBuildEnv(self)
+        env.generate()
 
-    @functools.lru_cache(1)
-    def _configure_cmake(self):
-        cmake = CMake(self, build_type="Release")
-        cmake.configure(build_folder=self._build_subfolder)
-        return cmake
+        tc = CMakeToolchain(self)
+        tc.generate()
+
+        deps = CMakeDeps(self)
+        deps.generate()
 
     def build(self):
-        self._patch_sources()
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
+        cmake.configure()
         cmake.build()
 
     def package(self):
-        self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
-        cmake = self._configure_cmake()
+        copy(self, "LICENSE", src=self._project_root, dst=os.path.join(self.package_folder, "licenses"))
+        cmake = CMake(self)
         cmake.install()
 
-        tools.rmdir(os.path.join(self.package_folder, "lib", "pkgconfig"))
-        tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
-        tools.rmdir(os.path.join(self.package_folder, "share"))
-        tools.remove_files_by_mask(os.path.join(self.package_folder, "lib"), "*.pdb")
-        tools.remove_files_by_mask(os.path.join(self.package_folder, "bin"), "*.pdb")
-
-    def package_info(self):
-        bindir = os.path.join(self.package_folder, "bin")
-        self.output.info("Appending PATH environment variable: {}".format(bindir))
-        self.env_info.PATH.append(bindir)
+        rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
+        rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
+        rmdir(self, os.path.join(self.package_folder, "share"))
+        rm(self, pattern="*.pdb", folder=os.path.join(self.package_folder, "lib"))
+        rm(self,  pattern="*.pdb", folder=os.path.join(self.package_folder, "bin"))
