@@ -90,7 +90,7 @@ int main(int argc, char **argv)
                           .resizable()
                           .shown()
 #ifdef ENGINE_WITH_OPENGL
-                          .opengl()
+                          .with_opengl()
                           .set_gl_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
                           .set_gl_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
                           .set_gl_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)
@@ -116,8 +116,8 @@ int main(int argc, char **argv)
 #endif
 
 #if ENGINE_WITH_OPENGL
-        auto gl_context = window.opengl_context();
-        gl_context.make_current();
+        auto gl_context = window.opengl_context().value();
+        gl_context.make_current(window).transform([]() { return 0; }).value();
 
         if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
             utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
