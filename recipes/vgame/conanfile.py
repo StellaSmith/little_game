@@ -170,6 +170,7 @@ class VGameConan(ConanFile):
         tc.variables["WITH_LUA"] = self.options.with_lua
         tc.variables["WITH_OPENGL"] = self.options.with_opengl
         tc.variables["WITH_VULKAN"] = self.options.with_vulkan
+        tc.variables["imgui_RES_DIRS"] = os.path.join(self.dependencies["imgui"].package_folder, "res")
         if not self.options.use_mold:
             tc.variables["MOLD_PROGRAM"] = ""
         if not self.options.use_ccache:
