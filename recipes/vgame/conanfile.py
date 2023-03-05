@@ -14,10 +14,9 @@ from conan.tools.build import check_min_cppstd
 from conan.tools.env import VirtualBuildEnv
 from conan.tools.apple import is_apple_os
 from conan.tools.scm import Version
-from conan.api.output import ConanOutput
 
 
-required_conan_version = ">=1.0"
+required_conan_version = ">=1.59"
 
 
 class VGameConan(ConanFile):
@@ -154,7 +153,7 @@ class VGameConan(ConanFile):
                 self.requires("moltenvk/1.2.1")
 
     def validate(self):
-        if self.settings.get("cppstd"):
+        if self.settings.compiler.get_safe("cppstd"):
             check_min_cppstd(self, 20)
 
         if self.options.with_opengl and self.options.with_vulkan:
