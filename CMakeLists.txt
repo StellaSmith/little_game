@@ -156,8 +156,8 @@ target_include_directories(resources PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include/
 target_link_libraries(little_game
 PRIVATE
     resources
-    SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl RapidJSON::RapidJSON
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::Boost tl::expected)
+    SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl rapidjson
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre boost::boost tl::expected)
 
 if (WITH_OPENGL)
     target_link_libraries(little_game PRIVATE
