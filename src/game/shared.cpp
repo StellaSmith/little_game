@@ -60,8 +60,8 @@ void engine::Game::start()
 
         for (auto &block : chunk_data.blocks) {
             if (maybe_colorful_id != entt::null) {
-                if ((block.type_id = block_registry().storage()[id_dist(rd)]) == maybe_colorful_id) {
-                    block.data = math::pack_u32(color_dist(rd), color_dist(rd), color_dist(rd));
+                if ((block.type_id = static_cast<entt::id_type>(block_registry().storage()[id_dist(rd)])) == static_cast<entt::id_type>(maybe_colorful_id)) {
+                    block.data_id = math::pack_u32(color_dist(rd), color_dist(rd), color_dist(rd));
                 }
             }
         }
@@ -71,14 +71,14 @@ void engine::Game::start()
 void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
-    auto const &chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
+    auto const &chunk_position = registry.get<engine::components::ChunkPosition>(chunk);
     m_chunks.emplace(chunk_position, chunk);
 }
 
 void engine::Game::on_chunk_destroy(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
-    auto const &chunk_position = registry.get<engine::C_ChunkPosition>(chunk);
+    auto const &chunk_position = registry.get<engine::components::ChunkPosition>(chunk);
     m_chunks.erase(chunk_position);
 }
 

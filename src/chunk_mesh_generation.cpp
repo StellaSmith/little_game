@@ -32,11 +32,11 @@ static engine::Sides get_visible_sides(engine::Game const &game, engine::compone
         if (block.type_id == entt::null) [[unlikely]]
             return false;
 
-        auto const mesh_id = game.block_registry().get(block.type_id).mesh_id;
+        auto const mesh_id = game.block_registry().get(static_cast<entt::entity>(block.type_id)).mesh_id;
         if (mesh_id == entt::null) [[unlikely]]
             return false;
 
-        auto const &mesh = game.block_meshes().get(mesh_id);
+        auto const &mesh = game.block_meshes().get(static_cast<entt::entity>(mesh_id));
         auto const *maybe_solid = mesh.get_solid_mesh(side);
 
         return maybe_solid != nullptr;
@@ -156,10 +156,10 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::components::Ch
         auto const maybe_mesh = [&]() -> engine::rendering::Mesh const * {
             if (block.type_id == entt::null) [[unlikely]]
                 return nullptr;
-            auto const mesh_id = block_registry().get(block.type_id).mesh_id;
+            auto const mesh_id = block_registry().get(static_cast<entt::entity>(block.type_id)).mesh_id;
             if (mesh_id == entt::null) [[unlikely]]
                 return nullptr;
-            return block_meshes().get(mesh_id).get_solid_mesh(sides);
+            return block_meshes().get(static_cast<entt::entity>(mesh_id)).get_solid_mesh(sides);
         }();
 
         if (!maybe_mesh) continue;
