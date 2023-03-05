@@ -75,7 +75,7 @@ class VGameConan(ConanFile):
     def _requires_cmake(self):
         if cmake := shutil.which("cmake"):
             stdout = io.StringIO()
-            self.run(shlex.join([cmake, "--version"]), stdout=stdout, env="conanbuild")
+            self.run(shlex.join([cmake, "--version"]), stdout, env="conanbuild")
             stdout.seek(0)
             stdout = stdout.read()
             cmake_version = Version(re.match(r"cmake version (\d+.\d+.\d+)", stdout)[1])
@@ -159,7 +159,7 @@ class VGameConan(ConanFile):
         if self.options.with_opengl and self.options.with_vulkan:
             raise ConanInvalidConfiguration("Either OpenGL or Vulkan can be enabled at the same time for the time being")
 
-        if self.options.with_opengl and tools.Version(self.options["glad"].gl_version) < "3.3":
+        if self.options.with_opengl and Version(self.options["glad"].gl_version) < "3.3":
             raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
 
     def generate(self):
