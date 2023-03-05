@@ -58,8 +58,8 @@ namespace engine {
         void on_chunk_construct(entt::registry &, entt::entity chunk);
         void on_chunk_destroy(entt::registry &, entt::entity chunk);
 
-        rendering::Mesh generate_solid_mesh(engine::C_ChunkPosition const &, engine::C_ChunkData const &);
-        rendering::Mesh generate_translucent_mesh(engine::C_ChunkPosition const &coord);
+        rendering::Mesh generate_solid_mesh(engine::components::ChunkPosition const &, engine::components::ChunkData const &);
+        rendering::Mesh generate_translucent_mesh(engine::components::ChunkPosition const &coord);
 
     public:
         bool running;
@@ -94,14 +94,14 @@ namespace engine {
         engine::Textures m_textures;
 
         entt::registry m_entity_registry;
-        std::unordered_map<engine::C_ChunkPosition, entt::entity> m_chunks;
+        std::unordered_map<engine::components::ChunkPosition, entt::entity> m_chunks;
         // utils::octtree<std::int32_t, entt::entity> m_chunks;
 
         engine::named_storage<engine::BlockType> m_block_registry;
         entt::storage<engine::assets::BlockMesh> m_block_meshes;
 
-        std::unordered_map<engine::C_ChunkPosition, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
-        std::unordered_map<engine::C_ChunkPosition, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
+        std::unordered_map<engine::components::ChunkPosition, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
+        std::unordered_map<engine::components::ChunkPosition, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 
 } // namespace engine

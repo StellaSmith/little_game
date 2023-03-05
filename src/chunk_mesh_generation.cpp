@@ -23,10 +23,10 @@ constexpr static std::size_t cube_at(First first, Rest... rest)
         return first * math::c_ipow_v<D, sizeof...(Rest)> + cube_at<D>(rest...);
 }
 
-static engine::Sides get_visible_sides(engine::Game const &game, engine::C_ChunkData const &chunk, glm::u32vec3 block_pos)
+static engine::Sides get_visible_sides(engine::Game const &game, engine::components::ChunkData const &chunk, glm::u32vec3 block_pos)
 {
     using engine::Sides;
-    constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
+    constexpr auto chunk_size = engine::components::ChunkData::chunk_size;
 
     auto const is_solid = [&](engine::Block block, engine::Sides side) -> bool {
         if (block.type_id == entt::null) [[unlikely]]
@@ -80,7 +80,7 @@ static void remove_duplicate_vertices(engine::rendering::Mesh &chunk_data)
 }
 
 #if 0
-static void calculate_light(engine::Game const &game, engine::rendering::Mesh &mesh_data, engine::C_ChunkData const &chunk)
+static void calculate_light(engine::Game const &game, engine::rendering::Mesh &mesh_data, engine::components::ChunkData const &chunk)
 {
     struct LightData {
         glm::vec3 position;
@@ -90,7 +90,7 @@ static void calculate_light(engine::Game const &game, engine::rendering::Mesh &m
     std::vector<LightData> lights;
     lights.reserve(64);
 
-    constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
+    constexpr auto chunk_size = engine::components::ChunkData::chunk_size;
     for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
         std::uint_fast8_t const x = i >> 8 & 0xF;
         std::uint_fast8_t const y = i >> 4 & 0xF;
@@ -134,7 +134,7 @@ static void remove_unreferenced_vertices(engine::rendering::Mesh &mesh_data)
             mesh_data.vertices.erase(mesh_data.vertices.begin() + i);
 }
 
-engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPosition const &chunk_position, engine::C_ChunkData const &chunk_data)
+engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::components::ChunkPosition const &chunk_position, engine::components::ChunkData const &chunk_data)
 {
     engine::rendering::Mesh result;
 
@@ -142,7 +142,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
     result.vertices.reserve(256);
     result.indices.reserve(256);
 
-    constexpr auto chunk_size = engine::C_ChunkData::chunk_size;
+    constexpr auto chunk_size = engine::components::ChunkData::chunk_size;
     for (std::uint_fast32_t i = 0; i < chunk_size * chunk_size * chunk_size; ++i) {
         std::uint_fast8_t const x = i >> 8 & 0xF;
         std::uint_fast8_t const y = i >> 4 & 0xF;
@@ -205,7 +205,7 @@ engine::rendering::Mesh engine::Game::generate_solid_mesh(engine::C_ChunkPositio
 }
 
 // will be called more frequently
-engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::C_ChunkPosition const &chunk_position)
+engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::components::ChunkPosition const &chunk_position)
 {
     engine::rendering::Mesh result;
 
@@ -214,7 +214,7 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::C_ChunkP
         return result;
 
     entt::entity const chunk = it->second;
-    auto const &chunk_data = m_entity_registry.get<engine::C_ChunkData>(chunk);
+    auto const &chunk_data = m_entity_registry.get<engine::components::ChunkData>(chunk);
 
     // avoid small allocations
     result.vertices.reserve(256);

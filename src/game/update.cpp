@@ -123,9 +123,9 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     std::vector<decltype(m_entity_registry)::entity_type> to_delete;
     // std::vector<Chunk> to_add;
 
-    for (entt::entity chunk : m_entity_registry.view<engine::C_ChunkPosition, engine::C_ChunkData>()) {
-        auto const &[chunk_position, chunk_data] = m_entity_registry.get<engine::C_ChunkPosition, engine::C_ChunkData>(chunk);
-        if (m_entity_registry.any_of<engine::C_Dirty>(chunk)) {
+    for (entt::entity chunk : m_entity_registry.view<engine::components::ChunkPosition, engine::components::ChunkData>()) {
+        auto const &[chunk_position, chunk_data] = m_entity_registry.get<engine::components::ChunkPosition, engine::components::ChunkData>(chunk);
+        if (m_entity_registry.any_of<engine::components::Dirty>(chunk)) {
             auto it = m_chunk_meshes.find(chunk_position);
             if (it == m_chunk_meshes.end()) {
 #ifdef ENGINE_WITH_OPENGL
@@ -167,7 +167,7 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
             else
                 m_translucent_mesh_data.emplace(chunk_position, std::move(translucent_mesh));
 
-            m_entity_registry.remove<engine::C_Dirty>(chunk);
+            m_entity_registry.remove<engine::components::Dirty>(chunk);
         } else if (g_camera.position != previous_camera_position) {
             auto p_mesh = m_chunk_meshes.find(chunk_position);
             auto p_data = m_translucent_mesh_data.find(chunk_position);
@@ -183,7 +183,7 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     }
 
     for (entt::entity chunk : to_delete) {
-        auto const &chunk_position = m_entity_registry.get<engine::C_ChunkPosition>(chunk);
+        auto const &chunk_position = m_entity_registry.get<engine::components::ChunkPosition>(chunk);
         m_chunks.erase({
             chunk_position.x,
             chunk_position.y,

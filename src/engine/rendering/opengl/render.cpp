@@ -187,7 +187,7 @@ void engine::Game::render()
     glUniformMatrix4fv(m_projection_uniform, 1, false, glm::value_ptr(projection_matrix));
     glUniformMatrix4fv(m_view_uniform, 1, false, glm::value_ptr(view_matrix));
 
-    glm::i32vec3 player_chunk = g_camera.position / static_cast<float>(engine::C_ChunkData::chunk_size);
+    glm::i32vec3 player_chunk = g_camera.position / static_cast<float>(engine::components::ChunkData::chunk_size);
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);

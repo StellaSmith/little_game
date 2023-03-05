@@ -41,8 +41,8 @@ void engine::Game::start()
     setup_opengl();
 #endif
 
-    m_entity_registry.on_construct<engine::C_ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
-    m_entity_registry.on_destroy<engine::C_ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
+    m_entity_registry.on_construct<engine::components::ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
+    m_entity_registry.on_destroy<engine::components::ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
 
     auto const maybe_colorful_id = m_block_registry.index("colorful_block");
 
@@ -54,9 +54,9 @@ void engine::Game::start()
     int32_t const max_x = 10;
     for (std::int32_t x = 0; x < max_x; ++x) {
         auto chunk = m_entity_registry.create();
-        m_entity_registry.emplace<engine::C_ChunkPosition>(chunk, x - max_x / 2);
-        auto &chunk_data = m_entity_registry.emplace<engine::C_ChunkData>(chunk);
-        m_entity_registry.emplace<engine::C_Dirty>(chunk);
+        m_entity_registry.emplace<engine::components::ChunkPosition>(chunk, x - max_x / 2);
+        auto &chunk_data = m_entity_registry.emplace<engine::components::ChunkData>(chunk);
+        m_entity_registry.emplace<engine::components::Dirty>(chunk);
 
         for (auto &block : chunk_data.blocks) {
             if (maybe_colorful_id != entt::null) {
