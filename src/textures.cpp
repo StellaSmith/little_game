@@ -97,7 +97,7 @@ engine::Textures engine::load_textures()
 
     Textures result;
 
-    int width = -1, height = -1;
+    unsigned width, height;
 
     int i = 0;
     for (auto [name, name_path] : textures) {
@@ -108,7 +108,7 @@ engine::Textures engine::load_textures()
         auto const path = std::filesystem::current_path() / "assets"sv / name_path;
         auto const image = engine::assets::Image::load(path);
 
-        if (width == -1) { // first iteration
+        if (i == 0) { // first iteration
             width = image.width();
             height = image.height();
 

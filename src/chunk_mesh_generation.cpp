@@ -215,6 +215,7 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::componen
 
     entt::entity const chunk = it->second;
     auto const &chunk_data = m_entity_registry.get<engine::components::ChunkData>(chunk);
+    (void)chunk_data;
 
     // avoid small allocations
     result.vertices.reserve(256);

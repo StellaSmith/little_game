@@ -11,7 +11,7 @@
 namespace engine {
 
     struct ImageFormat {
-        enum permutations {
+        enum permutation_t {
             rgba,
             rgab,
             rbga,
@@ -38,57 +38,57 @@ namespace engine {
             abgr,
         };
 
-        enum types {
+        enum type_t {
             uint,
             floating,
         };
 
-        enum widths {
+        enum width_t {
             b1,
             b2,
             b4,
-            b8
+            b8,
         };
 
-        ImageFormat(types type, permutations permutation, widths channel_width, unsigned channels) noexcept
-            : m_type { type }
-            , m_permutation(permutation)
-            , m_channel_width(channel_width)
-            , m_channels(channels)
+        enum channels_t {
+            c1,
+            c2,
+            c3,
+            c4,
+        };
+
+        constexpr ImageFormat(type_t type, permutation_t permutation, width_t channel_width, channels_t channels) noexcept
+            : m_packged((type & 0b1) | (permutation & 0b11111) << 1 | (channel_width & 0b11) << 6 | (channels & 0b11) << 8)
         {
         }
 
-        types type() const noexcept { return static_cast<types>(m_type); }
-        permutations permutation() const noexcept { return static_cast<permutations>(m_permutation); }
-        widths channel_width() const noexcept { return static_cast<widths>(m_channel_width); }
-        unsigned channels() const noexcept { return static_cast<unsigned>(m_channel_width); }
-        unsigned pixel_bit_width() const noexcept { return bit_width(channel_width()) * channels(); }
-
-    private:
-        static unsigned bit_width(widths width) noexcept
+        constexpr type_t type() const noexcept
         {
-            switch (width) {
-            case b1:
-                return 1;
-            case b2:
-                return 2;
-            case b4:
-                return 4;
-            case b8:
-                return 8;
-            }
+            return static_cast<type_t>(m_packged & 0b1);
+        }
+
+        constexpr permutation_t permutation() const noexcept
+        {
+            return static_cast<permutation_t>((m_packged & 0b111110) >> 1);
+        }
+
+        constexpr width_t channel_width() const noexcept
+        {
+            return static_cast<width_t>((m_packged & 0b11000000) >> 6);
+        }
+
+        constexpr channels_t channels() const noexcept
+        {
+            return static_cast<channels_t>((m_packged & 0b1100000000) >> 8);
+        }
+
+        constexpr unsigned pixel_bit_width() const noexcept
+        {
+            return (1 << static_cast<unsigned>(channel_width())) * (static_cast<unsigned>(channels()) + 1);
         }
 
     private:
-        // float, or unsigned
-        unsigned m_type : 1 = 1;
-        unsigned m_permutation : 5 = 0;
-
-        // 1, 2, 3, or 4 channels
-        unsigned m_channels : 2 = 3;
-
-        // 1, 2, 4, or 8 bytes per channel
-        unsigned m_channel_width : 2 = 0;
+        uint16_t m_packged;
     };
 
     namespace errors {
@@ -109,8 +109,18 @@ namespace engine::assets {
 
     class Image {
     public:
-        static Image load(std::filesystem::path const &path, ImageFormat desired_format = { ImageFormat::uint, ImageFormat::rgba, ImageFormat::b1, 4 });
-        static Image load(std::span<std::byte const> data, ImageFormat desired_format = { ImageFormat::uint, ImageFormat::rgba, ImageFormat::b1, 4 });
+        static Image load(std::filesystem::path const &path, ImageFormat desired_format = {
+                                                                 ImageFormat::uint,
+                                                                 ImageFormat::rgba,
+                                                                 ImageFormat::b1,
+                                                                 ImageFormat::c4,
+                                                             });
+        static Image load(std::span<std::byte const> data, ImageFormat desired_format = {
+                                                               ImageFormat::uint,
+                                                               ImageFormat::rgba,
+                                                               ImageFormat::b1,
+                                                               ImageFormat::c4,
+                                                           });
 
         ImageFormat format() const noexcept { return m_format; }
         std::uint32_t width() const noexcept { return m_width; }

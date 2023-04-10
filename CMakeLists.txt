@@ -24,18 +24,6 @@ if(MOLD_PROGRAM)
     set_property(DIRECTORY PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ${PREV_RULE_LAUNCH_LINK}")
 endif()
 
-if(MSVC)
-    set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "/W4")
-elseif(CMAKE_C_COMPILER_ID MATCHES "Clang*")
-    set_property(DIRECTORY APPEND PROPERTY LINK_FLAGS "-Wl,--as-needed")
-    set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "-flto" "-Wl,--as-needed")
-    set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "-Werror=all" "-Werror=extra" "-Weverything")
-else() # assume GCC style compiler
-    set_property(DIRECTORY APPEND PROPERTY LINK_FLAGS "-Wl,--as-needed")
-    set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "-flto" "-Wl,--as-needed")
-    set_property(DIRECTORY APPEND PROPERTY COMPILE_FLAGS "-Werror=all" "-Werror=extra" "-Wpedantic")
-endif()
-
 if(WITH_LUA STREQUAL "lua")
     find_package(lua REQUIRED)
 elseif(WITH_LUA STREQUAL "luajit")
@@ -63,7 +51,21 @@ find_package(Boost REQUIRED)
 
 add_subdirectory(external)
 
-add_executable(little_game
+add_executable(little_game)
+if(MSVC)
+    target_compile_options(little_game PRIVATE "/W4")
+elseif(CMAKE_C_COMPILER_ID MATCHES "Clang*")
+    target_link_options(little_game PRIVATE "-Wl,--as-needed")
+    target_compile_options(little_game PRIVATE "-flto" "-Wl,-O1" "-Wl,--as-needed")
+    target_compile_options(little_game PRIVATE "-Werror=all" "-Werror=extra" "-Weverything")
+else() # assume GCC style compiler
+    target_link_options(little_game PRIVATE "-Wl,--as-needed")
+    target_compile_options(little_game PRIVATE "-flto" "-Wl,-O1" "-Wl,--as-needed")
+    target_compile_options(little_game PRIVATE "-Werror=all" "-Werror=extra" "-Wpedantic")
+endif()
+
+target_sources(little_game
+    PRIVATE
     src/main.cpp
     src/resources.cpp
     src/fast_math.cpp
@@ -152,7 +154,7 @@ target_link_libraries(little_game
     PRIVATE
     resources
     SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl2 rapidjson
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre boost::boost)
+    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::boost)
 
 if(WITH_OPENGL)
     target_link_libraries(little_game
@@ -180,10 +182,7 @@ target_include_directories(little_game PRIVATE "${CMAKE_CURRENT_LIST_DIR}/includ
 target_compile_definitions(little_game
     PUBLIC
     GLM_FORCE_XYZW_ONLY
-    SOL_ALL_SAFETIES_ON
-    $<$<BOOL:HAS_C11_ALIGNED_ALLOC>:HAS_C11_ALIGNED_ALLOC>
-    $<$<BOOL:HAS_POSIX_MEMALIGN>:HAS_POSIX_MEMALIGN>
-    $<$<BOOL:HAS_WIN32_ALIGNED_MALLOC>:HAS_WIN32_ALIGNED_MALLOC>)
+    SOL_ALL_SAFETIES_ON)
 
 if(WITH_LUA STREQUAL "luajit")
     target_compile_definitions(little_game PUBLIC SOL_LUAJIT)
