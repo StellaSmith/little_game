@@ -1,25 +1,20 @@
-import os
-import shutil
-import sys
-import io
-import functools
-import re
-import shlex
-
 from conan import ConanFile
-from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
-from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, get, rmdir, rm
-from conan.tools.build import check_min_cppstd
-from conan.tools.env import VirtualBuildEnv
-from conan.tools.apple import is_apple_os
+from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
 from conan.tools.scm import Version
+from conan.tools.build import check_min_cppstd
+from conan.errors import ConanInvalidConfiguration
+import functools
+import shutil
+import io
+import shlex
+import re
 
 
-required_conan_version = ">=1.59"
+class VGameRecipe(ConanFile):
+    name = "vgame"
+    version = "develop"
+    package_type = "application"
 
-
-class VGameConan(ConanFile):
     name = "vgame"
     package_type = "application"
     description = "VGame"
@@ -27,7 +22,9 @@ class VGameConan(ConanFile):
     url = homepage = "https://github.com/StellaSmith/little_game"
     author = "Stella Smith"
 
-    settings = "os", "arch", "compiler", "build_type"
+    settings = "os", "compiler", "build_type", "arch"
+
+    exports_sources = "CMakeLists.txt", "src/*", "include/*", "external/*", "res/*"
 
     options = {
         "use_ccache": [True, False],
@@ -58,17 +55,11 @@ class VGameConan(ConanFile):
     }
 
     def layout(self):
-        cmake_layout(self, src_folder="src")
-
-    def export_sources(self):
-        for export in ("LICENSE", "CMakeLists.txt", ("include", "*"), ("src", "*"), ("external", "*"), ("res", "*"), ("assets", "*"), ("cfg", "*"), ("lua", "*")):
-            if not isinstance(export, str):
-                export = os.path.join(*export)
-            copy(self, export, src=os.path.join("..", ".."), dst=self.export_folder)
+        cmake_layout(self)
 
     @property
     def _min_cmake_version(self):
-        return Version("1.16")
+        return Version("1.18")
 
     @property
     @functools.lru_cache(1)
@@ -117,20 +108,15 @@ class VGameConan(ConanFile):
         if self.options.get_safe("use_ccache") and self._requires_ccache:
             self.tool_requires("ccache/[*]")
 
-        self.tool_requires(f"vgame_tools/{self.version}")
-
     def requirements(self):
-        self.requires("tl-expected/20190710")
-        self.requires("zlib/1.2.13")
-
-        self.requires("glm/0.9.9.8")
-        self.requires("entt/3.10.3")
+        self.requires("glm/cci.20230113")
+        self.requires("entt/3.11.1")
         self.requires("stb/cci.20220909")
-        self.requires("ctre/3.7.1")
+        self.requires("ctre/3.7.2")
         self.requires("fmt/9.1.0")
         self.requires("spdlog/1.11.0")
         self.requires("rapidjson/cci.20220822")
-        self.requires("imgui/1.89.2")
+        self.requires("imgui/1.89.4")
         self.requires("boost/1.81.0")
         self.requires("sol2/3.3.0")
         self.requires("assimp/5.2.2")
@@ -145,12 +131,12 @@ class VGameConan(ConanFile):
             self.requires("glad/0.1.36")
 
         if self.options.with_vulkan:
-            sdk_version = "1.3.236.0"
+            sdk_version = "1.3.243.0"
             self.requires(f"volk/{sdk_version}")
             self.requires(f"vulkan-headers/{sdk_version}")
             self.requires("vulkan-memory-allocator/3.0.1")
             if is_apple_os(self):
-                self.requires("moltenvk/1.2.1")
+                self.requires("moltenvk/1.2.2")
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -159,13 +145,12 @@ class VGameConan(ConanFile):
         if self.options.with_opengl and self.options.with_vulkan:
             raise ConanInvalidConfiguration("Either OpenGL or Vulkan can be enabled at the same time for the time being")
 
-        if self.options.with_opengl and Version(self.options["glad"].gl_version) < "3.3":
+        if self.options.with_opengl and Version(self.dependencies["glad"].options.gl_version) < "3.3":
             raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
 
     def generate(self):
-        env = VirtualBuildEnv(self)
-        env.generate()
-
+        deps = CMakeDeps(self)
+        deps.generate()
         tc = CMakeToolchain(self)
         tc.variables["WITH_LUA"] = self.options.with_lua
         tc.variables["WITH_OPENGL"] = self.options.with_opengl
@@ -177,21 +162,11 @@ class VGameConan(ConanFile):
             tc.variables["CCACHE_PROGRAM"] = ""
         tc.generate()
 
-        deps = CMakeDeps(self)
-        deps.generate()
-
     def build(self):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
 
     def package(self):
-        copy(self, "LICENSE", src=self.source_folder, dst=os.path.join(self.package_folder, "licenses"))
         cmake = CMake(self)
         cmake.install()
-
-        rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
-        rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
-        rmdir(self, os.path.join(self.package_folder, "share"))
-        rm(self, "*.pdb", os.path.join(self.package_folder, "lib"))
-        rm(self, "*.pdb", os.path.join(self.package_folder, "bin"))
