@@ -1,7 +1,7 @@
 #ifndef ENGINE_STREAM_HPP
 #define ENGINE_STREAM_HPP
 
-#include <resources.cpp> // auto-generated
+#include <resources_generated.hpp> // auto-generated
 #include <utils/FileHandle.hpp>
 
 #include <spdlog/spdlog.h>

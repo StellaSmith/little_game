@@ -65,6 +65,7 @@ add_subdirectory(external)
 
 add_executable(little_game
     src/main.cpp
+    src/resources.cpp
     src/fast_math.cpp
     src/chunk_mesh_generation.cpp
     src/cache.cpp
@@ -137,22 +138,20 @@ endif()
 find_program(RESOURCE_COMPILER resource_compiler.py PATHS "${CMAKE_CURRENT_LIST_DIR}/tools/bin" REQUIRED NO_DEFAULT_PATH)
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.hpp
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
-    COMMAND ${RESOURCE_COMPILER} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp"
+    COMMAND ${RESOURCE_COMPILER} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp"
     DEPENDS "${CMAKE_CURRENT_LIST_DIR}/res"
     VERBATIM
 )
 
-add_library(resources OBJECT ${CMAKE_CURRENT_BINARY_DIR}/include/resources.cpp)
-target_compile_features(resources PRIVATE cxx_std_20)
-target_compile_definitions(resources PRIVATE COMPILE_RESOURCES)
-target_include_directories(resources PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include/)
+target_sources(little_game PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp)
+target_include_directories(little_game PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/)
 
 target_link_libraries(little_game
     PRIVATE
     resources
-    SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl rapidjson
+    SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl2 rapidjson
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre boost::boost)
 
 if(WITH_OPENGL)
