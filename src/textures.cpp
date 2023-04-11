@@ -1,6 +1,8 @@
+#if 0
+
 #include <engine/Stream.hpp>
 #include <engine/assets/Image.hpp>
-#include <engine/textures.hpp>
+
 #include <utils/error.hpp>
 
 #include <boost/container/flat_map.hpp>
@@ -145,3 +147,5 @@ int engine::Game::get_texture_index(std::string_view name) const noexcept
     else
         return it->second;
 }
+
+#endif

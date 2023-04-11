@@ -1,13 +1,16 @@
 from conan import ConanFile
-from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
-from conan.tools.scm import Version
-from conan.tools.build import check_min_cppstd
 from conan.errors import ConanInvalidConfiguration
+from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
+from conan.tools.build import check_min_cppstd
+from conan.tools.scm import Version
+from conan.tools.apple import is_apple_os
+
 import functools
 import shutil
 import io
 import shlex
 import re
+import os
 
 
 class VGameRecipe(ConanFile):
@@ -40,7 +43,7 @@ class VGameRecipe(ConanFile):
 
         "with_lua": "lua",
         "with_opengl": True,
-        "with_vulkan": False,
+        "with_vulkan": True,
 
 
         "glad/*:gl_profile": "core",
@@ -131,19 +134,18 @@ class VGameRecipe(ConanFile):
             self.requires("glad/0.1.36")
 
         if self.options.with_vulkan:
-            sdk_version = "1.3.243.0"
+            sdk_version = "1.3.236.0"
+            self.requires(f"vulkan-headers/{sdk_version}", override=True)
             self.requires(f"volk/{sdk_version}")
-            self.requires(f"vulkan-headers/{sdk_version}")
+            self.requires(f"vulkan-loader/{sdk_version}")
             self.requires("vulkan-memory-allocator/3.0.1")
+            # self.requires(f"vulkan-validationlayers/{sdk_version}", run=True)
             if is_apple_os(self):
                 self.requires("moltenvk/1.2.2")
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
             check_min_cppstd(self, 20)
-
-        if self.options.with_opengl and self.options.with_vulkan:
-            raise ConanInvalidConfiguration("Either OpenGL or Vulkan can be enabled at the same time for the time being")
 
         if self.options.with_opengl and Version(self.dependencies["glad"].options.gl_version) < "3.3":
             raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")

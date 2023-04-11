@@ -1,45 +1,32 @@
-#include <engine/BlockType.hpp>
 #include <engine/Camera.hpp>
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
-#include <engine/components/ChunkData.hpp>
-#include <engine/components/ChunkPosition.hpp>
 #include <engine/components/Dirty.hpp>
+#include <engine/rendering/opengl/Renderer.hpp>
 #include <math/bits.hpp>
 
-#include <entt/entt.hpp>
-#ifdef ENGINE_WITH_OPENGL
-#include <glad/glad.h>
-#endif
-#include <lua.hpp>
-#include <spdlog/spdlog.h>
+#include <SDL_video.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
 
-#include <cstdint>
-#include <optional>
 #include <random>
 
-using namespace std::literals;
-
 engine::Camera g_camera;
-
-engine::Game::~Game()
-{
-#ifdef ENGINE_WITH_OPENGL
-    glDeleteVertexArrays(1, &m_vao);
-    glDeleteProgram(m_shader);
-    glDeleteTextures(1, &m_textures.texture2d_array);
-#endif
-}
 
 void engine::Game::start()
 {
     m_console_text.set_capacity(engine::config().terminal.max_lines);
 
+    constexpr int width = 640, height = 480;
+    m_renderer = std::make_unique<engine::rendering::opengl::Renderer>(*this);
+    m_window = m_renderer->create_window(
+        "VGame",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        width, height,
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    m_renderer->setup();
+    m_renderer->setup_imgui();
     setup_lua();
-
-#ifdef ENGINE_WITH_OPENGL
-    setup_opengl();
-#endif
 
     m_entity_registry.on_construct<engine::components::ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
     m_entity_registry.on_destroy<engine::components::ChunkPosition>().connect<&Game::on_chunk_destroy>(*this);
@@ -68,6 +55,13 @@ void engine::Game::start()
     }
 }
 
+void engine::Game::render()
+{
+    // Draw ImGui on top of the game stuff
+    ImGui::Render();
+    m_renderer->render(1.0f);
+}
+
 void engine::Game::on_chunk_construct(entt::registry &registry, entt::entity chunk)
 {
     assert(&m_entity_registry == &registry); // sanity check
@@ -90,10 +84,11 @@ void engine::Game::stop()
 void engine::Game::cleanup()
 {
     assert(!running);
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
     {
         std::vector<entt::entity> const to_delete(m_entity_registry.data(), m_entity_registry.data() + m_entity_registry.size());
         m_entity_registry.destroy(to_delete.cbegin(), to_delete.cend());
     }
-    m_chunk_meshes.clear();
     m_translucent_mesh_data.clear();
 }

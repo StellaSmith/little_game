@@ -6,29 +6,23 @@
 #include <engine/components/ChunkData.hpp>
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/named_storage.hpp>
+#include <engine/rendering/IRenderer.hpp>
 #include <engine/rendering/Mesh.hpp>
-#include <engine/textures.hpp>
-#include <utils/trees.hpp>
 
 #include <boost/circular_buffer.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/container_hash/hash.hpp>
 #include <entt/entt.hpp>
-#ifdef ENGINE_WITH_OPENGL
-#include <glad/glad.h>
-#endif
-#include <sol/state.hpp>
+#include <sol/sol.hpp>
 
 #include <chrono>
+#include <memory>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <unordered_map>
-#include <vector>
 
 union SDL_Event;
 
 namespace engine {
+
     class Game {
     public:
         using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
@@ -42,26 +36,31 @@ namespace engine {
 
         int get_texture_index(std::string_view) const noexcept;
 
+        entt::registry &registry() noexcept
+        {
+            return m_entity_registry;
+        }
+
+        SDL_Window *window() noexcept
+        {
+            return m_window;
+        }
+
         ~Game();
 
     private:
-        void setup_shader();
-        void setup_texture();
         void setup_lua();
-
-#ifdef ENGINE_WITH_OPENGL
-        void setup_opengl();
-#endif
+        void setup_renderer();
 
         static int l_print(lua_State *);
 
         void on_chunk_construct(entt::registry &, entt::entity chunk);
         void on_chunk_destroy(entt::registry &, entt::entity chunk);
 
+    public:
         rendering::Mesh generate_solid_mesh(engine::components::ChunkPosition const &, engine::components::ChunkData const &);
         rendering::Mesh generate_translucent_mesh(engine::components::ChunkPosition const &coord);
 
-    public:
         bool running;
 
         auto &block_registry() noexcept
@@ -80,18 +79,11 @@ namespace engine {
         }
 
     private:
+        std::unique_ptr<rendering::IRenderer> m_renderer = nullptr;
+        SDL_Window *m_window = nullptr;
+
         sol::state m_lua;
         boost::circular_buffer<std::string> m_console_text;
-
-#ifdef ENGINE_WITH_OPENGL
-        GLuint m_vao;
-        GLuint m_shader;
-
-        GLuint m_projection_uniform;
-        GLuint m_view_uniform;
-#endif
-
-        engine::Textures m_textures;
 
         entt::registry m_entity_registry;
         std::unordered_map<engine::components::ChunkPosition, entt::entity> m_chunks;
@@ -100,7 +92,6 @@ namespace engine {
         engine::named_storage<engine::BlockType> m_block_registry;
         entt::storage<engine::assets::BlockMesh> m_block_meshes;
 
-        std::unordered_map<engine::components::ChunkPosition, std::pair<rendering::MeshHandle, rendering::MeshHandle>> m_chunk_meshes;
         std::unordered_map<engine::components::ChunkPosition, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 

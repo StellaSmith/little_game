@@ -6,6 +6,10 @@
 #include <cstdint>
 #include <vector>
 
+#ifdef ENGINE_WITH_OPENGL
+#include <glad/glad.h>
+#endif
+
 namespace engine::rendering {
     struct Mesh {
         using vertex_type = engine::rendering::Vertex;
@@ -13,13 +17,6 @@ namespace engine::rendering {
         using index_vector = std::vector<std::uint32_t>;
         vertex_vector vertices;
         index_vector indices;
-    };
-
-    // OpenGL handle to a mesh
-    struct MeshHandle {
-        std::uint32_t vertex_buffer;
-        std::uint32_t index_buffer;
-        std::size_t index_count;
     };
 } // namespace engine::rendering
 

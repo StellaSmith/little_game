@@ -1,16 +1,9 @@
 #include <engine/Camera.hpp>
 #include <engine/Game.hpp>
-#include <engine/components/ChunkData.hpp>
-#include <engine/components/ChunkPosition.hpp>
-#include <engine/components/Dirty.hpp>
-#include <engine/rendering/Mesh.hpp>
-#include <math/bits.hpp>
 
-#include <SDL.h>
-#ifdef ENGINE_WITH_OPENGL
-#include <glad/glad.h>
-#endif
-#include <imgui.h>
+#include <SDL_keyboard.h>
+#include <SDL_scancode.h>
+#include <imgui_impl_sdl2.h>
 
 #include <algorithm>
 #include <cstring>
@@ -19,30 +12,15 @@
 extern engine::Camera g_camera;
 static glm::vec3 previous_camera_position {};
 
-static auto get_sorted_indices(engine::rendering::Mesh const &mesh)
-{
-    auto result = mesh.indices;
-    using face_t = std::array<std::uint32_t, 3>;
-    auto begin = reinterpret_cast<face_t *>(result.data());
-    auto end = reinterpret_cast<face_t *>(result.data() + result.size());
-
-    std::sort(begin, end, [&vertices = mesh.vertices](face_t const &lhs, face_t const &rhs) {
-        auto const lhs_center = (vertices[lhs[0]].position + vertices[lhs[1]].position + vertices[lhs[2]].position) / 3.0f;
-        auto const rhs_center = (vertices[rhs[0]].position + vertices[rhs[1]].position + vertices[rhs[2]].position) / 3.0f;
-        auto const lhs_distance = glm::length(lhs_center - g_camera.position);
-        auto const rhs_distance = glm::length(rhs_center - g_camera.position);
-        return lhs_distance < rhs_distance;
-    });
-
-    return result;
-}
-
 int g_render_distance_horizontal = 12;
 int g_render_distance_vertical = 4;
 float g_mouse_sensitivity = 1;
 
 void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {
+    ImGui_ImplSDL2_NewFrame(m_window);
+    ImGui::NewFrame();
+
     const double d_delta = std::chrono::duration<double>(delta).count();
     auto const *const keyboard_state = SDL_GetKeyboardState(nullptr);
 
@@ -119,80 +97,6 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
         ImGui::EndChild();
     }
     ImGui::End();
-
-    std::vector<decltype(m_entity_registry)::entity_type> to_delete;
-    // std::vector<Chunk> to_add;
-
-    for (entt::entity chunk : m_entity_registry.view<engine::components::ChunkPosition, engine::components::ChunkData>()) {
-        auto const &[chunk_position, chunk_data] = m_entity_registry.get<engine::components::ChunkPosition, engine::components::ChunkData>(chunk);
-        if (m_entity_registry.any_of<engine::components::Dirty>(chunk)) {
-            auto it = m_chunk_meshes.find(chunk_position);
-            if (it == m_chunk_meshes.end()) {
-#ifdef ENGINE_WITH_OPENGL
-                GLuint buffers[4];
-                glGenBuffers(std::size(buffers), buffers);
-                std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk_position, std::make_pair(rendering::MeshHandle { buffers[0], buffers[1], 0 }, rendering::MeshHandle { buffers[2], buffers[3], 0 }));
-#endif
-            }
-
-            auto const solid_mesh = generate_solid_mesh(chunk_position, chunk_data);
-            auto const translucent_mesh = generate_translucent_mesh(chunk_position);
-
-            auto const sorted_indices = get_sorted_indices(translucent_mesh);
-
-            // TODO: Vertex deduplication
-#ifdef ENGINE_WITH_OPENGL
-            glBindBuffer(GL_ARRAY_BUFFER, it->second.first.vertex_buffer);
-            glBufferData(GL_ARRAY_BUFFER, solid_mesh.vertices.size() * sizeof(*solid_mesh.vertices.data()), solid_mesh.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.first.index_buffer);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, solid_mesh.indices.size() * sizeof(*solid_mesh.indices.data()), solid_mesh.indices.data(), GL_DYNAMIC_DRAW);
-#endif
-            it->second.first.index_count = solid_mesh.indices.size();
-
-#ifdef ENGINE_WITH_OPENGL
-            glBindBuffer(GL_ARRAY_BUFFER, it->second.second.vertex_buffer);
-            glBufferData(GL_ARRAY_BUFFER, translucent_mesh.vertices.size() * sizeof(*translucent_mesh.vertices.data()), translucent_mesh.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.second.index_buffer);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
-#endif
-            it->second.second.index_count = sorted_indices.size();
-
-#ifdef ENGINE_WITH_OPENGL
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#endif
-
-            if (auto mesh_data = m_translucent_mesh_data.find(chunk_position); mesh_data != m_translucent_mesh_data.end())
-                mesh_data->second = std::move(translucent_mesh);
-            else
-                m_translucent_mesh_data.emplace(chunk_position, std::move(translucent_mesh));
-
-            m_entity_registry.remove<engine::components::Dirty>(chunk);
-        } else if (g_camera.position != previous_camera_position) {
-            auto p_mesh = m_chunk_meshes.find(chunk_position);
-            auto p_data = m_translucent_mesh_data.find(chunk_position);
-            if (p_mesh != m_chunk_meshes.end() && p_data != m_translucent_mesh_data.end()) {
-                auto const sorted_indices = get_sorted_indices(p_data->second);
-#ifdef ENGINE_WITH_OPENGL
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.second.index_buffer);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#endif
-            }
-        }
-    }
-
-    for (entt::entity chunk : to_delete) {
-        auto const &chunk_position = m_entity_registry.get<engine::components::ChunkPosition>(chunk);
-        m_chunks.erase({
-            chunk_position.x,
-            chunk_position.y,
-            chunk_position.z,
-        });
-        m_translucent_mesh_data.erase(chunk_position);
-        m_chunk_meshes.erase(chunk_position);
-    }
-    m_entity_registry.destroy(to_delete.cbegin(), to_delete.cend());
 
     previous_camera_position = g_camera.position;
 }

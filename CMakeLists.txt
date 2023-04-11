@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 project(little_game)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -10,18 +10,18 @@ find_program(CCACHE_PROGRAM ccache)
 
 if(CCACHE_PROGRAM)
     message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
-    get_property(PREV_RULE_LAUNCH_COMPILE DIRECTORY PROPERTY RULE_LAUNCH_COMPILE)
-    get_property(PREV_RULE_LAUNCH_LINK DIRECTORY PROPERTY RULE_LAUNCH_LINK)
-    set_property(DIRECTORY PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_COMPILE}")
-    set_property(DIRECTORY PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_LINK}")
+    get_property(PREV_RULE_LAUNCH_COMPILE GLOBAL PROPERTY RULE_LAUNCH_COMPILE)
+    get_property(PREV_RULE_LAUNCH_LINK GLOBAL PROPERTY RULE_LAUNCH_LINK)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_COMPILE}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_LINK}")
 endif()
 
 find_program(MOLD_PROGRAM mold)
 
 if(MOLD_PROGRAM)
     message(STATUS "Found mold: ${MOLD_PROGRAM}")
-    get_property(PREV_RULE_LAUNCH_LINK DIRECTORY PROPERTY RULE_LAUNCH_LINK)
-    set_property(DIRECTORY PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ${PREV_RULE_LAUNCH_LINK}")
+    get_property(PREV_RULE_LAUNCH_LINK GLOBAL PROPERTY RULE_LAUNCH_LINK)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ${PREV_RULE_LAUNCH_LINK}")
 endif()
 
 if(WITH_LUA STREQUAL "lua")
@@ -36,7 +36,6 @@ endif()
 
 if(WITH_VULKAN)
     find_package(Vulkan REQUIRED)
-    find_package(volk REQUIRED)
 endif()
 
 find_package(glm REQUIRED)
@@ -52,6 +51,7 @@ find_package(Boost REQUIRED)
 add_subdirectory(external)
 
 add_executable(little_game)
+
 if(MSVC)
     target_compile_options(little_game PRIVATE "/W4")
 elseif(CMAKE_C_COMPILER_ID MATCHES "Clang*")
@@ -64,85 +64,66 @@ else() # assume GCC style compiler
     target_compile_options(little_game PRIVATE "-Werror=all" "-Werror=extra" "-Wpedantic")
 endif()
 
+file(GLOB_RECURSE VGAME_PRIVATE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*")
+file(GLOB_RECURSE VGAME_PUBLIC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/include/*")
+file(GLOB_RECURSE VGAME_OPENGL_PRIVATE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/engine/rendering/opengl/*")
+file(GLOB_RECURSE VGAME_OPENGL_PUBLIC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/include/engine/rendering/opengl/*")
+file(GLOB_RECURSE VGAME_VULKAN_PRIVATE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/engine/rendering/vulkan/*")
+file(GLOB_RECURSE VGAME_VULKAN_PUBLIC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/include/engine/rendering/vulkan/*")
+
+list(REMOVE_ITEM VGAME_PRIVATE_SOURCES ${VGAME_OPENGL_PRIVATE_SOURCES} ${VGAME_VULKAN_PRIVATE_SOURCES})
+list(REMOVE_ITEM VGAME_PUBLIC_SOURCES ${VGAME_OPENGL_PUBLIC_SOURCES} ${VGAME_VULKAN_PUBLIC_SOURCES})
+
 target_sources(little_game
     PRIVATE
-    src/main.cpp
-    src/resources.cpp
-    src/fast_math.cpp
-    src/chunk_mesh_generation.cpp
-    src/cache.cpp
-    src/file.cpp
-    src/textures.cpp
-    src/error.cpp
-    src/lua_bindings.cpp
-    src/lua/format.cpp
+    ${VGAME_PRIVATE_SOURCES}
 
-    src/engine/Config.cpp
-    src/engine/resources.cpp
-
-    src/game/shared.cpp
-    src/game/input.cpp
-    src/game/update.cpp
-
-    src/engine/errors/AlreadyRegistered.cpp
-    src/engine/errors/UnsupportedFileType.cpp
-    src/engine/errors/InvalidResourceName.cpp
-
-    src/assets/BlockMesh.cpp
-    src/assets/Image.cpp
-
-    include/engine/Game.hpp
-    include/engine/Block.hpp
-    include/engine/BlockType.hpp
-    include/engine/rendering/Mesh.hpp
-    include/engine/rendering/Vertex.hpp
-    include/engine/Config.hpp
-    include/math/fast.hpp
-    include/math/bits.hpp
-    include/math/constexpr.hpp
-    include/utils/timeit.hpp
-    include/utils/cache.hpp
-    include/utils/strings.hpp
-    include/utils/file.hpp
-    include/engine/textures.hpp
-    include/utils/error.hpp
-    include/operators.hpp
-    include/utils/url.hpp
-    include/engine/Stream.hpp
-
-    include/engine/assets/BlockMesh.hpp
-    include/engine/assets/Image.hpp
-
-    include/engine/errors/AlreadyRegistered.hpp
-    include/engine/errors/UnsupportedFileType.hpp
-    include/engine/errors/InvalidResourceName.hpp
+    PUBLIC
+    ${VGAME_PUBLIC_SOURCES}
 )
 
 if(WITH_OPENGL)
     target_sources(little_game
         PRIVATE
-        src/glDebug.c
-        src/engine/rendering/opengl/render.cpp
+        ${VGAME_OPENGL_PRIVATE_SOURCES}
+        PUBLIC
+        ${VGAME_PUBLIC_SOURCES})
 
-        include/glDebug.h
-    )
+    target_link_libraries(little_game
+        PRIVATE
+        glad::glad
+        imgui_impl_opengl3)
+
+    target_compile_definitions(little_game
+        PRIVATE
+        ENGINE_WITH_OPENGL)
 endif()
 
 if(WITH_VULKAN)
     target_sources(little_game PRIVATE
-        src/engine/rendering/vulkan/render.cpp
-        src/engine/rendering/vulkan/State.cpp
+        PRIVATE
+        ${VGAME_PUBLIC_PRIVATE_SOURCES}
+        PUBLIC
+        ${VGAME_PUBLIC_SOURCES})
 
-        include/engine/rendering/vulkan/State.hpp
-    )
+    target_link_libraries(little_game
+        PRIVATE
+        Vulkan::Headers
+        imgui_impl_vulkan)
+
+    target_compile_definitions(little_game
+        PRIVATE
+        ENGINE_WITH_VULKAN
+        VK_NO_PROTOTYPES
+        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 endif()
 
 find_program(RESOURCE_COMPILER resource_compiler.py PATHS "${CMAKE_CURRENT_LIST_DIR}/tools/bin" REQUIRED NO_DEFAULT_PATH)
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/
-    COMMAND ${RESOURCE_COMPILER} "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/include/"
+    COMMAND "${RESOURCE_COMPILER}" "${CMAKE_CURRENT_LIST_DIR}/res" -o "${CMAKE_CURRENT_BINARY_DIR}/include/resources_generated.hpp"
     DEPENDS "${CMAKE_CURRENT_LIST_DIR}/res"
     VERBATIM
 )
@@ -156,24 +137,11 @@ target_link_libraries(little_game
     SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl2 rapidjson
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::boost)
 
-if(WITH_OPENGL)
-    target_link_libraries(little_game
-        PRIVATE
-        glad::glad
-        imgui_impl_opengl3)
-endif()
-
-if(WITH_VULKAN)
-    target_link_libraries(little_game PRIVATE
-        Vulkan::Headers
-        volk::volk
-        imgui_impl_vulkan)
-endif()
-
 if(WITH_LUA STREQUAL "lua")
     target_link_libraries(little_game PRIVATE lua::lua)
 elseif(WITH_LUA STREQUAL "luajit")
     target_link_libraries(little_game PRIVATE luajit::luajit)
+    target_compile_definitions(little_game PRIVATE SOL_LUAJIT)
 endif()
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
@@ -183,18 +151,6 @@ target_compile_definitions(little_game
     PUBLIC
     GLM_FORCE_XYZW_ONLY
     SOL_ALL_SAFETIES_ON)
-
-if(WITH_LUA STREQUAL "luajit")
-    target_compile_definitions(little_game PUBLIC SOL_LUAJIT)
-endif()
-
-if(WITH_OPENGL)
-    target_compile_definitions(little_game PUBLIC ENGINE_WITH_OPENGL)
-endif()
-
-if(WITH_VULKAN)
-    target_compile_definitions(little_game PUBLIC ENGINE_WITH_VULKAN VK_NO_PROTOTYPES VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
-endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT(MINGW OR CYGWIN))
     message(STATUS "Linking with SDL2main")
