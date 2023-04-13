@@ -137,9 +137,9 @@ class VGameRecipe(ConanFile):
             sdk_version = "1.3.236.0"
             self.requires(f"vulkan-headers/{sdk_version}", override=True)
             self.requires(f"volk/{sdk_version}")
-            self.requires(f"vulkan-loader/{sdk_version}")
             self.requires("vulkan-memory-allocator/3.0.1")
-            # self.requires(f"vulkan-validationlayers/{sdk_version}", run=True)
+            if self.settings.build_type != "Release":
+                self.requires(f"vulkan-validationlayers/{sdk_version}", run=True)
             if is_apple_os(self):
                 self.requires("moltenvk/1.2.2")
 
