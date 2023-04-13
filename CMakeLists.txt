@@ -35,7 +35,7 @@ if(WITH_OPENGL)
 endif()
 
 if(WITH_VULKAN)
-    find_package(Vulkan REQUIRED)
+    find_package(VulkanHeaders REQUIRED)
 endif()
 
 find_package(glm REQUIRED)
