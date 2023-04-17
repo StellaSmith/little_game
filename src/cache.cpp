@@ -60,7 +60,7 @@ engine::Result<utils::FileHandle> engine::get_cache_file(std::string_view name, 
     std::error_code ec;
     auto cache_time = std::filesystem::last_write_time(cache_file_path, ec);
     if (ec) {
-        spdlog::error("failed to obtain last write time for file {}", cache_file_path);
+        spdlog::error("failed to obtain last write time for file {}: {}", cache_file_path, ec.message());
         return boost::outcome_v2::failure(static_cast<std::errc>(ec.value()));
     }
 
@@ -71,7 +71,7 @@ engine::Result<utils::FileHandle> engine::get_cache_file(std::string_view name, 
             auto write_time = std::filesystem::last_write_time(ref_file, ec);
 
             if (ec) {
-                spdlog::warn("failed to obtain last write time for {}, ignoring", ref_file);
+                spdlog::warn("failed to obtain last write time for {}, ignoring: {}", ref_file, ec.message());
                 continue;
             }
 

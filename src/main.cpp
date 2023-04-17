@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif
-    std::filesystem::path config_path = "engine/config.cfg";
+    std::filesystem::path config_path = "config/engine.json";
 
     for (int i = 0; i < argc; ++i) {
         if (argv[i] == "-h"sv || argv[i] == "--help"sv) {
