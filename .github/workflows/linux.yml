@@ -45,5 +45,6 @@ jobs:
         path: ~/.cache/ccache
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:ccache
 
+    - run: conan profile --detect
     - run: conan install -u . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}
     - run: conan build . --version $(git log -1 --format='%H')
