@@ -29,14 +29,13 @@ void engine::rendering::vulkan::Renderer::setup()
             CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, nullptr));
             auto extensionProperties = std::make_unique_for_overwrite<VkExtensionProperties[]>(extensionPropertiesCount);
             CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, extensionProperties.get()));
-            if (g_verbose) {
-                spdlog::info("Avaible extensions ({}):", extensionPropertiesCount);
-                for (std::size_t i = 0; i < extensionPropertiesCount; ++i) {
-                    auto const major = VK_VERSION_MAJOR(extensionProperties[i].specVersion);
-                    auto const minor = VK_VERSION_MINOR(extensionProperties[i].specVersion);
-                    auto const patch = VK_VERSION_PATCH(extensionProperties[i].specVersion);
-                    spdlog::info("\t{}: {}.{}.{}", extensionProperties[i].extensionName, major, minor, patch);
-                }
+
+            spdlog::info("available extensions ({}):", extensionPropertiesCount);
+            for (std::size_t i = 0; i < extensionPropertiesCount; ++i) {
+                auto const major = VK_VERSION_MAJOR(extensionProperties[i].specVersion);
+                auto const minor = VK_VERSION_MINOR(extensionProperties[i].specVersion);
+                auto const patch = VK_VERSION_PATCH(extensionProperties[i].specVersion);
+                spdlog::info("\t{}: {}.{}.{}", extensionProperties[i].extensionName, major, minor, patch);
             }
 
             instance_extensions.insert(instance_extensions.end(), required_extensions.begin(), required_extensions.end());
@@ -62,23 +61,22 @@ void engine::rendering::vulkan::Renderer::setup()
             CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, nullptr));
             auto layerProperties = std::make_unique_for_overwrite<VkLayerProperties[]>(layerPropertiesCount);
             CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, layerProperties.get()));
-            if (g_verbose) {
-                spdlog::info("Avaible extensions ({}):", layerPropertiesCount);
-                for (std::size_t i = 0; i < layerPropertiesCount; ++i) {
-                    auto const major = VK_VERSION_MAJOR(layerProperties[i].specVersion);
-                    auto const minor = VK_VERSION_MINOR(layerProperties[i].specVersion);
-                    auto const patch = VK_VERSION_PATCH(layerProperties[i].specVersion);
 
-                    auto const impl_major = VK_VERSION_MAJOR(layerProperties[i].implementationVersion);
-                    auto const impl_minor = VK_VERSION_MINOR(layerProperties[i].implementationVersion);
-                    auto const impl_patch = VK_VERSION_PATCH(layerProperties[i].implementationVersion);
+            spdlog::info("available extensions ({}):", layerPropertiesCount);
+            for (std::size_t i = 0; i < layerPropertiesCount; ++i) {
+                auto const major = VK_VERSION_MAJOR(layerProperties[i].specVersion);
+                auto const minor = VK_VERSION_MINOR(layerProperties[i].specVersion);
+                auto const patch = VK_VERSION_PATCH(layerProperties[i].specVersion);
 
-                    spdlog::info("\t{}: {}.{}.{} ({}.{}.{})",
-                        layerProperties[i].layerName,
-                        major, minor, patch,
-                        impl_major, impl_minor, impl_patch);
-                    spdlog::info("\t\t{}", layerProperties[i].description);
-                }
+                auto const impl_major = VK_VERSION_MAJOR(layerProperties[i].implementationVersion);
+                auto const impl_minor = VK_VERSION_MINOR(layerProperties[i].implementationVersion);
+                auto const impl_patch = VK_VERSION_PATCH(layerProperties[i].implementationVersion);
+
+                spdlog::info("\t{}: {}.{}.{} ({}.{}.{})",
+                    layerProperties[i].layerName,
+                    major, minor, patch,
+                    impl_major, impl_minor, impl_patch);
+                spdlog::info("\t\t{}", layerProperties[i].description);
             }
 
             instance_layers.insert(instance_layers.end(), required_layers.begin(), required_layers.end());
@@ -140,8 +138,7 @@ void engine::rendering::vulkan::Renderer::setup()
         auto physicalDevices = std::make_unique_for_overwrite<VkPhysicalDevice[]>(physicalDeviceCount);
         CHECK_VK(vkEnumeratePhysicalDevices(vulkan.instance, &physicalDeviceCount, physicalDevices.get()));
 
-        if (g_verbose)
-            spdlog::info("Vulkan devices ({}):", physicalDeviceCount);
+        spdlog::info("vulkan devices ({}):", physicalDeviceCount);
         for (uint32_t i = 0; i < physicalDeviceCount; ++i) {
 
             VkPhysicalDeviceProperties physicalDeviceProperties;
@@ -149,25 +146,23 @@ void engine::rendering::vulkan::Renderer::setup()
             VkPhysicalDeviceFeatures physicalDeviceFeatures;
             vkGetPhysicalDeviceFeatures(physicalDevices[i], &physicalDeviceFeatures);
 
-            if (g_verbose) {
-                auto const deviceType = [&] {
-                    switch (physicalDeviceProperties.deviceType) {
-                    case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                        return "CPU"sv;
-                    case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                        return "Discrete GPU"sv;
-                    case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                        return "Integrated GPU"sv;
-                    case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                        return "Virtual GPU"sv;
-                    default:
-                        return "Unkown"sv;
-                    }
-                }();
-                spdlog::info("\t{} ID: {}\tName: {} ({})",
-                    i, physicalDeviceProperties.deviceID,
-                    physicalDeviceProperties.deviceName, deviceType);
-            }
+            auto const deviceType = [&] {
+                switch (physicalDeviceProperties.deviceType) {
+                case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                    return "CPU"sv;
+                case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                    return "Discrete GPU"sv;
+                case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                    return "Integrated GPU"sv;
+                case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                    return "Virtual GPU"sv;
+                default:
+                    return "Unkown"sv;
+                }
+            }();
+            spdlog::info("\t{} ID: {}\tName: {} ({})",
+                i, physicalDeviceProperties.deviceID,
+                physicalDeviceProperties.deviceName, deviceType);
         }
 
         return physicalDevices[0];

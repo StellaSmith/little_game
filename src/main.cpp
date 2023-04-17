@@ -3,6 +3,7 @@
 #include <utils/error.hpp>
 
 #include <SDL.h>
+#include <boost/stacktrace.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -10,17 +11,23 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <stdexcept>
 #include <string>
 #include <system_error>
 
 using namespace std::literals;
 
-bool g_verbose = false;
-static void fix_current_directory(char const *argv0);
+static void terminate_handler()
+{
+    auto const stacktrace = boost::stacktrace::stacktrace();
+    fmt::print(stderr, "{}", boost::stacktrace::to_string(stacktrace));
+}
 
 int main(int argc, char **argv)
 {
+    std::set_terminate(&terminate_handler);
+
 #ifndef NDEBUG
     if (auto logger = spdlog::default_logger(); logger->level() < spdlog::level::debug)
         logger->set_level(spdlog::level::debug);
@@ -28,9 +35,6 @@ int main(int argc, char **argv)
 
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
-#endif
-#ifndef NDEBUG
-    try {
 #endif
         for (int i = 0; i < argc; ++i) {
             if (argv[i] == "-h"sv || argv[i] == "--help"sv) {
@@ -131,33 +135,4 @@ int main(int argc, char **argv)
         game.cleanup();
 
         return 0;
-#ifndef NDEBUG
-    } catch (sol::error const &e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lua panic!", e.what(), nullptr);
-        spdlog::critical("Lua panic!: {}", e.what());
-        throw;
-    } catch (utils::application_error const &e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, e.title().data(), e.body().data(), nullptr);
-        spdlog::critical("{}: {}", e.title(), e.body());
-        throw;
-    } catch (std::exception const &e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "EXCEPTION NOT HANDLED!!", e.what(), nullptr);
-        spdlog::critical("std::exception raised: {}", e.what());
-        throw;
-    } catch (...) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "UNKOWN EXCEPTION NOT HANDLED!!!", "UNKOWN EXCEPTION NOT HANDLED!!!", nullptr);
-        spdlog::critical("Unkown exception raised");
-        throw;
-    }
-#endif
-    return -1;
-}
-
-static void fix_current_directory(char const *argv0)
-{
-    auto const path = std::filesystem::path(argv0, std::filesystem::path::native_format).parent_path().parent_path();
-    std::filesystem::current_path(path);
-
-    if (g_verbose)
-        spdlog::info("Working directory: {}", path.string());
 }

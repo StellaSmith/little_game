@@ -61,8 +61,6 @@ void engine::rendering::opengl::Renderer::setup()
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
         utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
 
-    extern bool g_verbose;
-    if (g_verbose) {
         int major, minor, r, g, b, a, d, s;
         SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
         SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
@@ -86,7 +84,7 @@ void engine::rendering::opengl::Renderer::setup()
         spdlog::info("\tVendor: {}", vendor);
         spdlog::info("\tRendered: {}", renderer);
         spdlog::info("\tShading language version: {}", shading_version);
-    }
+
 #if defined(GL_KHR_debug)
     if (GLAD_GL_KHR_debug) {
         int flags;
@@ -96,8 +94,8 @@ void engine::rendering::opengl::Renderer::setup()
             glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
             glDebugMessageCallback(glDebugOutput, nullptr);
             glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-            if (g_verbose)
-                spdlog::info("\tDebug output enabled.\n");
+
+            spdlog::info("\tdebug output enabled\n");
         }
     }
 #endif

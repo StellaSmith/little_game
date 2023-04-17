@@ -11,8 +11,6 @@
 
 using namespace std::literals;
 
-extern bool g_verbose; // TODO: Move to it's own header
-
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
 #define HAS_CXXABI_H
