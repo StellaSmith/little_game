@@ -15,7 +15,7 @@ import os
 
 class VGameRecipe(ConanFile):
     name = "vgame"
-    version = "develop"
+    # version = "develop"
     package_type = "application"
 
     name = "vgame"
