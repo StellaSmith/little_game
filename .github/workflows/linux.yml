@@ -31,9 +31,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: sudo apt-get update && sudo apt-get -y install ${{ matrix.compiler.c }}
-      if: startsWith(matrix.compiler.c, "clang")
+      if: startsWith(matrix.compiler.c, 'clang')
     - run: sudo apt-get update && sudo apt-get -y install ${{ matrix.compiler.c }} ${{ matrix.compiler.cxx }}
-      if: startsWith(matrix.compiler.c, "gcc")
+      if: startsWith(matrix.compiler.c, 'gcc')
     - run: exec pip install --upgrade conan
 
     - name: cache conan packages
