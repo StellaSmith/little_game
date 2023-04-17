@@ -21,10 +21,7 @@ cd little_game
 mkdir build
 # Make sure we have conan installed
 python -m pip install --user --update conan
-# Export the build tools to the local conan cache
-conan export --build-require recipes/vgame_tools/ --version none
-# Install and build dependencies, this can take a while
-conan install -u recipes/vgame/ --version none -b missing -of build
 # Finally, building
-conan build recipes/vgame/ -of build
+conan build . --build missing
 ```
+The last step will also download and build dependecies if required.
