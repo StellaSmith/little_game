@@ -25,8 +25,8 @@ jobs:
       run:
         shell: /usr/bin/bash --login -eo pipefail {0}
       env:
-        CC: ${{ compiler.c }}
-        CXX: ${{ compiler.cxx }}
+        CC: ${{ matrix.compiler.c }}
+        CXX: ${{ matrix.compiler.cxx }}
 
     steps:
     - uses: actions/checkout@v2
@@ -45,5 +45,5 @@ jobs:
         path: ~/.cache/ccache
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:ccache
 
-    - run: conan install -u . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ build_type }}
+    - run: conan install -u . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}
     - run: conan build . --version $(git log -1 --format='%H')
