@@ -60,7 +60,7 @@ struct ModelFace {
 };
 
 static rapidjson::SchemaDocument const s_model_schema = []() {
-    resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json");
+    resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json").value();
     if (schema == nullptr)
         throw std::runtime_error("Can't open resources://schemas/ModelSchema.json");
     if (schema->type != resources::ResourceType::FILE_RESOURCE)
@@ -134,7 +134,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
     boost::container::flat_set<std::uint32_t> color_masks;
 
     {
-        auto fp = engine::open_file(path, "r");
+        auto fp = engine::open_file(path, "r").value();
 
         char buf[1024 * 8] {}; // 8KiB
 

@@ -2,9 +2,9 @@
 #include <engine/Camera.hpp>
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
+#include <engine/cache.hpp>
 #include <engine/rendering/opengl/Renderer.hpp>
 #include <glDebug.h>
-#include <utils/cache.hpp>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
 #include <utils/timeit.hpp>
@@ -134,17 +134,17 @@ void engine::rendering::opengl::Renderer::setup_shader()
 #ifdef GL_ARB_get_program_binary
     if (GLAD_GL_ARB_get_program_binary) {
         static std::filesystem::path const ref_files[] = { "assets/terrain/basic.vert", "assets/terrain/basic.frag" };
-        auto fp = utils::get_cache_file("shaders/terrain/basic.bin"sv, ref_files);
+        auto fp = engine::get_cache_file("shaders/terrain/basic.bin"sv, ref_files);
         if (fp) {
             GLenum format;
-            std::fread(&format, sizeof(format), 1, fp.get());
-            auto start = std::ftell(fp.get());
-            std::fseek(fp.get(), 0, SEEK_END);
-            auto stop = std::ftell(fp.get());
+            std::fread(&format, sizeof(format), 1, fp.assume_value().get());
+            auto start = std::ftell(fp.assume_value().get());
+            std::fseek(fp.assume_value().get(), 0, SEEK_END);
+            auto stop = std::ftell(fp.assume_value().get());
             auto len = static_cast<std::size_t>(stop - start);
-            std::fseek(fp.get(), start, SEEK_SET);
+            std::fseek(fp.assume_value().get(), start, SEEK_SET);
             auto data = std::make_unique<std::byte[]>(len);
-            std::fread(data.get(), 1, len, fp.get());
+            std::fread(data.get(), 1, len, fp.assume_value().get());
 
             m_shader = glCreateProgram();
             glProgramBinary(m_shader, format, data.get(), len);
@@ -227,7 +227,7 @@ void engine::rendering::opengl::Renderer::setup_shader()
 
 #ifdef GL_ARB_get_program_binary
     if (GLAD_GL_ARB_get_program_binary) {
-        auto fp = utils::create_cache_file("shaders/terrain/basic.bin");
+        auto fp = engine::create_cache_file("shaders/terrain/basic.bin");
         if (!fp)
             return;
         GLint buf_len;
@@ -237,8 +237,8 @@ void engine::rendering::opengl::Renderer::setup_shader()
         GLenum format;
         glGetProgramBinary(m_shader, buf_len, &length, &format, data.get());
 
-        std::fwrite(&format, sizeof(format), 1, fp.get());
-        std::fwrite(data.get(), length, 1, fp.get());
+        std::fwrite(&format, sizeof(format), 1, fp.assume_value().get());
+        std::fwrite(data.get(), length, 1, fp.assume_value().get());
     }
 #endif
 }

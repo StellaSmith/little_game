@@ -1,11 +1,11 @@
-#include <utils/cache.hpp>
-
 #include <engine/Stream.hpp>
+#include <engine/cache.hpp>
 
+#include <boost/outcome/success_failure.hpp>
+#include <fmt/std.h>
 #include <spdlog/spdlog.h>
 
-#include <algorithm>
-#include <cassert>
+#include <algorithm> // std::max
 #include <cstdlib> // std::getenv
 #include <optional>
 #include <vector>
@@ -43,71 +43,85 @@ static std::filesystem::path const s_cache_directory = []() -> std::filesystem::
 #endif
 }();
 
-std::filesystem::path const &utils::cache_directory()
+std::filesystem::path const &engine::cache_directory() noexcept
 {
     return s_cache_directory;
 }
 
-static utils::FileHandle open_cache_file(std::string_view name, char const *mode)
+static engine::Result<utils::FileHandle> open_cache_file(std::string_view name, char const *mode)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
-    assert(!name.empty());
 
-    auto const cache_file = s_cache_directory / name;
-    auto const cache_file_directory = cache_file.parent_path();
+    if (name.empty())
+        return boost::outcome_v2::failure(std::errc::invalid_argument);
+
+    auto const cache_file_path = s_cache_directory / name;
+    auto const cache_file_directory = cache_file_path.parent_path();
 
     if (!cache_file_directory.lexically_relative(s_cache_directory).native().starts_with(s_cache_directory.native())) {
-        spdlog::warn("Tried to open a cache file outside the cache directory: {}", name);
-        return nullptr;
+        spdlog::error("tried to open a cache file outside the cache directory: {} resolved to {}", name, cache_file_path);
+        return boost::outcome_v2::failure(std::errc::permission_denied);
     }
 
     if (!std::filesystem::exists(cache_file_directory)) {
         std::error_code ec;
-        if (!std::filesystem::create_directories(cache_file_directory, ec) || ec)
-            return nullptr;
+        if (!std::filesystem::create_directories(cache_file_directory, ec) || ec) {
+            spdlog::error("failed to create directory {}", cache_file_directory);
+            return boost::outcome_v2::failure(static_cast<std::errc>(ec.value()));
+        }
     }
 
-    if (!std::filesystem::is_directory(cache_file_directory))
-        return nullptr;
+    if (!std::filesystem::is_directory(cache_file_directory)) {
+        spdlog::error("cache directory path {} is not a directory", cache_file_directory);
+        return boost::outcome_v2::failure(std::errc::not_a_directory);
+    }
 
-    return engine::open_file(cache_file, mode);
+    return engine::open_file(cache_file_path, mode);
 }
 
-utils::FileHandle utils::create_cache_file(std::string_view name)
+engine::Result<utils::FileHandle> engine::create_cache_file(std::string_view name)
 {
     return open_cache_file(name, "wb");
 }
 
-utils::FileHandle utils::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
+engine::Result<utils::FileHandle> engine::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
 {
     if (ref_files.empty())
         return open_cache_file(name, "rb");
 
-    std::error_code ec;
-    auto cache_time = std::filesystem::last_write_time(s_cache_directory / name, ec);
-    if (ec) return nullptr;
+    auto const cache_file_path = s_cache_directory / name;
 
-    auto const maybe_max_time = [&] {
-        std::vector<std::filesystem::file_time_type> times;
-        times.reserve(ref_files.size());
+    std::error_code ec;
+    auto cache_time = std::filesystem::last_write_time(cache_file_path, ec);
+    if (ec) {
+        spdlog::error("failed to obtain last write time for file {}", cache_file_path);
+        return boost::outcome_v2::failure(static_cast<std::errc>(ec.value()));
+    }
+
+    auto const maybe_max_time = [&]() {
+        std::optional<std::filesystem::file_time_type> maybe_time;
 
         for (auto const &ref_file : ref_files) {
-            std::error_code ec;
             auto write_time = std::filesystem::last_write_time(ref_file, ec);
-            if (!ec)
-                times.push_back(write_time);
+
+            if (ec) {
+                spdlog::warn("failed to obtain last write time for {}, ignoring", ref_file);
+                continue;
+            }
+
+            if (maybe_time) {
+                maybe_time.emplace(std::max(*maybe_time, write_time));
+            } else {
+                maybe_time = std::move(write_time);
+            }
         }
 
-        auto it = std::max_element(times.begin(), times.end());
-        if (it == times.end())
-            return std::optional<std::filesystem::file_time_type> { std::nullopt };
-        else
-            return std::optional<std::filesystem::file_time_type>(std::in_place, std::move(*it));
+        return maybe_time;
     }();
 
     if (maybe_max_time.has_value() && maybe_max_time.value() < cache_time)
         return open_cache_file(name, "rb");
 
-    return nullptr;
+    return boost::outcome_v2::failure(std::errc::no_such_file_or_directory);
 }

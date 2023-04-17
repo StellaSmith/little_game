@@ -1,13 +1,19 @@
 #ifndef ENGINE_STREAM_HPP
 #define ENGINE_STREAM_HPP
 
+#include <boost/outcome/success_failure.hpp>
 #include <resources_generated.hpp> // auto-generated
+
+#include <engine/Result.hpp>
 #include <utils/FileHandle.hpp>
 
+#include <fmt/std.h>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <cstdio>
 #include <filesystem>
+#include <span>
 #include <system_error>
 
 #ifdef _WIN32
@@ -19,27 +25,23 @@
 #endif
 
 namespace engine {
-
-    inline static utils::FileHandle open_file(std::filesystem::path const &path, char const *mode, std::error_code &ec) noexcept
+    inline static engine::Result<utils::FileHandle> open_file(std::filesystem::path const &path, char const *mode) noexcept
     {
-        std::FILE *fp;
-        int err_nr;
 #if _WIN32
         wchar_t buf[32] {};
-        std::size_t sz = std::strlen(mode);
-        assert(sz < sizeof(buf));
-        for (std::size_t i = 0; i < sz; ++i)
-            buf[i] = mode[i];
-        err_nr = ::_wfopen_s(&fp, path.native().c_str(), &buf[0]);
+        std::size_t const size = std::strlen(mode);
+        if (size >= std::size(buf))
+            return boost::outcome_v2::failure(std::errc::argument_list_too_long);
+        std::copy(mode, mode + size, buf);
+        std::FILE *fp = nullptr;
+        int const error = ::_wfopen_s(&fp, path.native().c_str(), &buf[0]);
 #else
-        fp = std::fopen(path.native().c_str(), mode);
-        err_nr = errno;
+        std::FILE *fp = std::fopen(path.native().c_str(), mode);
+        int const error = errno;
 #endif
         if (!fp) {
-            ec.assign(err_nr, std::generic_category());
-            spdlog::error("Failed to open {}", path.string());
-        } else {
-            ec.clear();
+            spdlog::error("failed to open {}", path);
+            return boost::outcome_v2::failure(static_cast<std::errc>(error));
         }
 
         if constexpr (BUFSIZ < 1024 * 8)
@@ -48,16 +50,7 @@ namespace engine {
         return utils::FileHandle { fp };
     }
 
-    inline static utils::FileHandle open_file(std::filesystem::path const &path, char const *mode)
-    {
-        std::error_code ec;
-        auto fp = open_file(path, mode, ec);
-        if (!fp)
-            throw std::system_error(ec);
-        return fp;
-    }
-
-    resources::BaseResource const *open_resource(std::string_view path) noexcept;
-
+    engine::Result<resources::BaseResource const *> open_resource(std::string_view path) noexcept;
+    engine::Result<std::span<std::byte const>> load_resource(std::string_view path) noexcept;
 }
 #endif
