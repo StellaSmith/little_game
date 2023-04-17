@@ -51,4 +51,4 @@ jobs:
 
     - run: exec conan profile detect
     - run: exec conan install -u . --version "scm.$GITHUB_SHA" -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }} -c tools.system.package_manager:mode=install
-    - run: exec conan build . --version "scm.$GITHUB_SHA"
+    - run: exec conan build . --version "scm.$GITHUB_SHA" -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}

@@ -31,4 +31,4 @@ jobs:
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:conan
 
     - run: exec conan install . --version "scm.$GITHUB_SHA" -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}
-    - run: exec conan build . --version "scm.$GITHUB_SHA"
+    - run: exec conan build . --version "scm.$GITHUB_SHA" -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}

@@ -49,5 +49,5 @@ jobs:
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:ccache
 
     - run: exec conan profile detect
-    - run: exec conan install -u . --version "scm.$GITHUB_SHA" -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
-    - run: exec conan build . --version "scm.$GITHUB_SHA"
+    - run: exec conan install -u . --version "scm.$GITHUB_SHA" -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True 
+    - run: exec conan build . --version "scm.$GITHUB_SHA" -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}
