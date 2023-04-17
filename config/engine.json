@@ -15,5 +15,9 @@
     "ImGui": {
         // Don't set for the default font
         // "font_path": "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
+    },
+    "folders": {
+        "cwd": ".",
+        "cache": "./cache"
     }
 }

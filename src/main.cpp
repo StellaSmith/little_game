@@ -1,10 +1,11 @@
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
+#include <fmt/core.h>
 #include <utils/error.hpp>
 
 #include <SDL.h>
 #include <boost/stacktrace.hpp>
-#include <fmt/format.h>
+#include <fmt/std.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <spdlog/spdlog.h>
@@ -36,17 +37,21 @@ int main(int argc, char **argv)
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif
+    std::filesystem::path config_path = "engine/config.cfg";
+
     for (int i = 0; i < argc; ++i) {
         if (argv[i] == "-h"sv || argv[i] == "--help"sv) {
             fmt::print(
                 "Usage:\n"
-                "\t{} [options]\n"
+                "\t{program} [options]\n"
                 "Options:\n"
-                "\t-h\t--help\t\tDisplay this message and exit.\n"
-                "\t-v\t--verbose\tDisplay more verbose messages.\n"
-                "\t--sdl-video-drivers\tEnumerate the available video drivers.\n"
-                "\t--sdl-audio-drivers\tEnumerate the available audio drivers.\n",
-                argv[0]);
+                "\t-h --help\t\tDisplay this message and exit.\n"
+                "\t-v --verbose\tDisplay more verbose messages.\n"
+                "\t   --sdl-video-drivers\tEnumerate the available video drivers.\n"
+                "\t   --sdl-audio-drivers\tEnumerate the available audio drivers.\n"
+                "\t-c --config <path>\tPath to engine configuration file (default: {default_config_path})\n",
+                fmt::arg("program", argv[0]),
+                fmt::arg("default_config_path", config_path));
             return 0;
         } else if (argv[i] == "--sdl-video-drivers"sv) {
             int const n = SDL_GetNumVideoDrivers();
@@ -59,11 +64,18 @@ int main(int argc, char **argv)
             for (int i = 0; i < n; ++i)
                 spdlog::info("\t- {}\n", SDL_GetAudioDriver(i));
         } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
-            spdlog::info("Verbose output enabled");
+            spdlog::info("verbose output enabled");
+        } else if (argv[i] == "-c"sv || argv[i] == "--config"sv) {
+            char const *used = argv[i];
+            if (char const *raw_config_path = argv[++i]; raw_config_path == nullptr) {
+                spdlog::critical("missing path argument for {}", used);
+            } else {
+                config_path = raw_config_path;
+            }
         }
     }
 
-    auto &config = engine::Config::load("./config/engine.json");
+    auto &config = engine::Config::load(config_path);
 
     if (int const error = SDL_Init(0); error != 0) {
         spdlog::trace("Failed to initialize SDL ({}): {}", error, SDL_GetError());
@@ -100,7 +112,7 @@ int main(int argc, char **argv)
     // TODO: Make color scheme of imgui configurable
     ImGui::StyleColorsDark();
 
-    if (!config.imgui.font_path) {
+    if (config.imgui.font_path) {
         if (!imgui_io.Fonts->AddFontFromFileTTF(config.imgui.font_path->c_str(), 14)) {
             spdlog::warn("[ImGui] failed to load font {}, using default font", *config.imgui.font_path);
             if (!imgui_io.Fonts->AddFontDefault())

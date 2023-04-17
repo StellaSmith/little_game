@@ -75,25 +75,28 @@ engine::Config const &engine::Config::load(std::filesystem::path const &path)
     }
     s_config = engine::Config {};
 
-    if (auto *value = rapidjson::Pointer("/SDL/video_driver").Get(doc); value) {
-        s_config.sdl.video_driver = std::string { value->GetString(), value->GetStringLength() };
-    } else if (value) {
-        utils::show_error("Error loading engine config file."sv, "/SDL/video_driver must be an string");
-    }
-
-    if (auto *value = rapidjson::Pointer("/SDL/audio_driver").Get(doc); value && value->IsString()) {
-        s_config.sdl.audio_driver = std::string { value->GetString(), value->GetStringLength() };
-    } else if (value) {
-        utils::show_error("Error loading engine config file."sv, "/SDL/audio_driver must be an string");
-    }
-
-    auto set_integer = [&doc](char const *path, std::optional<unsigned> &value) {
-        if (auto *pointer = rapidjson::Pointer(path).Get(doc); pointer && pointer->IsInt()) {
-            value = pointer->GetInt();
+    auto set_string = [&](char const *json_pointer, auto &value) {
+        if (auto *pointer = rapidjson::Pointer(json_pointer).Get(doc); pointer && pointer->IsString()) {
+            value = std::string { pointer->GetString(), pointer->GetStringLength() };
         } else if (pointer) {
-            utils::show_error("Error loading engine config file."sv, fmt::format("{} must be an integer", path));
+            utils::show_error("Error loading engine config file."sv, fmt::format("{} must be an string.", json_pointer));
         }
     };
+
+    auto set_integer = [&doc](char const *json_pointer, auto &value) {
+        if (auto *pointer = rapidjson::Pointer(json_pointer).Get(doc); pointer && pointer->IsInt()) {
+            value = pointer->GetInt();
+        } else if (pointer) {
+            utils::show_error("Error loading engine config file."sv, fmt::format("{} must be an integer", json_pointer));
+        }
+    };
+
+    set_string("/SDL/video_driver", s_config.sdl.video_driver);
+    set_string("/SDL/audio_driver", s_config.sdl.audio_driver);
+    set_string("/ImGui/font_path", s_config.imgui.font_path);
+
+    set_string("/folders/root", s_config.folders.root);
+    set_string("/folders/cache", s_config.folders.cache);
 
     set_integer("/SDL/OpenGL/red_bits", s_config.opengl.red_bits);
     set_integer("/SDL/OpenGL/green_bits", s_config.opengl.green_bits);
@@ -102,10 +105,5 @@ engine::Config const &engine::Config::load(std::filesystem::path const &path)
     set_integer("/SDL/OpenGL/depth_bits", s_config.opengl.depth_bits);
     set_integer("/SDL/OpenGL/stencil_bits", s_config.opengl.stencil_bits);
 
-    if (auto *value = rapidjson::Pointer("/ImGui/font_path").Get(doc); value && value->IsString()) {
-        s_config.imgui.font_path = std::string { value->GetString(), value->GetStringLength() };
-    } else if (value) {
-        utils::show_error("Error loading engine config file."sv, "/ImGui/font_path must be an string");
-    }
     return s_config;
 }

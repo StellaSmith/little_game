@@ -31,7 +31,11 @@ namespace engine {
             std::optional<std::string> font_path;
         } imgui;
 
-        std::filesystem::path root = ".";
+        struct {
+            std::filesystem::path root = ".";
+            std::filesystem::path cache = root / "cache";
+        } folders;
+
         static Config const &load(std::filesystem::path const &);
         static Config const &the() noexcept
         {
