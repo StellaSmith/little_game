@@ -30,7 +30,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run: sudo apt install ${{ matrix.compiler.cc }}
+    - run: sudo apt-get update && sudo apt-get -y install ${{ matrix.compiler.c }}
     - run: exec pip install --upgrade conan
 
     - name: cache conan packages
