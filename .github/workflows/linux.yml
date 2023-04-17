@@ -31,7 +31,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: sudo apt install ${{ matrix.compiler.cc }}
-      if: startsWith(matrix.compiler.cc, 'clang')
     - run: exec pip install --upgrade conan
 
     - name: cache conan packages
