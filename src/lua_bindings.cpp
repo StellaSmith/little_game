@@ -54,56 +54,6 @@ static int exception_handler(lua_State *L, sol::optional<std::exception const &>
     return sol::stack::push(L, description);
 }
 
-namespace {
-    struct Printer {
-        boost::circular_buffer<std::string> &console_text;
-        void operator()(sol::variadic_args args, sol::this_state L)
-        {
-            // this looks ugly
-            std::string line;
-            for (auto arg : args) {
-                bool got_string = false;
-                if (auto mt = arg.get<sol::optional<sol::metatable>>(); mt.has_value()) {
-                    if (auto to_string = mt->raw_get<sol::optional<sol::stack_proxy>>("__tostring"sv); to_string.has_value()) {
-                        if (to_string->get_type() == sol::type::function) {
-                            if (auto results = to_string->as<sol::function>().call(arg); results.valid()) {
-                                if (auto s = results.get<sol::optional<std::string_view>>(); s.has_value()) {
-                                    line += *s;
-                                    got_string = true;
-                                }
-                            }
-                        } else if (to_string->get_type() == sol::type::string) {
-                            line += to_string->as<std::string_view>();
-                            got_string = true;
-                        }
-                    }
-                }
-                if (!got_string) {
-                    if (arg.get_type() == sol::type::string)
-                        line += arg.as<std::string_view>();
-                    else if (arg.get_type() == sol::type::boolean)
-                        line += arg.as<bool>() ? "true"sv : "false"sv;
-                    else if (arg.get_type() == sol::type::number)
-                        fmt::format_to(std::back_inserter(line), "{}"sv, arg.as<lua_Number>());
-                    else if (arg.get_type() == sol::type::nil)
-                        line += "nil"sv;
-                    else {
-                        std::string const &type_name = sol::type_name(L, arg.get_type());
-                        auto address = reinterpret_cast<std::uintptr_t>(arg.as<sol::reference>().pointer());
-                        fmt::format_to(std::back_inserter(line), "<{0} at 0x{1:0{2}X}>"sv, type_name, address, sizeof(address) * 2);
-                    }
-                }
-                line += '\t';
-            }
-
-            line.pop_back();
-            spdlog::info("[{}lua{}] {}", "\033[36m" /* cyan */, "\033[m" /* reset */, line);
-
-            console_text.push_back(std::move(line));
-        }
-    };
-} // namespace
-
 namespace lua::impl {
     std::string repr(sol::object);
 }
@@ -112,7 +62,6 @@ void engine::Game::setup_lua()
 {
     m_lua = sol::state {};
     m_lua.set_exception_handler(&exception_handler);
-    m_lua.globals().raw_set("_VERBOSE"sv, g_verbose);
 
     m_lua.open_libraries(sol::lib::base);
     // m_lua.open_libraries(sol::lib::package); disabled
@@ -142,9 +91,6 @@ void engine::Game::setup_lua()
     // disable these globals
     for (auto f : { "collectgarbage"sv, "dofile"sv, "load"sv, "loadfile"sv })
         m_lua.globals().raw_set(f, sol::nil);
-
-    // override print
-    m_lua.globals().set_function("print"sv, Printer { this->m_console_text });
 
     sol::environment sv_env(m_lua, sol::create, m_lua.globals());
     m_lua.safe_script_file("lua/sv_init.lua"s, sv_env, [](lua_State *, sol::protected_function_result pfr) {

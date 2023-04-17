@@ -83,7 +83,6 @@ namespace engine {
         SDL_Window *m_window = nullptr;
 
         sol::state m_lua;
-        boost::circular_buffer<std::string> m_console_text;
 
         entt::registry m_entity_registry;
         std::unordered_map<engine::components::ChunkPosition, entt::entity> m_chunks;

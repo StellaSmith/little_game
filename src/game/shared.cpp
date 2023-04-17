@@ -15,8 +15,6 @@ engine::Camera g_camera;
 
 void engine::Game::start()
 {
-    m_console_text.set_capacity(engine::config().terminal.max_lines);
-
     constexpr int width = 640, height = 480;
     m_renderer = std::make_unique<engine::rendering::opengl::Renderer>(*this);
     m_window = m_renderer->create_window(
