@@ -23,7 +23,7 @@ namespace engine::rendering {
         virtual void render(float delta) = 0;
         virtual SDL_Window *create_window(char const *title, int x, int y, int w, int h, uint32_t flags) = 0;
         virtual void setup_imgui() = 0;
-        virtual ~IRenderer() = 0;
+        virtual ~IRenderer() = default;
 
         Game &game() noexcept
         {
