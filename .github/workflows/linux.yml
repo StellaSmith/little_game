@@ -24,9 +24,9 @@ jobs:
     defaults:
       run:
         shell: /usr/bin/bash --login -eo pipefail {0}
-      env:
-        CC: ${{ matrix.compiler.c }}
-        CXX: ${{ matrix.compiler.cxx }}
+    env:
+      CC: ${{ matrix.compiler.c }}
+      CXX: ${{ matrix.compiler.cxx }}
 
     steps:
     - uses: actions/checkout@v2

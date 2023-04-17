@@ -24,9 +24,9 @@ jobs:
     defaults:
       run:
         shell: msys2 {0}
-      env:
-        CC: ${{ matrix.compiler.c }}
-        CXX: ${{ matrix.compiler.cxx }}
+    env:
+      CC: ${{ matrix.compiler.c }}
+      CXX: ${{ matrix.compiler.cxx }}
 
     steps:
     - name: Setting up MSYS2
@@ -51,5 +51,6 @@ jobs:
         path: ~/.conan2/p
         key: x86_64-w64-mingw32_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
+    - run: conan profile --detect
     - run: conan install -u . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}
     - run: conan build . --version $(git log -1 --format='%H')
