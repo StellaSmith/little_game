@@ -19,6 +19,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: pip install --upgrade conan
-    - run: conan profile --detect
+    - run: conan profile detect
     - run: conan install . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }}
     - run: conan build . --version $(git log -1 --format='%H')
