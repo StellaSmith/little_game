@@ -81,16 +81,19 @@ def add_directory(path: Path) -> Generator[BaseResource, None, DirectoryResource
 def minify_json(resource: BaseResource):
     from decimal import Decimal
 
+    # make sure (de)serialized decimals dont lose precision
     def serialize_decimal(decimal: Decimal):
         if isinstance(decimal, Decimal):
             return str(decimal)
         return decimal
-    match resource:
-        case FileResource(path, data) if path.suffix == ".json":
-            parsed = json.loads(data,  parse_float=Decimal)
-            data = json.dumps(parsed, separators=(",", ":"), default=serialize_decimal).encode("utf-8")
-            return FileResource(path, data)
-    return resource
+
+    if isinstance(resource, FileResource) and resource.path.suffix == ".json":
+        resource: FileResource
+        parsed = json.loads(resource.data,  parse_float=Decimal)
+        data = json.dumps(parsed, separators=(",", ":"), default=serialize_decimal).encode("utf-8")
+        return FileResource(resource.path, resource)
+    else:
+        return resource
 
 
 @filter
@@ -178,62 +181,58 @@ def main() -> int:
         logging.debug(f"generating {resource.path!r}")
         indices[resource.path] = i
         print(f"static char const entry_{i}_path[] = {cpp_string_literal(str(resource.path))};", file=arguments.output)
-        match resource:
-            case DirectoryResource(path, entries):
-                path: Path
-                entries: list[Path]
-                print(f"static resources::BaseResource const* const entry_{i}_data[] = {{", file=arguments.output)
-                for entry in sorted(entries):
-                    entry = entry.relative_to(arguments.resources_dir)
-                    print(f"    &entry_{indices[entry]},", file=arguments.output)
-                print("};", file=arguments.output)
+        if isinstance(resource, DirectoryResource):
+            resource: DirectoryResource
+            print(f"static resources::BaseResource const* const entry_{i}_data[] = {{", file=arguments.output)
+            for entry in sorted(resource.entries):
+                entry = entry.relative_to(arguments.resources_dir)
+                print(f"    &entry_{indices[entry]},", file=arguments.output)
+            print("};", file=arguments.output)
 
-                print(f"static resources::DirectoryResource const entry_{i} = {{", file=arguments.output)
-                print(f"    resources::ResourceType::DIRECTORY_RESOURCE,", file=arguments.output)
-                print(f"    &entry_{i}_path[0],", file=arguments.output)
-                print(f"    &entry_{i}_path[{str(path).rfind(path.name)}],", file=arguments.output)
-                if entries:
-                    print(f"    {len(entries)}uLL,", file=arguments.output)
-                    print(f"    &entry_{i}_data[0],", file=arguments.output)
-                else:
-                    print(f"    0,", file=arguments.output)
-                    print(f"    nullptr,", file=arguments.output)
-
-                print("};", file=arguments.output)
-            case FileResource(path, data):
-                path: Path
-                data: bytes
-                if data:
-                    print(f"static unsigned char const entry_{i}_data[] =", file=arguments.output, end="")
-                    for chunk in chunked(data, 64):
-                        print(f"\n    {cpp_string_literal(bytes(chunk))}", file=arguments.output, end="")
-                    print(f";", file=arguments.output)
-
-                print(f"static resources::FileResource const entry_{i} = {{", file=arguments.output)
-                print(f"    resources::ResourceType::FILE_RESOURCE,", file=arguments.output)
-                print(f"    &entry_{i}_path[0],", file=arguments.output)
-                print(f"    &entry_{i}_path[{str(path).rfind(path.name)}],", file=arguments.output)
-
-                if data:
-                    print(f"    {len(data)}uLL,", file=arguments.output)
-                    print(f"    &entry_{i}_data[0],", file=arguments.output)
-                else:
-                    print(f"    0,", file=arguments.output)
-                    print(f"    nullptr,", file=arguments.output)
-
-                print("};", file=arguments.output)
-
-            case SymlinkResource(path, target):
-                path: Path
-                target: Path
-                print(f"static unsigned char const entry_{i}_data[] = {cpp_string_literal(str(target))};", file=arguments.output)
-                print(f"static resources::SymlinkResource const entry_{i} = {{", file=arguments.output)
-                print(f"    resources::ResourceType::SYMLINK_RESOURCE,", file=arguments.output)
-                print(f"    &entry_{i}_path[0],", file=arguments.output)
-                print(f"    &entry_{i}_path[{str(path).rfind(path.name)}],", file=arguments.output)
-                print(f"    {len(str(target).encode('utf-8'))}uLL,", file=arguments.output)
+            print(f"static resources::DirectoryResource const entry_{i} = {{", file=arguments.output)
+            print(f"    resources::ResourceType::DIRECTORY_RESOURCE,", file=arguments.output)
+            print(f"    &entry_{i}_path[0],", file=arguments.output)
+            print(f"    &entry_{i}_path[{str(resource.path).rfind(resource.path.name)}],", file=arguments.output)
+            if resource.entries:
+                print(f"    {len(resource.entries)}uLL,", file=arguments.output)
                 print(f"    &entry_{i}_data[0],", file=arguments.output)
-                print("};", file=arguments.output)
+            else:
+                print(f"    0,", file=arguments.output)
+                print(f"    nullptr,", file=arguments.output)
+
+            print("};", file=arguments.output)
+        elif isinstance(resource, FileResource):
+            resource: FileResource
+            if resource.data:
+                print(f"static unsigned char const entry_{i}_data[] =", file=arguments.output, end="")
+                for chunk in chunked(resource.data, 64):
+                    print(f"\n    {cpp_string_literal(bytes(chunk))}", file=arguments.output, end="")
+                print(f";", file=arguments.output)
+
+            print(f"static resources::FileResource const entry_{i} = {{", file=arguments.output)
+            print(f"    resources::ResourceType::FILE_RESOURCE,", file=arguments.output)
+            print(f"    &entry_{i}_path[0],", file=arguments.output)
+            print(f"    &entry_{i}_path[{str(resource.path).rfind(resource.path.name)}],", file=arguments.output)
+
+            if resource.data:
+                print(f"    {len(resource.data)}uLL,", file=arguments.output)
+                print(f"    &entry_{i}_data[0],", file=arguments.output)
+            else:
+                print(f"    0,", file=arguments.output)
+                print(f"    nullptr,", file=arguments.output)
+            print("};", file=arguments.output)
+        elif isinstance(resource, SymlinkResource):
+            resource: SymlinkResource
+            print(f"static unsigned char const entry_{i}_data[] = {cpp_string_literal(str(resource.target))};", file=arguments.output)
+            print(f"static resources::SymlinkResource const entry_{i} = {{", file=arguments.output)
+            print(f"    resources::ResourceType::SYMLINK_RESOURCE,", file=arguments.output)
+            print(f"    &entry_{i}_path[0],", file=arguments.output)
+            print(f"    &entry_{i}_path[{str(resource.path).rfind(resource.path.name)}],", file=arguments.output)
+            print(f"    {len(str(resource.target).encode('utf-8'))}uLL,", file=arguments.output)
+            print(f"    &entry_{i}_data[0],", file=arguments.output)
+            print("};", file=arguments.output)
+        else:
+            raise TypeError(f"cannot serialize resource of type {type(resource).__qualname__}", resource)
         print(file=arguments.output)
 
     print(f"resources::BaseResource const *resources::get_root() noexcept", file=arguments.output)
