@@ -67,11 +67,11 @@ namespace engine::rendering::vulkan {
         ~Renderer() override;
     };
 
-    std::error_category const &vulkan_category() noexcept;
+    std::error_category const &category() noexcept;
 
     inline std::error_code make_error_code(VkResult result) noexcept
     {
-        return std::error_code(static_cast<int>(result), vulkan_category());
+        return std::error_code(static_cast<int>(result), category());
     }
 
 }

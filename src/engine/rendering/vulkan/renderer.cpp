@@ -1,16 +1,26 @@
 
+#include "engine/rendering/IRenderer.hpp"
+#include <SDL_error.h>
 #include <engine/Game.hpp>
 #include <engine/rendering/vulkan/Renderer.hpp>
 
-#include <fmt/core.h>
+#include <SDL_vulkan.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
+#include <spdlog/spdlog.h>
+#include <volk.h>
 
+#include <string_view>
 #include <utility>
+
+using namespace std::literals;
 
 void engine::rendering::vulkan::Renderer::setup()
 {
     volkInitializeCustom(reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
 
-    vulkan.instance = [&]() {
+    instance = [&]() {
         std::vector<char const *> instance_extensions;
         std::vector<char const *> instance_layers;
 
@@ -19,12 +29,12 @@ void engine::rendering::vulkan::Renderer::setup()
             std::vector<char const *> desired_extensions;
 
             unsigned count = 0;
-            SDL_Vulkan_GetInstanceExtensions(window.get(), &count, nullptr);
+            SDL_Vulkan_GetInstanceExtensions(game().window(), &count, nullptr);
             required_extensions.resize(count);
-            SDL_Vulkan_GetInstanceExtensions(window.get(), &count, &required_extensions[0]);
-
+            SDL_Vulkan_GetInstanceExtensions(game().window(), &count, &required_extensions[0]);
+#ifndef NDEBUG
             desired_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
+#endif
             uint32_t extensionPropertiesCount;
             CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, nullptr));
             auto extensionProperties = std::make_unique_for_overwrite<VkExtensionProperties[]>(extensionPropertiesCount);
@@ -56,7 +66,6 @@ void engine::rendering::vulkan::Renderer::setup()
 #ifndef NDEBUG
             desired_layers.push_back("VK_LAYER_KHRONOS_validation");
 #endif
-
             uint32_t layerPropertiesCount;
             CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, nullptr));
             auto layerProperties = std::make_unique_for_overwrite<VkLayerProperties[]>(layerPropertiesCount);
@@ -91,8 +100,9 @@ void engine::rendering::vulkan::Renderer::setup()
             }
         }
 
-        VkApplicationInfo const applicationInfo {
+        VkApplicationInfo const application_info = {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pNext = nullptr,
             .pApplicationName = "vgame",
             .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
             .pEngineName = "vengine",
@@ -100,9 +110,11 @@ void engine::rendering::vulkan::Renderer::setup()
             .apiVersion = VK_API_VERSION_1_0,
         };
 
-        VkInstanceCreateInfo instanceCreateInfo {
+        VkInstanceCreateInfo instance_create_info {
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pApplicationInfo = &applicationInfo,
+            .pNext = nullptr,
+            .flags = 0,
+            .pApplicationInfo = &application_info,
             .enabledLayerCount = static_cast<uint32_t>(instance_layers.size()),
             .ppEnabledLayerNames = instance_layers.data(),
             .enabledExtensionCount = static_cast<uint32_t>(instance_extensions.size()),
@@ -110,12 +122,12 @@ void engine::rendering::vulkan::Renderer::setup()
         };
 
         VkInstance instance;
-        CHECK_VK(vkCreateInstance(&instanceCreateInfo, vulkan.allocationCallbacks(), &instance));
+        CHECK_VK(vkCreateInstance(&instance_create_info, allocation_callbacks(), &instance));
 
         return instance;
     }();
 
-    volkLoadInstanceOnly(vulkan.instance);
+    volkLoadInstanceOnly(instance);
 
     // vulkan handles are always 64bit,
     // so it's not enough to reinterpret_cast a handle to a pointer
@@ -124,30 +136,32 @@ void engine::rendering::vulkan::Renderer::setup()
                 auto const instance = *reinterpret_cast<VkInstance const *>(udata);
                 return vkGetInstanceProcAddr(instance, function_name);
             },
-            const_cast<void *>(static_cast<void const *>(&vulkan.instance)))) {
+            const_cast<void *>(static_cast<void const *>(&instance)))) {
         spdlog::critical("Cannot load Vulkan functions");
         std::exit(-1);
     };
 
-    if (!SDL_Vulkan_CreateSurface(window.get(), vulkan.instance, &vulkan.sdl2_surface))
-        throw SDL::Error::current();
+    if (!SDL_Vulkan_CreateSurface(game().window(), instance, &sdl2_surface)) {
+        spdlog::error("failed to create Vulkan surface for SDL window: {}", SDL_GetError());
+        throw std::runtime_error(SDL_GetError());
+    }
 
-    vulkan.physicalDevice = [&] {
-        uint32_t physicalDeviceCount {};
-        CHECK_VK(vkEnumeratePhysicalDevices(vulkan.instance, &physicalDeviceCount, nullptr));
-        auto physicalDevices = std::make_unique_for_overwrite<VkPhysicalDevice[]>(physicalDeviceCount);
-        CHECK_VK(vkEnumeratePhysicalDevices(vulkan.instance, &physicalDeviceCount, physicalDevices.get()));
+    physical_device = [&] {
+        uint32_t physical_deviceCount {};
+        CHECK_VK(vkEnumeratePhysicalDevices(instance, &physical_deviceCount, nullptr));
+        auto physical_devices = std::make_unique_for_overwrite<VkPhysicalDevice[]>(physical_deviceCount);
+        CHECK_VK(vkEnumeratePhysicalDevices(instance, &physical_deviceCount, physical_devices.get()));
 
-        spdlog::info("vulkan devices ({}):", physicalDeviceCount);
-        for (uint32_t i = 0; i < physicalDeviceCount; ++i) {
+        spdlog::info("vulkan devices ({}):", physical_deviceCount);
+        for (uint32_t i = 0; i < physical_deviceCount; ++i) {
 
-            VkPhysicalDeviceProperties physicalDeviceProperties;
-            vkGetPhysicalDeviceProperties(physicalDevices[i], &physicalDeviceProperties);
-            VkPhysicalDeviceFeatures physicalDeviceFeatures;
-            vkGetPhysicalDeviceFeatures(physicalDevices[i], &physicalDeviceFeatures);
+            VkPhysicalDeviceProperties physical_deviceProperties;
+            vkGetPhysicalDeviceProperties(physical_devices[i], &physical_deviceProperties);
+            VkPhysicalDeviceFeatures physical_deviceFeatures;
+            vkGetPhysicalDeviceFeatures(physical_devices[i], &physical_deviceFeatures);
 
-            auto const deviceType = [&] {
-                switch (physicalDeviceProperties.deviceType) {
+            auto const device_type = [&] {
+                switch (physical_deviceProperties.deviceType) {
                 case VK_PHYSICAL_DEVICE_TYPE_CPU:
                     return "CPU"sv;
                 case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
@@ -157,24 +171,24 @@ void engine::rendering::vulkan::Renderer::setup()
                 case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
                     return "Virtual GPU"sv;
                 default:
-                    return "Unkown"sv;
+                    return "Unknown"sv;
                 }
             }();
             spdlog::info("\t{} ID: {}\tName: {} ({})",
-                i, physicalDeviceProperties.deviceID,
-                physicalDeviceProperties.deviceName, deviceType);
+                i, physical_deviceProperties.deviceID,
+                physical_deviceProperties.deviceName, device_type);
         }
 
-        return physicalDevices[0];
+        return physical_devices[0];
     }();
 
-    vulkan.queueFamiliyIndices = [&] {
+    queue_familiy_indices = [&] {
         uint32_t queueFamilyPropertiesCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(vulkan.physicalDevice, &queueFamilyPropertiesCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyPropertiesCount, nullptr);
         auto const queueFamilyProperties = std::make_unique_for_overwrite<VkQueueFamilyProperties[]>(queueFamilyPropertiesCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(vulkan.physicalDevice, &queueFamilyPropertiesCount, queueFamilyProperties.get());
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyPropertiesCount, queueFamilyProperties.get());
 
-        auto result = decltype(vulkan.queueFamiliyIndices) {};
+        auto result = decltype(queue_familiy_indices) {};
 
         for (uint32_t i = 0; i < queueFamilyPropertiesCount; ++i) {
             if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
@@ -186,101 +200,131 @@ void engine::rendering::vulkan::Renderer::setup()
         return result;
     }();
 
-    vulkan.device = [&] {
-        if (vulkan.queueFamiliyIndices.compute == vulkan.queueFamiliyIndices.graphics) {
+    device = [&] {
+        if (queue_familiy_indices.compute == queue_familiy_indices.graphics) {
             float const priorities[] = { 1.0f, 1.0f };
-            VkDeviceQueueCreateInfo const deviceQueueCreateInfos {
+            VkDeviceQueueCreateInfo const device_queue_create_infos {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .queueFamilyIndex = vulkan.queueFamiliyIndices.graphics,
+                .pNext = nullptr,
+                .flags = 0,
+                .queueFamilyIndex = queue_familiy_indices.graphics,
                 .queueCount = 2,
                 .pQueuePriorities = &priorities[0],
             };
 
-            VkDeviceCreateInfo const deviceCreateInfo {
+            VkDeviceCreateInfo const device_create_info {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
                 .queueCreateInfoCount = 1,
-                .pQueueCreateInfos = &deviceQueueCreateInfos,
+                .pQueueCreateInfos = &device_queue_create_infos,
+                .enabledLayerCount = 0,
+                .ppEnabledLayerNames = nullptr,
+                .enabledExtensionCount = 0,
+                .ppEnabledExtensionNames = nullptr,
+                .pEnabledFeatures = nullptr,
             };
             VkDevice device;
-            CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, vulkan.allocationCallbacks(), &device));
+            CHECK_VK(vkCreateDevice(physical_device, &device_create_info, allocation_callbacks(), &device));
             return device;
         } else {
             float const priorities = 1.0f;
-            VkDeviceQueueCreateInfo const deviceQueueCreateInfos[2] {
+            VkDeviceQueueCreateInfo const device_queue_create_infos[2] {
                 {
                     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                    .queueFamilyIndex = vulkan.queueFamiliyIndices.graphics,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .queueFamilyIndex = queue_familiy_indices.graphics,
                     .queueCount = 1,
                     .pQueuePriorities = &priorities,
                 },
                 {
                     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                    .queueFamilyIndex = vulkan.queueFamiliyIndices.compute,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .queueFamilyIndex = queue_familiy_indices.compute,
                     .queueCount = 1,
                     .pQueuePriorities = &priorities,
                 }
             };
 
-            VkDeviceCreateInfo const deviceCreateInfo {
+            VkDeviceCreateInfo const device_create_info {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                .queueCreateInfoCount = std::size(deviceQueueCreateInfos),
-                .pQueueCreateInfos = &deviceQueueCreateInfos[0],
+                .pNext = nullptr,
+                .flags = 0,
+                .queueCreateInfoCount = std::size(device_queue_create_infos),
+                .pQueueCreateInfos = &device_queue_create_infos[0],
+                .enabledLayerCount = 0,
+                .ppEnabledLayerNames = nullptr,
+                .enabledExtensionCount = 0,
+                .ppEnabledExtensionNames = nullptr,
+                .pEnabledFeatures = nullptr,
             };
             VkDevice device;
-            CHECK_VK(vkCreateDevice(vulkan.physicalDevice, &deviceCreateInfo, vulkan.allocationCallbacks(), &device));
+            CHECK_VK(vkCreateDevice(physical_device, &device_create_info, allocation_callbacks(), &device));
             return device;
         }
     }();
 
-    volkLoadDeviceTable(&vulkan.deviceTable, vulkan.device);
+    volkLoadDeviceTable(&device_table, device);
 
-    vulkan.queues = [&] {
-        auto result = decltype(vulkan.queues) {};
-        if (vulkan.queueFamiliyIndices.compute == vulkan.queueFamiliyIndices.graphics) {
-            vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.graphics, 0, &result.graphics);
-            vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.graphics, 1, &result.compute);
+    queues = [&] {
+        auto result = decltype(queues) {};
+        if (queue_familiy_indices.compute == queue_familiy_indices.graphics) {
+            device_table.vkGetDeviceQueue(device, queue_familiy_indices.graphics, 0, &result.graphics);
+            device_table.vkGetDeviceQueue(device, queue_familiy_indices.graphics, 1, &result.compute);
         } else {
-            vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.graphics, 0, &result.graphics);
-            vulkan.deviceTable.vkGetDeviceQueue(vulkan.device, vulkan.queueFamiliyIndices.compute, 0, &result.compute);
+            device_table.vkGetDeviceQueue(device, queue_familiy_indices.graphics, 0, &result.graphics);
+            device_table.vkGetDeviceQueue(device, queue_familiy_indices.compute, 0, &result.compute);
         }
         return result;
     }();
 }
 
-#include <imgui_impl_sdl3.h>
-#include <imgui_impl_vulkan.h>
-
-void engine::rendering::vulkan::Renderer::setup_imgui()
+void engine::rendering::vulkan::Renderer::imgui_setup()
 {
-    ImGui_ImplVulkan_InitInfo vulkanInitInfo {
-        .Instance = vulkan.instance,
-        .PhysicalDevice = vulkan.physicalDevice,
-        .Device = vulkan.device,
-        .QueueFamily = vulkan.queueFamiliyIndices.graphics,
-        .Queue = vulkan.queues.graphics,
+    ImGui_ImplVulkan_InitInfo vulkan_init_info {
+        .Instance = instance,
+        .PhysicalDevice = physical_device,
+        .Device = device,
+        .QueueFamily = queue_familiy_indices.graphics,
+        .Queue = queues.graphics,
+        .PipelineCache = VK_NULL_HANDLE,
+        .DescriptorPool = VK_NULL_HANDLE,
+        .Subpass = 0,
+        .MinImageCount = 0,
+        .ImageCount = 0,
+        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+        .Allocator = allocation_callbacks(),
         .CheckVkResultFn = &CHECK_VK,
     };
 
-    ImGui_ImplVulkan_Init(&vulkanInitInfo, VK_NULL_HANDLE);
-    ImGui_ImplSDL2_InitForVulkan(window);
+    ImGui_ImplVulkan_Init(&vulkan_init_info, VK_NULL_HANDLE);
+    ImGui_ImplSDL2_InitForVulkan(game().window());
+}
+
+void engine::rendering::vulkan::Renderer::imgui_new_frame(SDL_Window *window)
+{
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplVulkan_NewFrame();
+    ImGui::NewFrame();
 }
 
 void engine::rendering::vulkan::Renderer::update()
 {
-    ImGui_ImplVulkan_NewFrame();
 }
 
 engine::rendering::vulkan::Renderer::~Renderer()
 {
     ImGui_ImplVulkan_Shutdown();
     if (imgui_renderpass != VK_NULL_HANDLE)
-        deviceTable.vkDestroyRenderPass(device, std::exchange(imgui_renderpass, VK_NULL_HANDLE), allocationCallbacks());
+        device_table.vkDestroyRenderPass(device, std::exchange(imgui_renderpass, VK_NULL_HANDLE), allocation_callbacks());
     if (sdl2_surface != VK_NULL_HANDLE)
-        vkDestroySurfaceKHR(instance, std::exchange(sdl2_surface, VK_NULL_HANDLE), allocationCallbacks());
+        vkDestroySurfaceKHR(instance, std::exchange(sdl2_surface, VK_NULL_HANDLE), allocation_callbacks());
     if (device != VK_NULL_HANDLE)
-        deviceTable.vkDestroyDevice(std::exchange(device, VK_NULL_HANDLE), allocationCallbacks());
+        device_table.vkDestroyDevice(std::exchange(device, VK_NULL_HANDLE), allocation_callbacks());
     if (instance != VK_NULL_HANDLE)
-        vkDestroyInstance(std::exchange(instance, VK_NULL_HANDLE), allocationCallbacks());
+        vkDestroyInstance(std::exchange(instance, VK_NULL_HANDLE), allocation_callbacks());
 }
 
 namespace {
@@ -342,7 +386,7 @@ namespace {
 }
 
 static auto const s_category = VulkanErrorCode {};
-std::error_category const &engine::rendering::vulkan_category() noexcept
+std::error_category const &engine::rendering::vulkan::category() noexcept
 {
     return s_category;
 }

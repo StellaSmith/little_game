@@ -87,7 +87,7 @@ if(WITH_OPENGL)
         PRIVATE
         ${VGAME_OPENGL_PRIVATE_SOURCES}
         PUBLIC
-        ${VGAME_PUBLIC_SOURCES})
+        ${VGAME_OPENGL_PUBLIC_SOURCES})
 
     target_link_libraries(little_game
         PRIVATE
@@ -102,9 +102,9 @@ endif()
 if(WITH_VULKAN)
     target_sources(little_game PRIVATE
         PRIVATE
-        ${VGAME_PUBLIC_PRIVATE_SOURCES}
+        ${VGAME_VULKAN_PRIVATE_SOURCES}
         PUBLIC
-        ${VGAME_PUBLIC_SOURCES})
+        ${VGAME_VULKAN_PUBLIC_SOURCES})
 
     target_link_libraries(little_game
         PRIVATE
