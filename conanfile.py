@@ -160,7 +160,6 @@ class VGameRecipe(ConanFile):
         if self.options.with_vulkan:
             if not self.dependencies["sdl"].options.vulkan:
                 raise ConanInvalidConfiguration(f"Vulkan is enabled but {self.dependencies['sdl'].ref} Vulkan support is disabled")
-        
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -170,7 +169,7 @@ class VGameRecipe(ConanFile):
         tc.variables["WITH_OPENGL"] = self.options.with_opengl
         tc.variables["WITH_VULKAN"] = self.options.with_vulkan
         tc.variables["imgui_RES_DIRS"] = os.path.join(self.dependencies["imgui"].package_folder, "res")
-        if not self.options.use_mold:
+        if not self.options.get_safe("use_mold"):
             tc.variables["MOLD_PROGRAM"] = ""
         if not self.options.use_ccache:
             tc.variables["CCACHE_PROGRAM"] = ""
