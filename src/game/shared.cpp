@@ -88,5 +88,9 @@ void engine::Game::cleanup()
         std::vector<entt::entity> const to_delete(m_entity_registry.data(), m_entity_registry.data() + m_entity_registry.size());
         m_entity_registry.destroy(to_delete.cbegin(), to_delete.cend());
     }
-    m_translucent_mesh_data.clear();
+}
+
+engine::Game::~Game()
+{
+    cleanup();
 }

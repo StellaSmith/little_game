@@ -33,12 +33,12 @@ SDL_Window *engine::rendering::opengl::Renderer::create_window(const char *title
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, config.opengl.red_bits);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, config.opengl.green_bits);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, config.opengl.blue_bits);
-    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, config.opengl.alpha_bits);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, config.opengl.depth_bits);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, config.opengl.stencil_bits);
+    if (config.opengl.red_bits) SDL_GL_SetAttribute(SDL_GL_RED_SIZE, *config.opengl.red_bits);
+    if (config.opengl.green_bits) SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, *config.opengl.green_bits);
+    if (config.opengl.blue_bits) SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, *config.opengl.blue_bits);
+    if (config.opengl.alpha_bits) SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, *config.opengl.alpha_bits);
+    if (config.opengl.depth_bits) SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, *config.opengl.depth_bits);
+    if (config.opengl.stencil_bits) SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, *config.opengl.stencil_bits);
 
     auto const window = SDL_CreateWindow(title, x, y, w, h, flags | SDL_WINDOW_OPENGL);
     if (window == nullptr) {

@@ -1,14 +1,18 @@
 
 
+#include <atomic>
 #include <engine/Config.hpp>
 #include <engine/Stream.hpp>
+#include <filesystem>
 #include <rapidjson/error/error.h>
 #include <rapidjson/reader.h>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
 #include <string_view>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
 
-#include <fmt/format.h>
+#include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/pointer.h>
@@ -17,6 +21,7 @@
 #include <cstring>
 #include <memory>
 
+static std::atomic_bool s_config_loaded;
 static engine::Config s_config {};
 
 using namespace std::literals;
@@ -26,16 +31,20 @@ engine::Config const &engine::config()
     return s_config;
 }
 
-engine::Config const &engine::load_engine_config()
+engine::Config const &engine::Config::load(std::filesystem::path const &path)
 {
+    if (s_config_loaded.exchange(true) == true) {
+        constexpr auto message = "engine config already loaded"sv;
+        spdlog::critical("{}", message);
+        throw std::runtime_error(message.data());
+    }
 
-    auto content = []() {
-        char const *fname = "./cfg/engine.json";
+    auto content = [&]() {
         try {
-            auto fp = engine::open_file(fname, "r");
+            auto fp = engine::open_file(path, "r").value();
             return utils::load_file(fp.get());
         } catch (...) {
-            spdlog::critical("Error opening engine configuration file. ({})", fname);
+            spdlog::critical("error opening engine configuration file. ({})", path);
             throw;
         }
     }();
@@ -78,7 +87,7 @@ engine::Config const &engine::load_engine_config()
         utils::show_error("Error loading engine config file."sv, "/SDL/audio_driver must be an string");
     }
 
-    auto set_integer = [&doc](char const *path, int &value) {
+    auto set_integer = [&doc](char const *path, std::optional<unsigned> &value) {
         if (auto *pointer = rapidjson::Pointer(path).Get(doc); pointer && pointer->IsInt()) {
             value = pointer->GetInt();
         } else if (pointer) {
@@ -92,8 +101,6 @@ engine::Config const &engine::load_engine_config()
     set_integer("/SDL/OpenGL/alpha_bits", s_config.opengl.alpha_bits);
     set_integer("/SDL/OpenGL/depth_bits", s_config.opengl.depth_bits);
     set_integer("/SDL/OpenGL/stencil_bits", s_config.opengl.stencil_bits);
-
-    set_integer("/Terminal/max_lines", s_config.terminal.max_lines);
 
     if (auto *value = rapidjson::Pointer("/ImGui/font_path").Get(doc); value && value->IsString()) {
         s_config.imgui.font_path = std::string { value->GetString(), value->GetStringLength() };
