@@ -28,6 +28,12 @@ using namespace std::literals;
 
 engine::Config const &engine::config()
 {
+    if (!s_config_loaded.load()) {
+        const auto message = "tried to obtain uninitialized engine config"sv;
+        spdlog::critical("{}", message);
+        throw std::runtime_error(message.data());
+    }
+
     return s_config;
 }
 
