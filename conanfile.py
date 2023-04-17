@@ -52,7 +52,6 @@ class VGameRecipe(ConanFile):
         "glad/*:extensions": "GL_KHR_debug,GL_ARB_get_program_binary",
 
         "libalsa/*:shared": True,
-        "pulseaudio/*:shared": True,
         "openssl/*:shared": True,
 
         "sdl/*:pulse": False,
@@ -150,8 +149,15 @@ class VGameRecipe(ConanFile):
         if self.settings.compiler.get_safe("cppstd"):
             check_min_cppstd(self, 20)
 
-        if self.options.with_opengl and Version(self.dependencies["glad"].options.gl_version) < "3.3":
-            raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
+        if self.options.with_opengl:
+            if Version(self.dependencies["glad"].options.gl_version) < "3.3":
+                raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
+            if not self.dependencies["sdl"].options.opengl:
+                raise ConanInvalidConfiguration(f"OpenGL is enabled but {self.dependencies['sdl'].ref} OpenGL support is disabled")
+        if self.options.with_vulkan:
+            if not self.dependencies["sdl"].options.vulkan:
+                raise ConanInvalidConfiguration(f"Vulkan is enabled but {self.dependencies['sdl'].ref} Vulkan support is disabled")
+        
 
     def generate(self):
         deps = CMakeDeps(self)
