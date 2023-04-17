@@ -1,4 +1,3 @@
-
 #include <engine/Camera.hpp>
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
@@ -9,6 +8,7 @@
 #include <utils/file.hpp>
 #include <utils/timeit.hpp>
 
+#include <SDL_mouse.h>
 #include <SDL_video.h>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
