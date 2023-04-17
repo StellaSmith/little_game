@@ -54,6 +54,8 @@ class VGameRecipe(ConanFile):
         "libalsa/*:shared": True,
         "pulseaudio/*:shared": True,
         "openssl/*:shared": True,
+
+        "sdl/*:pulse": False,
         "sdl/*:shared": True,
     }
 
