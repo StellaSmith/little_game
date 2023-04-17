@@ -61,29 +61,29 @@ void engine::rendering::opengl::Renderer::setup()
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
         utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
 
-        int major, minor, r, g, b, a, d, s;
-        SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
-        SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
-        SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &r);
-        SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &g);
-        SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &b);
-        SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &a);
-        SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &d);
-        SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &s);
+    int major, minor, r, g, b, a, d, s;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
+    SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &r);
+    SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &g);
+    SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &b);
+    SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &a);
+    SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &d);
+    SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &s);
 
-        char const *version = reinterpret_cast<char const *>(glGetString(GL_VERSION));
-        char const *vendor = reinterpret_cast<char const *>(glGetString(GL_VENDOR));
-        char const *renderer = reinterpret_cast<char const *>(glGetString(GL_RENDERER));
-        char const *shading_version = reinterpret_cast<char const *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+    char const *version = reinterpret_cast<char const *>(glGetString(GL_VERSION));
+    char const *vendor = reinterpret_cast<char const *>(glGetString(GL_VENDOR));
+    char const *renderer = reinterpret_cast<char const *>(glGetString(GL_RENDERER));
+    char const *shading_version = reinterpret_cast<char const *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-        spdlog::info("OpenGL profile: {}.{}", major, minor);
-        spdlog::info("\tRGBA bits: {}, {}, {}, {}", r, g, b, a);
-        spdlog::info("\tDepth bits: {}", d);
-        spdlog::info("\tStencil bits: {}", s);
-        spdlog::info("\tVersion: {}", version);
-        spdlog::info("\tVendor: {}", vendor);
-        spdlog::info("\tRendered: {}", renderer);
-        spdlog::info("\tShading language version: {}", shading_version);
+    spdlog::info("OpenGL profile: {}.{}", major, minor);
+    spdlog::info("\tRGBA bits: {}, {}, {}, {}", r, g, b, a);
+    spdlog::info("\tDepth bits: {}", d);
+    spdlog::info("\tStencil bits: {}", s);
+    spdlog::info("\tVersion: {}", version);
+    spdlog::info("\tVendor: {}", vendor);
+    spdlog::info("\tRendered: {}", renderer);
+    spdlog::info("\tShading language version: {}", shading_version);
 
 #if defined(GL_KHR_debug)
     if (GLAD_GL_KHR_debug) {
@@ -292,8 +292,8 @@ void engine::rendering::opengl::Renderer::render(float)
             || position.z < player_chunk.z - g_render_distance_horizontal
             || position.z > player_chunk.z + g_render_distance_horizontal)
             continue;
-        glBindBuffer(GL_ARRAY_BUFFER, meshes.second.vertex_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.second.index_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_mesh.vertex_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_mesh.index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, position));
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, color));
@@ -302,14 +302,14 @@ void engine::rendering::opengl::Renderer::render(float)
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
-        glDrawElements(GL_TRIANGLES, meshes.second.index_count, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, meshes.translucent_mesh.index_count, GL_UNSIGNED_INT, nullptr);
     }
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     for (auto const &[p, meshes] : m_chunk_meshes) {
-        glBindBuffer(GL_ARRAY_BUFFER, meshes.first.vertex_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.first.index_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, meshes.solid_mesh.vertex_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes.solid_mesh.index_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, position));
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, uv));
         glVertexAttribPointer(2, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(rendering::Vertex), (void *)offsetof(rendering::Vertex, color));
@@ -318,7 +318,7 @@ void engine::rendering::opengl::Renderer::render(float)
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
-        glDrawElements(GL_TRIANGLES, meshes.first.index_count, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, meshes.solid_mesh.index_count, GL_UNSIGNED_INT, nullptr);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -366,7 +366,7 @@ void engine::rendering::opengl::Renderer::update()
         if (p_mesh != m_chunk_meshes.end() && p_data != m_translucent_mesh_data.end()) {
             auto const sorted_indices = get_sorted_indices(p_data->second);
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.second.index_buffer);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_mesh->second.translucent_mesh.index_buffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
@@ -378,7 +378,10 @@ void engine::rendering::opengl::Renderer::update()
 
             GLuint buffers[4];
             glGenBuffers(std::size(buffers), buffers);
-            std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk_position, std::make_pair(rendering::opengl::MeshHandle { buffers[0], buffers[1], 0 }, rendering::opengl ::MeshHandle { buffers[2], buffers[3], 0 }));
+            std::tie(it, std::ignore) = m_chunk_meshes.emplace(chunk_position,
+                Renderer::ChunkMeshes {
+                    .translucent_mesh = rendering::opengl::MeshHandle { buffers[0], buffers[1], 0 },
+                    .solid_mesh = rendering::opengl ::MeshHandle { buffers[2], buffers[3], 0 } });
         }
 
         auto const solid_mesh = game().generate_solid_mesh(chunk_position, chunk_data);
@@ -388,19 +391,19 @@ void engine::rendering::opengl::Renderer::update()
 
         // TODO: Vertex deduplication?
 
-        glBindBuffer(GL_ARRAY_BUFFER, it->second.first.vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, it->second.solid_mesh.vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER, solid_mesh.vertices.size() * sizeof(*solid_mesh.vertices.data()), solid_mesh.vertices.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.first.index_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.solid_mesh.index_buffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, solid_mesh.indices.size() * sizeof(*solid_mesh.indices.data()), solid_mesh.indices.data(), GL_DYNAMIC_DRAW);
 
-        it->second.first.index_count = solid_mesh.indices.size();
+        it->second.solid_mesh.index_count = solid_mesh.indices.size();
 
-        glBindBuffer(GL_ARRAY_BUFFER, it->second.second.vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, it->second.solid_mesh.vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER, translucent_mesh.vertices.size() * sizeof(*translucent_mesh.vertices.data()), translucent_mesh.vertices.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.second.index_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.solid_mesh.index_buffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sorted_indices.size() * sizeof(*sorted_indices.data()), sorted_indices.data(), GL_STREAM_DRAW);
 
-        it->second.second.index_count = sorted_indices.size();
+        it->second.solid_mesh.index_count = sorted_indices.size();
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

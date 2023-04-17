@@ -11,6 +11,7 @@
 
 #include <engine/components/ChunkPosition.hpp>
 #include <engine/rendering/IRenderer.hpp>
+#include <engine/rendering/Mesh.hpp>
 #include <engine/rendering/opengl/MeshHandle.hpp>
 
 #include <unordered_map>
@@ -33,7 +34,13 @@ namespace engine::rendering::opengl {
             GLuint view;
         } m_uniforms;
 
-        std::unordered_map<engine::components::ChunkPosition, std::pair<engine::rendering::opengl::MeshHandle, engine::rendering::opengl::MeshHandle>> m_chunk_meshes;
+        struct ChunkMeshes {
+            engine::rendering::opengl::MeshHandle translucent_mesh;
+            engine::rendering::opengl::MeshHandle solid_mesh;
+        };
+
+        std::unordered_map<engine::components::ChunkPosition, ChunkMeshes> m_chunk_meshes;
+        std::unordered_map<engine::components::ChunkPosition, engine::rendering::Mesh> m_translucent_mesh_data;
 
     public:
         SDL_Window *create_window(char const *title, int x, int y, int w, int h, uint32_t flags) override;

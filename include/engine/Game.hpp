@@ -90,8 +90,6 @@ namespace engine {
 
         engine::named_storage<engine::BlockType> m_block_registry;
         entt::storage<engine::assets::BlockMesh> m_block_meshes;
-
-        std::unordered_map<engine::components::ChunkPosition, rendering::Mesh> m_translucent_mesh_data; // needed to sort indices when the camera moves
     };
 
 } // namespace engine
