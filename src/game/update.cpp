@@ -18,8 +18,6 @@ float g_mouse_sensitivity = 1;
 
 void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
 {
-    ImGui_ImplSDL2_NewFrame(m_window);
-    ImGui::NewFrame();
 
     const double d_delta = std::chrono::duration<double>(delta).count();
     auto const *const keyboard_state = SDL_GetKeyboardState(nullptr);
@@ -39,6 +37,8 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
         g_camera.position.y += camera_speed * static_cast<float>(d_delta);
     if (keyboard_state[SDL_SCANCODE_LSHIFT])
         g_camera.position.y -= camera_speed * static_cast<float>(d_delta);
+
+    m_renderer->imgui_new_frame(window());
 
     if (ImGui::Begin("Camera")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);

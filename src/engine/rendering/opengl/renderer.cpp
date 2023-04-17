@@ -4,6 +4,7 @@
 #include <engine/cache.hpp>
 #include <engine/rendering/opengl/Renderer.hpp>
 #include <glDebug.h>
+#include <imgui.h>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
 #include <utils/timeit.hpp>
@@ -119,12 +120,19 @@ void engine::rendering::opengl::Renderer::setup()
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 
-void engine::rendering::opengl::Renderer::setup_imgui()
+void engine::rendering::opengl::Renderer::imgui_setup()
 {
     ImGui_ImplSDL2_InitForOpenGL(game().window(), m_context); // always returns true
 
     // See imgui/examples/imgui_impl_opengl3.cpp
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
+}
+
+void engine::rendering::opengl::Renderer::imgui_new_frame(SDL_Window *window)
+{
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui::NewFrame();
 }
 
 void engine::rendering::opengl::Renderer::setup_shader()

@@ -35,4 +35,4 @@ function Initialize()
     }
 end
 
-print(vgame.repr(_G), vgame.repr(_ENV), vgame.repr(StaticBlockType))
+-- print(vgame.repr(_G), vgame.repr(_ENV), vgame.repr(StaticBlockType))

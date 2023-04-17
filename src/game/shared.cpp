@@ -23,7 +23,7 @@ void engine::Game::start()
         width, height,
         SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     m_renderer->setup();
-    m_renderer->setup_imgui();
+    m_renderer->imgui_setup();
     setup_lua();
 
     m_entity_registry.on_construct<engine::components::ChunkPosition>().connect<&Game::on_chunk_construct>(*this);
