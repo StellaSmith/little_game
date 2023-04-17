@@ -8,7 +8,6 @@ from conan.tools.apple import is_apple_os
 import functools
 import shutil
 import io
-import shlex
 import re
 import os
 
@@ -70,7 +69,7 @@ class VGameRecipe(ConanFile):
     def _requires_cmake(self):
         if cmake := shutil.which("cmake"):
             stdout = io.StringIO()
-            self.run(shlex.join([cmake, "--version"]), stdout, env="conanbuild")
+            self.run([cmake, "--version"], stdout, env="conanbuild", shell=False)
             stdout.seek(0)
             stdout = stdout.read()
             cmake_version = Version(re.match(r"cmake version (\d+.\d+.\d+)", stdout)[1])
