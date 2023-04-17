@@ -24,6 +24,10 @@ jobs:
     defaults:
       run:
         shell: msys2 {0}
+      env:
+        CC: ${{ compiler.c }}
+        CXX: ${{ compiler.cxx }}
+
     steps:
     - name: Setting up MSYS2
       uses: msys2/setup-msys2@v2
@@ -35,36 +39,17 @@ jobs:
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-clang
+          mingw-w64-x86_64-g++
 
     - uses: actions/checkout@v2
 
-    - name: Install conan
-      run: python -m pip install --upgrade conan
+    - run: python -m pip install --upgrade conan
 
-    - name: Cache Conan Packages
+    - name: cache conan packages
       uses: actions/cache@v2
       with:
-        path: |
-          ~/.conan/data
+        path: ~/.conan2/p
         key: x86_64-w64-mingw32_${{ matrix.compiler.c }}_${{ matrix.build_type }}_conan
 
-    - name: Configure & Build Tools
-      run: |
-        set -e
-        cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
-        cmake --build build/tools-build/ --parallel
-        exec cmake --install build/tools-build/ --prefix build/tools-install/
-
-    - name: Configure
-      env:
-        CONAN_BASH_PATH: sh
-        CC: ${{ matrix.compiler.c }}
-        CXX: ${{ matrix.compiler.cxx }}
-        CFLAGS: -Wa,-mbig-obj
-        CXXFLAGS: -Wa,-mbig-obj
-      run: |
-        export PATH="build/tools-install/bin:$PATH"
-        exec cmake -S ./ -B build/ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-
-    - name: Build
-      run: cmake --build build --parallel
+    - run: conan install -u . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ build_type }}
+    - run: conan build . --version $(git log -1 --format='%H')

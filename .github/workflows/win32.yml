@@ -16,23 +16,8 @@ jobs:
         build_type:
           - Release
           - Debug
-
     steps:
     - uses: actions/checkout@v2
-
-    - name: Install Conan
-      run: pip install --upgrade conan
-
-    - name: Configure & Build Tools
-      run: |
-        cmake -S tools/ -B build/tools-build/ -DCMAKE_BUILD_TYPE=Release
-        cmake --build build/tools-build/ --parallel
-        cmake --install build/tools-build/ --prefix build/tools-install/
-
-    - name: Configure
-      run: |
-        set PATH="build/tools-install/bin;%PATH%"
-        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-
-    - name: Build
-      run: cmake --build build/ --config ${{ matrix.build_type }} --parallel
+    - run: pip install --upgrade conan
+    - run: conan install . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ build_type }}
+    - run: conan build . --version $(git log -1 --format='%H')

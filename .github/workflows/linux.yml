@@ -10,11 +10,6 @@ jobs:
   build-linux:
     name: Building for x86_64-pc-linux-gnu (${{ matrix.build_type }}) with ${{ matrix.compiler.c }}
     runs-on: ubuntu-20.04
-    container:
-      image: docker.io/stellasmith/vgame_builder:1
-      volumes:
-        - /home/runner/.conan/data:/root/.conan/data
-        - /home/runner/.cache/ccache:/root/.cache/ccache
     strategy:
       fail-fast: false
       matrix:
@@ -26,14 +21,22 @@ jobs:
         build_type:
           - Release
           - Debug
+    defaults:
+      run:
+        shell: /usr/bin/bash --login -eo pipefail {0}
+      env:
+        CC: ${{ compiler.c }}
+        CXX: ${{ compiler.cxx }}
 
     steps:
     - uses: actions/checkout@v2
 
+    - run: pip install --upgrade conan
+
     - name: cache conan packages
       uses: actions/cache@v2
       with:
-        path: ~/.conan/data
+        path: ~/.conan2/p
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:conan
 
     - name: cache ccache
@@ -42,14 +45,5 @@ jobs:
         path: ~/.cache/ccache
         key: x86_64-linux-gnu:${{ matrix.compiler.c }}:${{ matrix.build_type }}:ccache
 
-    - name: Build Tools
-      shell: /usr/bin/bash --login -eo pipefail {0}
-      run: conan create recipes/vgame_tools vgame_tools/$(git log -1 --format='%H')@ -u -b missing -s compiler.cppstd=20
-
-    - name: Install
-      shell: /usr/bin/bash --login -eo pipefail {0}
-      run: conan install recipes/vgame vgame/$(git log -1 --format='%H')@ -u -b missing -s compiler.cppstd=20 -if build -of build -s build_type=${{ build_type }}
-
-    - name: Build
-      shell: /usr/bin/bash --login -eo pipefail {0}
-      run: conan build recipes/vgame -bf build
+    - run: conan install -u . --version $(git log -1 --format='%H') -u -b missing -s compiler.cppstd=20 -s build_type=${{ build_type }}
+    - run: conan build . --version $(git log -1 --format='%H')
