@@ -133,7 +133,6 @@ target_include_directories(little_game PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/inclu
 
 target_link_libraries(little_game
     PRIVATE
-    resources
     SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl2 rapidjson
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::boost)
 
