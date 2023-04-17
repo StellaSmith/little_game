@@ -57,12 +57,12 @@ int main(int argc, char **argv)
             int const n = SDL_GetNumVideoDrivers();
             spdlog::info("Available video drivers ({}):", n);
             for (int i = 0; i < n; ++i)
-                spdlog::info("\t- {}\n", SDL_GetVideoDriver(i));
+                spdlog::info(" - {}", SDL_GetVideoDriver(i));
         } else if (argv[i] == "--sdl-audio-drivers"sv) {
             int const n = SDL_GetNumAudioDrivers();
             spdlog::info("Available audio drivers ({}):", n);
             for (int i = 0; i < n; ++i)
-                spdlog::info("\t- {}\n", SDL_GetAudioDriver(i));
+                spdlog::info(" - {}", SDL_GetAudioDriver(i));
         } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
             spdlog::info("verbose output enabled");
         } else if (argv[i] == "-c"sv || argv[i] == "--config"sv) {
