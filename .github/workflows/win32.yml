@@ -17,7 +17,8 @@ jobs:
           - Release
           - Debug
     defaults:
-      shell: bash
+      run:
+        shell: bash
     steps:
     - uses: actions/checkout@v3
     - run: exec pip install --upgrade conan
