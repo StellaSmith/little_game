@@ -57,6 +57,10 @@ class VGameRecipe(ConanFile):
         "sdl/*:shared": True,
     }
 
+    def configure_options(self):
+        if self.settings.os == "Windows":
+            del self.options.use_mold
+
     def layout(self):
         cmake_layout(self)
 
