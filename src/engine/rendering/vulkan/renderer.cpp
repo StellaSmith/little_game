@@ -1,20 +1,34 @@
 
-#include "engine/rendering/IRenderer.hpp"
-#include <SDL_error.h>
 #include <engine/Game.hpp>
 #include <engine/rendering/vulkan/Renderer.hpp>
 
+#include <SDL_error.h>
+#include <SDL_video.h>
 #include <SDL_vulkan.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 #include <volk.h>
+#include <vulkan/vulkan.h>
 
 #include <string_view>
 #include <utility>
 
+
 using namespace std::literals;
+
+SDL_Window *engine::rendering::vulkan::Renderer::create_window(const char *title, int x, int y, int w, int h, uint32_t flags)
+{
+    auto const window = SDL_CreateWindow(title, x, y, w, h, flags | SDL_WINDOW_VULKAN);
+    if (window == nullptr) {
+        spdlog::error("failed to created SDL window: {}", SDL_GetError());
+        throw std::runtime_error(SDL_GetError());
+    }
+
+    return window;
+}
 
 void engine::rendering::vulkan::Renderer::setup()
 {
@@ -308,6 +322,12 @@ void engine::rendering::vulkan::Renderer::imgui_new_frame(SDL_Window *window)
     ImGui_ImplSDL2_NewFrame(window);
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
+}
+
+void engine::rendering::vulkan::Renderer::render(float )
+{
+
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK_NULL_HANDLE);
 }
 
 void engine::rendering::vulkan::Renderer::update()
