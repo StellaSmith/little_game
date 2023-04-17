@@ -16,7 +16,6 @@
 #include <string_view>
 #include <utility>
 
-
 using namespace std::literals;
 
 SDL_Window *engine::rendering::vulkan::Renderer::create_window(const char *title, int x, int y, int w, int h, uint32_t flags)
@@ -324,7 +323,7 @@ void engine::rendering::vulkan::Renderer::imgui_new_frame(SDL_Window *window)
     ImGui::NewFrame();
 }
 
-void engine::rendering::vulkan::Renderer::render(float )
+void engine::rendering::vulkan::Renderer::render(float)
 {
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK_NULL_HANDLE);
