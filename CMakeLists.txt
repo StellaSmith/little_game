@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 project(little_game)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(WITH_LUA "Which Lua implementation to use [lua, luajit]" "lua")
 option(WITH_OPENGL "Use OpenGL as the graphics API" ON)
 option(WITH_VULKAN "Use Vulkan as the graphics API" ON)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED LANGUAGES C CXX)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ${IPO_SUPPORTED})
 
 find_program(CCACHE_PROGRAM ccache)
 
@@ -55,12 +59,8 @@ add_executable(little_game)
 if(MSVC)
     target_compile_options(little_game PRIVATE "/W4")
 elseif(CMAKE_C_COMPILER_ID MATCHES "Clang*")
-    target_link_options(little_game PRIVATE "-Wl,--as-needed")
-    target_compile_options(little_game PRIVATE "-flto" "-Wl,-O1" "-Wl,--as-needed")
     target_compile_options(little_game PRIVATE "-Werror=all" "-Werror=extra" "-Weverything")
 else() # assume GCC style compiler
-    target_link_options(little_game PRIVATE "-Wl,--as-needed")
-    target_compile_options(little_game PRIVATE "-flto" "-Wl,-O1" "-Wl,--as-needed")
     target_compile_options(little_game PRIVATE "-Werror=all" "-Werror=extra" "-Wpedantic")
 endif()
 
