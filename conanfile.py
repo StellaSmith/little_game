@@ -126,7 +126,6 @@ class VGameRecipe(ConanFile):
         self.requires("imgui/1.89.4")
         self.requires("boost/1.81.0")
         self.requires("sol2/3.3.0")
-        self.requires("assimp/5.2.2")
         self.requires("sdl/2.26.1")
 
         if self.options.with_lua == "lua":
