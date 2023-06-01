@@ -11,11 +11,16 @@
 
 #include <memory_resource>
 #include <optional>
+#include <system_error>
 
 namespace engine::rendering::vulkan {
     class Renderer final : public virtual IRenderer {
     public:
         using IRenderer::IRenderer;
+        explicit Renderer(Game &game) noexcept
+            : IRenderer(game)
+        {
+        }
 
     private:
         std::optional<VkAllocationCallbacks> m_allocation_callbacks = std::nullopt;
@@ -25,13 +30,18 @@ namespace engine::rendering::vulkan {
 
         VolkDeviceTable device_table {};
 
-        struct {
-            uint32_t graphics = UINT32_MAX;
-            uint32_t compute = UINT32_MAX;
-        } queue_familiy_indices;
+        union {
+            struct {
+                uint32_t graphics = UINT32_MAX;
+                uint32_t present = UINT32_MAX;
+                uint32_t compute = UINT32_MAX;
+            } queue_indices;
+            uint32_t queue_indices_array[sizeof(queue_indices) / sizeof(uint32_t)];
+        };
 
         struct {
             VkQueue graphics = VK_NULL_HANDLE;
+            VkQueue present = VK_NULL_HANDLE;
             VkQueue compute = VK_NULL_HANDLE;
         } queues;
 

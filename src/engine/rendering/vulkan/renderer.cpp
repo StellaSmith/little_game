@@ -1,20 +1,23 @@
-
 #include <engine/Game.hpp>
 #include <engine/rendering/vulkan/Renderer.hpp>
 
 #include <SDL_error.h>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
+#include <fmt/ranges.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
+#include <memory>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
+
 #include <volk.h>
 #include <vulkan/vulkan.h>
 
+#include <algorithm>
+#include <stdexcept>
 #include <string_view>
-#include <utility>
+#include <unordered_set>
 
 using namespace std::literals;
 
@@ -31,7 +34,12 @@ SDL_Window *engine::rendering::vulkan::Renderer::create_window(const char *title
 
 void engine::rendering::vulkan::Renderer::setup()
 {
-    volkInitializeCustom(reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()));
+    auto const pfn_vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr());
+    if (pfn_vkGetInstanceProcAddr == nullptr) {
+        spdlog::error("SDL_Vulkan_GetVkGetInstanceProcAddr() failed: {}", SDL_GetError());
+        throw std::runtime_error(SDL_GetError());
+    }
+    volkInitializeCustom(pfn_vkGetInstanceProcAddr);
 
     instance = [&]() {
         std::vector<char const *> instance_extensions;
@@ -53,7 +61,7 @@ void engine::rendering::vulkan::Renderer::setup()
             auto extensionProperties = std::make_unique_for_overwrite<VkExtensionProperties[]>(extensionPropertiesCount);
             CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, extensionProperties.get()));
 
-            spdlog::info("available extensions ({}):", extensionPropertiesCount);
+            spdlog::info("available instance extensions ({}):", extensionPropertiesCount);
             for (std::size_t i = 0; i < extensionPropertiesCount; ++i) {
                 auto const major = VK_VERSION_MAJOR(extensionProperties[i].specVersion);
                 auto const minor = VK_VERSION_MINOR(extensionProperties[i].specVersion);
@@ -84,7 +92,7 @@ void engine::rendering::vulkan::Renderer::setup()
             auto layerProperties = std::make_unique_for_overwrite<VkLayerProperties[]>(layerPropertiesCount);
             CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, layerProperties.get()));
 
-            spdlog::info("available extensions ({}):", layerPropertiesCount);
+            spdlog::info("available instance layers ({}):", layerPropertiesCount);
             for (std::size_t i = 0; i < layerPropertiesCount; ++i) {
                 auto const major = VK_VERSION_MAJOR(layerProperties[i].specVersion);
                 auto const minor = VK_VERSION_MINOR(layerProperties[i].specVersion);
@@ -112,6 +120,14 @@ void engine::rendering::vulkan::Renderer::setup()
                 }
             }
         }
+
+        spdlog::info("selected instance extensions ({}):", instance_extensions.size());
+        for (auto const extension : instance_extensions)
+            spdlog::info("\t{}", extension);
+
+        spdlog::info("selected instance layers ({}):", instance_layers.size());
+        for (auto const layer : instance_layers)
+            spdlog::info("\t{}", layer);
 
         VkApplicationInfo const application_info = {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -150,9 +166,10 @@ void engine::rendering::vulkan::Renderer::setup()
                 return vkGetInstanceProcAddr(instance, function_name);
             },
             const_cast<void *>(static_cast<void const *>(&instance)))) {
-        spdlog::critical("Cannot load Vulkan functions");
-        std::exit(-1);
-    };
+        char const *msg = "failed to dynamically load Vulkan functions for ImGui";
+        spdlog::critical("{}", msg);
+        throw std::runtime_error(msg);
+    }
 
     if (!SDL_Vulkan_CreateSurface(game().window(), instance, &sdl2_surface)) {
         spdlog::error("failed to create Vulkan surface for SDL window: {}", SDL_GetError());
@@ -162,10 +179,17 @@ void engine::rendering::vulkan::Renderer::setup()
     physical_device = [&] {
         uint32_t physical_deviceCount {};
         CHECK_VK(vkEnumeratePhysicalDevices(instance, &physical_deviceCount, nullptr));
+
+        if (physical_deviceCount == 0) {
+            char const *msg = "no physical vulkan devices available";
+            spdlog::error("{}", msg);
+            throw std::runtime_error(msg);
+        }
+
         auto physical_devices = std::make_unique_for_overwrite<VkPhysicalDevice[]>(physical_deviceCount);
         CHECK_VK(vkEnumeratePhysicalDevices(instance, &physical_deviceCount, physical_devices.get()));
 
-        spdlog::info("vulkan devices ({}):", physical_deviceCount);
+        spdlog::info("physical vulkan devices ({}):", physical_deviceCount);
         for (uint32_t i = 0; i < physical_deviceCount; ++i) {
 
             VkPhysicalDeviceProperties physical_deviceProperties;
@@ -187,108 +211,150 @@ void engine::rendering::vulkan::Renderer::setup()
                     return "Unknown"sv;
                 }
             }();
-            spdlog::info("\t{} ID: {}\tName: {} ({})",
+            spdlog::info("\t{} ID={}\tName={} ({})",
                 i, physical_deviceProperties.deviceID,
                 physical_deviceProperties.deviceName, device_type);
         }
 
+        // TODO: properly select which device to use
+        auto const &selected_device = physical_devices[0];
+
+        VkPhysicalDeviceProperties physical_device_properties;
+        vkGetPhysicalDeviceProperties(selected_device, &physical_device_properties);
+        spdlog::info("selected device ID={}, Name={}", physical_device_properties.deviceID, physical_device_properties.deviceName);
+
         return physical_devices[0];
     }();
 
-    queue_familiy_indices = [&] {
+    queue_indices = [&] {
         uint32_t queueFamilyPropertiesCount;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyPropertiesCount, nullptr);
         auto const queueFamilyProperties = std::make_unique_for_overwrite<VkQueueFamilyProperties[]>(queueFamilyPropertiesCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyPropertiesCount, queueFamilyProperties.get());
 
-        auto result = decltype(queue_familiy_indices) {};
+        auto result = decltype(queue_indices) {};
 
+        spdlog::info("vulkan queue families ({}):", queueFamilyPropertiesCount);
         for (uint32_t i = 0; i < queueFamilyPropertiesCount; ++i) {
-            if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            auto const &queueFamilyProperty = queueFamilyProperties[i];
+
+            std::vector<char const *> bits_names;
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                bits_names.push_back("VK_QUEUE_GRAPHICS_BIT");
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_COMPUTE_BIT)
+                bits_names.push_back("VK_QUEUE_COMPUTE_BIT");
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_TRANSFER_BIT)
+                bits_names.push_back("VK_QUEUE_TRANSFER_BIT");
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT)
+                bits_names.push_back("VK_QUEUE_SPARSE_BINDING_BIT");
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_PROTECTED_BIT)
+                bits_names.push_back("VK_QUEUE_PROTECTED_BIT");
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV)
+                bits_names.push_back("VK_QUEUE_OPTICAL_FLOW_BIT_NV");
+
+            VkBool32 present_support = false;
+            CHECK_VK(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, sdl2_surface, &present_support));
+
+            spdlog::info("\t{}: Flags={}\tPresentSupport={}", i, bits_names, static_cast<bool>(present_support));
+
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_GRAPHICS_BIT && result.graphics == UINT32_MAX)
                 result.graphics = i;
-            if (queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+
+            if (present_support && result.present == UINT32_MAX)
+                result.present = i;
+
+            if (queueFamilyProperty.queueFlags & VK_QUEUE_COMPUTE_BIT && result.compute == UINT32_MAX)
                 result.compute = i;
         }
+        spdlog::info("selected queue index {} for graphics", result.graphics);
+        spdlog::info("selected queue index {} for present", result.present);
+        spdlog::info("selected queue index {} for compute", result.compute);
 
         return result;
     }();
 
     device = [&] {
-        if (queue_familiy_indices.compute == queue_familiy_indices.graphics) {
-            float const priorities[] = { 1.0f, 1.0f };
-            VkDeviceQueueCreateInfo const device_queue_create_infos {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .queueFamilyIndex = queue_familiy_indices.graphics,
-                .queueCount = 2,
-                .pQueuePriorities = &priorities[0],
-            };
+        spdlog::info("creating vulkan logical device");
 
-            VkDeviceCreateInfo const device_create_info {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .queueCreateInfoCount = 1,
-                .pQueueCreateInfos = &device_queue_create_infos,
-                .enabledLayerCount = 0,
-                .ppEnabledLayerNames = nullptr,
-                .enabledExtensionCount = 0,
-                .ppEnabledExtensionNames = nullptr,
-                .pEnabledFeatures = nullptr,
-            };
-            VkDevice device;
-            CHECK_VK(vkCreateDevice(physical_device, &device_create_info, allocation_callbacks(), &device));
-            return device;
-        } else {
-            float const priorities = 1.0f;
-            VkDeviceQueueCreateInfo const device_queue_create_infos[2] {
-                {
+        auto const unique_queue_indices = [&]() {
+            auto unique_queue_indices = std::unordered_map<std::uint32_t, std::size_t>(std::size(queue_indices_array));
+            for (auto const queue_index : queue_indices_array) {
+                if (auto it = unique_queue_indices.find(queue_index); it != unique_queue_indices.end())
+                    unique_queue_indices.emplace_hint(it, std::make_pair(queue_index, std::size_t { 1 }));
+                else
+                    ++it->second;
+            }
+            return unique_queue_indices;
+        }();
+
+        // since we will set all priorities to 1.0f, and we can have at most `std::size(queue_indices_array)` equal queue indices,
+        // we allocate an array big enough to hold as many 1.0fs
+        auto const priorities = [&]() {
+            auto priorities = std::make_unique_for_overwrite<float[]>(std::size(queue_indices_array));
+            std::fill_n(&priorities[0], std::size(queue_indices_array), 1.0f);
+            return std::unique_ptr<float const[]>(std::move(priorities));
+        }();
+
+        auto const device_queue_create_infos = [&]() {
+            auto device_queue_create_infos = std::make_unique_for_overwrite<VkDeviceQueueCreateInfo[]>(unique_queue_indices.size());
+            auto i = std::size_t {};
+
+            for (auto const &[queue_index, count] : unique_queue_indices) {
+                device_queue_create_infos[i] = VkDeviceQueueCreateInfo {
                     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                     .pNext = nullptr,
                     .flags = 0,
-                    .queueFamilyIndex = queue_familiy_indices.graphics,
-                    .queueCount = 1,
-                    .pQueuePriorities = &priorities,
-                },
-                {
-                    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                    .pNext = nullptr,
-                    .flags = 0,
-                    .queueFamilyIndex = queue_familiy_indices.compute,
-                    .queueCount = 1,
-                    .pQueuePriorities = &priorities,
-                }
-            };
+                    .queueFamilyIndex = queue_index,
+                    .queueCount = static_cast<uint32_t>(count),
+                    .pQueuePriorities = &priorities[0],
+                };
+            }
+            return std::unique_ptr<VkDeviceQueueCreateInfo const[]>(std::move(device_queue_create_infos));
+        }();
 
-            VkDeviceCreateInfo const device_create_info {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .queueCreateInfoCount = std::size(device_queue_create_infos),
-                .pQueueCreateInfos = &device_queue_create_infos[0],
-                .enabledLayerCount = 0,
-                .ppEnabledLayerNames = nullptr,
-                .enabledExtensionCount = 0,
-                .ppEnabledExtensionNames = nullptr,
-                .pEnabledFeatures = nullptr,
-            };
-            VkDevice device;
-            CHECK_VK(vkCreateDevice(physical_device, &device_create_info, allocation_callbacks(), &device));
-            return device;
-        }
+        auto const device_features = VkPhysicalDeviceFeatures {
+            // TODO: fill up with what we need
+        };
+
+        auto const device_create_info = VkDeviceCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueCreateInfoCount = static_cast<uint32_t>(unique_queue_indices.size()),
+            .pQueueCreateInfos = &device_queue_create_infos[0],
+            .enabledLayerCount = 0,
+            .ppEnabledLayerNames = nullptr,
+            .enabledExtensionCount = 0,
+            .ppEnabledExtensionNames = nullptr,
+            .pEnabledFeatures = &device_features,
+        };
+
+        VkDevice device;
+        CHECK_VK(vkCreateDevice(physical_device, &device_create_info, allocation_callbacks(), &device));
+        return device;
     }();
 
     volkLoadDeviceTable(&device_table, device);
 
     queues = [&] {
+        auto const unique_queue_indices = [&]() {
+            auto unique_queue_indices = std::unordered_map<std::uint32_t, std::size_t>(std::size(queue_indices_array));
+            for (auto const queue_index : queue_indices_array) {
+                if (auto it = unique_queue_indices.find(queue_index); it != unique_queue_indices.end())
+                    unique_queue_indices.emplace_hint(it, std::make_pair(queue_index, std::size_t { 1 }));
+                else
+                    ++it->second;
+            }
+            return unique_queue_indices;
+        }();
+
         auto result = decltype(queues) {};
-        if (queue_familiy_indices.compute == queue_familiy_indices.graphics) {
-            device_table.vkGetDeviceQueue(device, queue_familiy_indices.graphics, 0, &result.graphics);
-            device_table.vkGetDeviceQueue(device, queue_familiy_indices.graphics, 1, &result.compute);
+        if (queue_indices.compute == queue_indices.graphics) {
+            device_table.vkGetDeviceQueue(device, queue_indices.graphics, 0, &result.graphics);
+            device_table.vkGetDeviceQueue(device, queue_indices.graphics, 1, &result.compute);
         } else {
-            device_table.vkGetDeviceQueue(device, queue_familiy_indices.graphics, 0, &result.graphics);
-            device_table.vkGetDeviceQueue(device, queue_familiy_indices.compute, 0, &result.compute);
+            device_table.vkGetDeviceQueue(device, queue_indices.graphics, 0, &result.graphics);
+            device_table.vkGetDeviceQueue(device, queue_indices.compute, 0, &result.compute);
         }
         return result;
     }();
@@ -300,7 +366,7 @@ void engine::rendering::vulkan::Renderer::imgui_setup()
         .Instance = instance,
         .PhysicalDevice = physical_device,
         .Device = device,
-        .QueueFamily = queue_familiy_indices.graphics,
+        .QueueFamily = queue_indices.graphics,
         .Queue = queues.graphics,
         .PipelineCache = VK_NULL_HANDLE,
         .DescriptorPool = VK_NULL_HANDLE,
