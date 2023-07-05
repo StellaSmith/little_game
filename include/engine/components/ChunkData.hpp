@@ -6,7 +6,6 @@
 namespace engine::components {
 
     struct ChunkData {
-
         constexpr static std::size_t chunk_size = 16u;
 
         engine::Block blocks[chunk_size * chunk_size * chunk_size];
