@@ -10,22 +10,28 @@ include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED LANGUAGES C CXX)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ${IPO_SUPPORTED})
 
+message(CHECK_START "Finding ccache")
 find_program(CCACHE_PROGRAM ccache)
 
 if(CCACHE_PROGRAM)
-    message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+    message(CHECK_PASS "${CCACHE_PROGRAM}")
     get_property(PREV_RULE_LAUNCH_COMPILE GLOBAL PROPERTY RULE_LAUNCH_COMPILE)
     get_property(PREV_RULE_LAUNCH_LINK GLOBAL PROPERTY RULE_LAUNCH_LINK)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_COMPILE}")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_PROGRAM} ${PREV_RULE_LAUNCH_LINK}")
+else()
+    message(CHECK_FAIL "not found")
 endif()
 
+message(CHECK_START "Finding mold")
 find_program(MOLD_PROGRAM mold)
 
 if(MOLD_PROGRAM)
-    message(STATUS "Found mold: ${MOLD_PROGRAM}")
+    message(CHECK_PASS "${MOLD_PROGRAM}")
     get_property(PREV_RULE_LAUNCH_LINK GLOBAL PROPERTY RULE_LAUNCH_LINK)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${MOLD_PROGRAM} -run ${PREV_RULE_LAUNCH_LINK}")
+else()
+    message(CHECK_FAIL "not found")
 endif()
 
 if(WITH_LUA STREQUAL "lua")
@@ -100,6 +106,9 @@ if(WITH_OPENGL)
 endif()
 
 if(WITH_VULKAN)
+    find_package(Vulkan MODULE REQUIRED)
+    find_package(volk CONFIG REQUIRED)
+
     target_sources(little_game PRIVATE
         PRIVATE
         ${VGAME_VULKAN_PRIVATE_SOURCES}
@@ -109,6 +118,7 @@ if(WITH_VULKAN)
     target_link_libraries(little_game
         PRIVATE
         Vulkan::Headers
+        volk::volk
         imgui_impl_vulkan)
 
     target_compile_definitions(little_game
