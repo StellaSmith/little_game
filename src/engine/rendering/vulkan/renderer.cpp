@@ -279,7 +279,7 @@ void engine::rendering::vulkan::Renderer::setup()
         auto const unique_queue_indices = [&]() {
             auto unique_queue_indices = std::unordered_map<std::uint32_t, std::size_t>(std::size(queue_indices_array));
             for (auto const queue_index : queue_indices_array) {
-                if (auto it = unique_queue_indices.find(queue_index); it != unique_queue_indices.end())
+                if (auto it = unique_queue_indices.find(queue_index); it == unique_queue_indices.end())
                     unique_queue_indices.emplace_hint(it, std::make_pair(queue_index, std::size_t { 1 }));
                 else
                     ++it->second;
@@ -340,7 +340,7 @@ void engine::rendering::vulkan::Renderer::setup()
         auto const unique_queue_indices = [&]() {
             auto unique_queue_indices = std::unordered_map<std::uint32_t, std::size_t>(std::size(queue_indices_array));
             for (auto const queue_index : queue_indices_array) {
-                if (auto it = unique_queue_indices.find(queue_index); it != unique_queue_indices.end())
+                if (auto it = unique_queue_indices.find(queue_index); it == unique_queue_indices.end())
                     unique_queue_indices.emplace_hint(it, std::make_pair(queue_index, std::size_t { 1 }));
                 else
                     ++it->second;
