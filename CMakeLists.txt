@@ -117,7 +117,7 @@ if(WITH_OPENGL)
 endif()
 
 if(WITH_VULKAN)
-    find_package(Vulkan MODULE REQUIRED)
+    find_package(Vulkan MODULE)
     find_package(volk CONFIG REQUIRED)
 
     target_sources(little_game PRIVATE

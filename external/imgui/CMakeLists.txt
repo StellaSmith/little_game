@@ -25,7 +25,7 @@ if(WITH_OPENGL)
 endif()
 
 if(WITH_VULKAN)
-    find_package(Vulkan REQUIRED MODULE)
+    find_package(Vulkan MODULE)
     add_library(imgui_impl_vulkan OBJECT)
     target_sources(imgui_impl_vulkan
         PRIVATE "${IMGUI_RES_DIR}/bindings/imgui_impl_vulkan.cpp"

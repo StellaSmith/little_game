@@ -7,3 +7,4 @@ build/
 cfg/imgui.ini
 .cache/
 CMakeUserPresets.json
+full_deploy/
