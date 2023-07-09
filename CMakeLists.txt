@@ -63,6 +63,16 @@ add_subdirectory(external)
 
 add_executable(little_game)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR(CMAKE_CXX_COMPILER_ID MATCHES "Clang*" AND NOT MSVC))
+    target_link_libraries(little_game PRIVATE -static-libgcc -static-libstdc++)
+    message(STATUS "Using static libstdc++ & libgcc_s")
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        target_link_libraries(little_game PRIVATE -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic)
+        message(STATUS "Using static libwinpthread")
+    endif()
+endif()
+
 if(MSVC)
     target_compile_options(little_game PRIVATE "/W4")
 elseif(CMAKE_C_COMPILER_ID MATCHES "Clang*")
