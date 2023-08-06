@@ -22,17 +22,18 @@ using namespace std::literals;
 static void terminate_handler()
 {
     auto const stacktrace = boost::stacktrace::stacktrace();
-    fmt::print(stderr, "{}", boost::stacktrace::to_string(stacktrace));
+    for (auto const &frame : stacktrace)
+        spdlog::critical("{}", fmt::streamed(frame)); // do not use the macro, location printed by it can be confused
+
+    // call the default termination handler
+    std::set_terminate(nullptr);
+    std::get_terminate()();
+
 }
 
 int main(int argc, char **argv)
 {
     std::set_terminate(&terminate_handler);
-
-#ifndef NDEBUG
-    if (auto logger = spdlog::default_logger(); logger->level() < spdlog::level::debug)
-        logger->set_level(spdlog::level::debug);
-#endif
 
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
