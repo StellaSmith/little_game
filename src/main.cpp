@@ -1,10 +1,11 @@
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
-#include <fmt/core.h>
 #include <utils/error.hpp>
 
 #include <SDL.h>
 #include <boost/stacktrace.hpp>
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <fmt/std.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -28,7 +29,28 @@ static void terminate_handler()
     // call the default termination handler
     std::set_terminate(nullptr);
     std::get_terminate()();
+}
 
+static std::vector<char const *> audio_drivers()
+{
+    int const n = SDL_GetNumAudioDrivers();
+    std::vector<char const *> result;
+    result.reserve(n);
+
+    for (int i = 0; i < n; ++i)
+        result.push_back(SDL_GetAudioDriver(i));
+    return result;
+}
+
+static std::vector<char const *> video_drivers()
+{
+    int const n = SDL_GetNumVideoDrivers();
+    std::vector<char const *> result;
+    result.reserve(n);
+
+    for (int i = 0; i < n; ++i)
+        result.push_back(SDL_GetVideoDriver(i));
+    return result;
 }
 
 int main(int argc, char **argv)
@@ -55,21 +77,16 @@ int main(int argc, char **argv)
                 fmt::arg("default_config_path", config_path));
             return 0;
         } else if (argv[i] == "--sdl-video-drivers"sv) {
-            int const n = SDL_GetNumVideoDrivers();
-            spdlog::info("Available video drivers ({}):", n);
-            for (int i = 0; i < n; ++i)
-                spdlog::info(" - {}", SDL_GetVideoDriver(i));
+            SPDLOG_INFO("available video drivers: {}", video_drivers());
         } else if (argv[i] == "--sdl-audio-drivers"sv) {
-            int const n = SDL_GetNumAudioDrivers();
-            spdlog::info("Available audio drivers ({}):", n);
-            for (int i = 0; i < n; ++i)
-                spdlog::info(" - {}", SDL_GetAudioDriver(i));
+            SPDLOG_INFO("available audio drivers: {}", audio_drivers());
         } else if (argv[i] == "-v"sv || argv[i] == "--verbose"sv) {
-            spdlog::info("verbose output enabled");
+            SPDLOG_INFO("verbose output enabled");
         } else if (argv[i] == "-c"sv || argv[i] == "--config"sv) {
             char const *used = argv[i];
             if (char const *raw_config_path = argv[++i]; raw_config_path == nullptr) {
-                spdlog::critical("missing path argument for {}", used);
+                SPDLOG_ERROR("missing path argument for {}", used);
+                throw std::invalid_argument(fmt::format("missing path argument for {}", used));
             } else {
                 config_path = raw_config_path;
             }
