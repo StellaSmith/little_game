@@ -25,7 +25,8 @@
 #endif
 
 namespace engine {
-    inline static engine::Result<utils::FileHandle> open_file(std::filesystem::path const &path, char const *mode) noexcept
+
+    inline engine::result<utils::FileHandle, std::errc> open_file(std::filesystem::path const &path, engine::nonnull<char const> mode) noexcept
     {
 #if _WIN32
         wchar_t buf[32] {};
@@ -50,7 +51,7 @@ namespace engine {
         return utils::FileHandle { fp };
     }
 
-    engine::Result<resources::BaseResource const *> open_resource(std::string_view path) noexcept;
-    engine::Result<std::span<std::byte const>> load_resource(std::string_view path) noexcept;
+    engine::result<engine::nonnull<resources::BaseResource const>, std::errc> open_resource(std::string_view path) noexcept;
+    engine::result<std::span<std::byte const>, std::errc> load_resource(std::string_view path) noexcept;
 }
 #endif

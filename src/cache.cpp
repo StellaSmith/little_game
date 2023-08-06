@@ -11,7 +11,7 @@
 #include <optional>
 #include <vector>
 
-static engine::Result<utils::FileHandle> open_cache_file(std::string_view name, char const *mode)
+static engine::result<utils::FileHandle, std::errc> open_cache_file(std::string_view name, engine::nonnull<char const> mode)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
@@ -44,12 +44,12 @@ static engine::Result<utils::FileHandle> open_cache_file(std::string_view name, 
     return engine::open_file(cache_file_path, mode);
 }
 
-engine::Result<utils::FileHandle> engine::create_cache_file(std::string_view name)
+engine::result<utils::FileHandle, std::errc> engine::create_cache_file(std::string_view name)
 {
     return open_cache_file(name, "wb");
 }
 
-engine::Result<utils::FileHandle> engine::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
+engine::result<utils::FileHandle, std::errc> engine::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
 {
     if (ref_files.empty())
         return open_cache_file(name, "rb");

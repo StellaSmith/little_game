@@ -14,7 +14,7 @@
 
 thread_local static boost::container::flat_map<std::string_view, resources::BaseResource const *> s_resource_cache;
 
-engine::Result<resources::BaseResource const *> engine::open_resource(std::string_view path) noexcept
+engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine::open_resource(std::string_view path) noexcept
 {
     path = utils::strip(path, '/');
     if (path.empty())
@@ -52,7 +52,7 @@ engine::Result<resources::BaseResource const *> engine::open_resource(std::strin
     return s_resource_cache[std::string_view { root->path, path.size() }] = root;
 }
 
-engine::Result<std::span<std::byte const>> engine::load_resource(std::string_view name) noexcept
+engine::result<std::span<std::byte const>, std::errc> engine::load_resource(std::string_view name) noexcept
 {
     boost::container::flat_set<resources::BaseResource const *> visited;
     auto resource = BOOST_OUTCOME_TRYX(open_resource(name));
