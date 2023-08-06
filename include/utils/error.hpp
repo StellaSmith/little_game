@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <exception>
 #include <string>
 #include <string_view>
@@ -35,4 +37,11 @@ namespace utils {
 
     [[noreturn]] void show_error(std::string_view body);
     [[noreturn]] void show_error(std::string_view title, std::string_view body);
+
+#define THROW_CRITICAL(...)                        \
+    do {                                           \
+        auto const str = fmt::format(__VA_ARGS__); \
+        SPDLOG_CRITICAL(str);                      \
+        throw std::runtime_error(str);             \
+    } while (0)
 } // namespace utils

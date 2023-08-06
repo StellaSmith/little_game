@@ -1,25 +1,23 @@
-
-
-#include <atomic>
 #include <engine/Config.hpp>
 #include <engine/Stream.hpp>
-#include <filesystem>
-#include <rapidjson/error/error.h>
-#include <rapidjson/reader.h>
-#include <spdlog/spdlog.h>
-#include <stdexcept>
-#include <string_view>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
 
 #include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/error/error.h>
 #include <rapidjson/pointer.h>
+#include <rapidjson/reader.h>
+#include <spdlog/spdlog.h>
 
+#include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <memory>
+#include <stdexcept>
+#include <string_view>
 
 static std::atomic_bool s_config_loaded;
 static engine::Config s_config {};
@@ -39,19 +37,14 @@ engine::Config const &engine::config()
 
 engine::Config const &engine::Config::load(std::filesystem::path const &path)
 {
-    if (s_config_loaded.exchange(true) == true) {
-        constexpr auto message = "engine config already loaded"sv;
-        spdlog::critical("{}", message);
-        throw std::runtime_error(message.data());
-    }
+    if (s_config_loaded.exchange(true) == true)
+        THROW_CRITICAL("{}", "engine config already loaded");
 
     auto content = [&]() {
-        try {
-            auto fp = engine::open_file(path, "r").value();
-            return utils::load_file(fp.get());
-        } catch (...) {
-            spdlog::critical("error opening engine configuration file. ({})", path);
-            throw;
+        if (auto maybe_fp = engine::open_file(path, "r"); maybe_fp.has_error()) {
+            THROW_CRITICAL("error opening engine configuration file {}: {}", path, std::make_error_code(maybe_fp.error()).message());
+        } else {
+            return utils::load_file(maybe_fp.value().get());
         }
     }();
 
