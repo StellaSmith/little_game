@@ -1,52 +1,33 @@
 #ifndef ENGINE_STREAM_HPP
 #define ENGINE_STREAM_HPP
 
-#include <boost/outcome/success_failure.hpp>
 #include <resources_generated.hpp> // auto-generated
 
-#include <engine/Result.hpp>
+#include <engine/result.hpp>
+#include <engine/system/block_size.hpp>
+#include <engine/system/open_file.hpp>
+#include <engine/system/page_size.hpp>
 #include <utils/FileHandle.hpp>
 
-#include <fmt/std.h>
-#include <spdlog/spdlog.h>
+#include <boost/outcome/try.hpp>
 
-#include <cstddef>
-#include <cstdio>
-#include <filesystem>
+#include <numeric>
 #include <span>
-#include <system_error>
-
-#ifdef _WIN32
-#include <cassert>
-#include <cstring> // std::strlen
-#include <stdio.h> // _wfopen_s
-#else
-#include <errno.h>
-#endif
 
 namespace engine {
 
-    inline engine::result<utils::FileHandle, std::errc> open_file(std::filesystem::path const &path, engine::nonnull<char const> mode) noexcept
+    [[nodiscard]] inline engine::result<utils::FileHandle, std::errc> open_file(std::filesystem::path const &path, engine::nonnull<char const> mode) noexcept
     {
-#if _WIN32
-        wchar_t buf[32] {};
-        std::size_t const size = std::strlen(mode);
-        if (size >= std::size(buf))
-            return boost::outcome_v2::failure(std::errc::argument_list_too_long);
-        std::copy(mode, mode + size, buf);
-        std::FILE *fp = nullptr;
-        int const error = ::_wfopen_s(&fp, path.native().c_str(), &buf[0]);
-#else
-        std::FILE *fp = std::fopen(path.native().c_str(), mode);
-        int const error = errno;
-#endif
-        if (!fp) {
-            spdlog::error("failed to open {}", path);
-            return boost::outcome_v2::failure(static_cast<std::errc>(error));
-        }
+        auto const lcm = [](auto x, auto... xs) { return ((x = std::lcm(x, xs)), ...); };
 
-        if constexpr (BUFSIZ < 1024 * 8)
-            std::setvbuf(fp, nullptr, _IOFBF, 1024 * 8);
+        engine::nonnull<std::FILE> fp = BOOST_OUTCOME_TRYX(engine::system::open_file(path, mode));
+
+        std::size_t const page_size = engine::system::page_size();
+        auto const maybe_block_size = engine::system::block_size(fp);
+
+        auto const buffer_size = lcm(BUFSIZ, page_size, maybe_block_size ? maybe_block_size.value() : BUFSIZ);
+        if (buffer_size > BUFSIZ)
+            std::setvbuf(fp, nullptr, _IOFBF, buffer_size);
 
         return utils::FileHandle { fp };
     }
@@ -54,4 +35,5 @@ namespace engine {
     engine::result<engine::nonnull<resources::BaseResource const>, std::errc> open_resource(std::string_view path) noexcept;
     engine::result<std::span<std::byte const>, std::errc> load_resource(std::string_view path) noexcept;
 }
+
 #endif

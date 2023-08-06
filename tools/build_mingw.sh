@@ -13,8 +13,8 @@ toolchain=/usr/${arch}-w64-mingw32
 target_host=${arch}-w64-mingw32
 build_type=Release
 
-cc=${target_host}-cc
-cxx=${target_host}-c++
+cc=${target_host}-gcc
+cxx=${target_host}-g++
 as=${target_host}-as
 ar=${target_host}-ar
 ranlib=${target_host}-ranlib
