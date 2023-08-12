@@ -3,7 +3,6 @@
 #include <engine/assets/BlockMesh.hpp>
 #include <engine/errors/UnsupportedFileType.hpp>
 #include <engine/resources.hpp>
-#include <utils/strings.hpp>
 
 #include <boost/container/flat_set.hpp>
 #include <glm/fwd.hpp>
@@ -120,7 +119,7 @@ void engine::assets::BlockMesh::swap(engine::assets::BlockMesh &other) noexcept
 
 engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path const &path)
 {
-    if (utils::ends_with(path.native(), TEXT(".json"sv)) || utils::ends_with(path.native(), TEXT(".cjson"sv)))
+    if (path.native().ends_with(TEXT(".json"sv)) || path.native().ends_with(TEXT(".cjson"sv)))
         return load_json(path);
     throw engine::errors::UnsupportedFileType();
 }

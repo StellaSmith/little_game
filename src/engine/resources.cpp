@@ -6,7 +6,7 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/outcome/try.hpp>
 
-#include <utils/strings.hpp>
+#include <engine/string.hpp>
 
 #include <string_view>
 #include <unordered_map>
@@ -16,7 +16,7 @@ thread_local static boost::container::flat_map<std::string_view, resources::Base
 
 engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine::open_resource(std::string_view path) noexcept
 {
-    path = utils::strip(path, '/');
+    path = engine::strip(path, '/');
     if (path.empty())
         return resources::get_root();
 
@@ -30,7 +30,7 @@ engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine
     if (pos == std::string_view::npos)
         root = resources::get_root();
     else
-        root = BOOST_OUTCOME_TRYX(open_resource(path.substr(0, pos)));
+        root = TRY(open_resource(path.substr(0, pos)));
 
     if (root != nullptr) {
         if (root->type != resources::ResourceType::DIRECTORY_RESOURCE) {
@@ -47,7 +47,7 @@ engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine
 
     // make sure the cache doesn't contain null pointers
     if (root == nullptr)
-        return boost::outcome_v2::failure(std::errc::no_such_file_or_directory);
+        return std::errc::no_such_file_or_directory;
 
     return s_resource_cache[std::string_view { root->path, path.size() }] = root;
 }
@@ -55,20 +55,20 @@ engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine
 engine::result<std::span<std::byte const>, std::errc> engine::load_resource(std::string_view name) noexcept
 {
     boost::container::flat_set<resources::BaseResource const *> visited;
-    auto resource = BOOST_OUTCOME_TRYX(open_resource(name));
+    auto resource = TRY(open_resource(name));
     if (resource == nullptr) // ENOENT
-        return boost::outcome_v2::failure(std::errc::no_such_file_or_directory);
+        return std::errc::no_such_file_or_directory;
 
-    for (; resource->type != resources::ResourceType::SYMLINK_RESOURCE;) {
+    while (resource->type != resources::ResourceType::SYMLINK_RESOURCE) {
         visited.emplace(resource);
-        resource = BOOST_OUTCOME_TRYX(open_resource(name));
+        resource = TRY(open_resource(name));
         if (visited.contains(resource)) // ELOOP
-            return boost::outcome_v2::failure(std::errc::too_many_links);
+            return std::errc::too_many_links;
     }
     if (resource->type == resources::ResourceType::DIRECTORY_RESOURCE) // EISDIR
-        return boost::outcome_v2::failure(std::errc::is_a_directory);
+        return std::errc::is_a_directory;
 
     assert(resource->type == resources::ResourceType::FILE_RESOURCE);
     auto file_resource = static_cast<resources::FileResource const *>(resource);
-    return { (std::byte const *)file_resource->data, file_resource->size };
+    return std::span<std::byte const> { (std::byte const *)file_resource->data, file_resource->size };
 }
