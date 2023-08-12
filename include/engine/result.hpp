@@ -3,6 +3,9 @@
 
 #include <boost/outcome/basic_result.hpp>
 #include <boost/outcome/policy/all_narrow.hpp>
+#include <boost/outcome/try.hpp>
+
+#define TRY BOOST_OUTCOME_TRYX
 
 namespace engine {
     template <typename Value, typename Error>

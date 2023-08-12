@@ -1,6 +1,6 @@
 #include <engine/Config.hpp>
-#include <engine/Stream.hpp>
 #include <engine/cache.hpp>
+#include <engine/resources.hpp>
 
 #include <boost/outcome/success_failure.hpp>
 #include <fmt/std.h>
@@ -11,7 +11,7 @@
 #include <optional>
 #include <vector>
 
-static engine::result<utils::FileHandle, std::errc> open_cache_file(std::string_view name, engine::nonnull<char const> mode)
+static engine::result<engine::File, std::errc> open_cache_file(std::string_view name, engine::nonnull<char const> mode)
 {
     while (!name.empty() && name.back() == '/')
         name.remove_suffix(1);
@@ -41,15 +41,15 @@ static engine::result<utils::FileHandle, std::errc> open_cache_file(std::string_
         return boost::outcome_v2::failure(std::errc::not_a_directory);
     }
 
-    return engine::open_file(cache_file_path, mode);
+    return engine::File::open(cache_file_path, mode);
 }
 
-engine::result<utils::FileHandle, std::errc> engine::create_cache_file(std::string_view name)
+engine::result<engine::File, std::errc> engine::create_cache_file(std::string_view name)
 {
     return open_cache_file(name, "wb");
 }
 
-engine::result<utils::FileHandle, std::errc> engine::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
+engine::result<engine::File, std::errc> engine::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)
 {
     if (ref_files.empty())
         return open_cache_file(name, "rb");

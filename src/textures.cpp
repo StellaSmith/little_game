@@ -1,6 +1,6 @@
 #if 0
 
-#include <engine/Stream.hpp>
+#include <engine/resources.hpp>
 #include <engine/assets/Image.hpp>
 
 #include <utils/error.hpp>

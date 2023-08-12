@@ -1,7 +1,8 @@
+#include <engine/File.hpp>
 #include <engine/Sides.hpp>
-#include <engine/Stream.hpp>
 #include <engine/assets/BlockMesh.hpp>
 #include <engine/errors/UnsupportedFileType.hpp>
+#include <engine/resources.hpp>
 #include <utils/strings.hpp>
 
 #include <boost/container/flat_set.hpp>
@@ -134,7 +135,8 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
     boost::container::flat_set<std::uint32_t> color_masks;
 
     {
-        auto fp = engine::open_file(path, "r").value();
+
+        auto fp = engine::File::open(path, "r").value();
 
         char buf[1024 * 8] {}; // 8KiB
 

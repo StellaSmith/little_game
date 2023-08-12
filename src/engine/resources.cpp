@@ -1,6 +1,6 @@
 
 #include <boost/outcome/success_failure.hpp>
-#include <engine/Stream.hpp>
+#include <engine/resources.hpp>
 
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
