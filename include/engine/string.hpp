@@ -9,7 +9,7 @@ namespace engine {
 
     constexpr std::string_view lstrip(std::string_view str, std::string_view chars = basic_ascii_whitespace<char>) noexcept
     {
-        return str.substr(0, str.find_last_not_of(chars));
+        return str.substr(std::min(str.find_first_not_of(chars), str.size()));
     }
 
     constexpr std::string_view lstrip(std::string_view str, char ch) noexcept
@@ -19,7 +19,7 @@ namespace engine {
 
     constexpr std::string_view rstrip(std::string_view str, std::string_view chars = basic_ascii_whitespace<char>) noexcept
     {
-        return str.substr(str.find_first_not_of(chars));
+        return str.substr(0, str.find_last_not_of(chars) + 1);
     }
 
     constexpr std::string_view rstrip(std::string_view str, char ch) noexcept
