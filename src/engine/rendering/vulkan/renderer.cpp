@@ -1,9 +1,11 @@
 #include <engine/Game.hpp>
 #include <engine/rendering/vulkan/Renderer.hpp>
+#include <engine/sdl/Window.hpp>
 
 #include <SDL_error.h>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
+
 #include <fmt/ranges.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -21,15 +23,9 @@
 
 using namespace std::literals;
 
-SDL_Window *engine::rendering::vulkan::Renderer::create_window(const char *title, int x, int y, int w, int h, uint32_t flags)
+engine::sdl::Window engine::rendering::vulkan::Renderer::create_window(const char *title, int x, int y, int w, int h, uint32_t flags)
 {
-    auto const window = SDL_CreateWindow(title, x, y, w, h, flags | SDL_WINDOW_VULKAN);
-    if (window == nullptr) {
-        spdlog::error("failed to created SDL window: {}", SDL_GetError());
-        throw std::runtime_error(SDL_GetError());
-    }
-
-    return window;
+    return engine::sdl::Window::create(title, glm::ivec2 { x, y }, glm::ivec2 { w, h }, flags | SDL_WINDOW_VULKAN);
 }
 
 void engine::rendering::vulkan::Renderer::setup()
@@ -49,10 +45,7 @@ void engine::rendering::vulkan::Renderer::setup()
             std::vector<char const *> required_extensions;
             std::vector<char const *> desired_extensions;
 
-            unsigned count = 0;
-            SDL_Vulkan_GetInstanceExtensions(game().window(), &count, nullptr);
-            required_extensions.resize(count);
-            SDL_Vulkan_GetInstanceExtensions(game().window(), &count, &required_extensions[0]);
+            required_extensions = game().window().vulkan().get_instance_extensions();
 #ifndef NDEBUG
             desired_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
@@ -171,10 +164,7 @@ void engine::rendering::vulkan::Renderer::setup()
         throw std::runtime_error(msg);
     }
 
-    if (!SDL_Vulkan_CreateSurface(game().window(), instance, &sdl2_surface)) {
-        spdlog::error("failed to create Vulkan surface for SDL window: {}", SDL_GetError());
-        throw std::runtime_error(SDL_GetError());
-    }
+    sdl2_surface = game().window().vulkan().create_surface(instance);
 
     physical_device = [&] {
         uint32_t physical_deviceCount {};
@@ -362,29 +352,22 @@ void engine::rendering::vulkan::Renderer::setup()
 
 void engine::rendering::vulkan::Renderer::imgui_setup()
 {
-    ImGui_ImplVulkan_InitInfo vulkan_init_info {
-        .Instance = instance,
-        .PhysicalDevice = physical_device,
-        .Device = device,
-        .QueueFamily = queue_indices.graphics,
-        .Queue = queues.graphics,
-        .PipelineCache = VK_NULL_HANDLE,
-        .DescriptorPool = VK_NULL_HANDLE,
-        .Subpass = 0,
-        .MinImageCount = 0,
-        .ImageCount = 0,
-        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
-        .Allocator = allocation_callbacks(),
-        .CheckVkResultFn = &CHECK_VK,
-    };
+    ImGui_ImplVulkan_InitInfo vulkan_init_info {};
+    vulkan_init_info.Instance = instance,
+    vulkan_init_info.PhysicalDevice = physical_device,
+    vulkan_init_info.Device = device,
+    vulkan_init_info.QueueFamily = queue_indices.graphics,
+    vulkan_init_info.Queue = queues.graphics,
+    vulkan_init_info.Allocator = allocation_callbacks(),
+    vulkan_init_info.CheckVkResultFn = &CHECK_VK,
 
     ImGui_ImplVulkan_Init(&vulkan_init_info, VK_NULL_HANDLE);
-    ImGui_ImplSDL2_InitForVulkan(game().window());
+    ImGui_ImplSDL2_InitForVulkan(game().window().get());
 }
 
-void engine::rendering::vulkan::Renderer::imgui_new_frame(SDL_Window *window)
+void engine::rendering::vulkan::Renderer::imgui_new_frame(engine::sdl::Window &window)
 {
-    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplSDL2_NewFrame(window.get());
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
 }
@@ -403,13 +386,13 @@ engine::rendering::vulkan::Renderer::~Renderer()
 {
     ImGui_ImplVulkan_Shutdown();
     if (imgui_renderpass != VK_NULL_HANDLE)
-        device_table.vkDestroyRenderPass(device, std::exchange(imgui_renderpass, VK_NULL_HANDLE), allocation_callbacks());
+        device_table.vkDestroyRenderPass(device, std::exchange(imgui_renderpass, (VkRenderPass)VK_NULL_HANDLE), allocation_callbacks());
     if (sdl2_surface != VK_NULL_HANDLE)
-        vkDestroySurfaceKHR(instance, std::exchange(sdl2_surface, VK_NULL_HANDLE), allocation_callbacks());
+        vkDestroySurfaceKHR(instance, std::exchange(sdl2_surface, (VkSurfaceKHR)VK_NULL_HANDLE), allocation_callbacks());
     if (device != VK_NULL_HANDLE)
-        device_table.vkDestroyDevice(std::exchange(device, VK_NULL_HANDLE), allocation_callbacks());
+        device_table.vkDestroyDevice(std::exchange(device, (VkDevice)VK_NULL_HANDLE), allocation_callbacks());
     if (instance != VK_NULL_HANDLE)
-        vkDestroyInstance(std::exchange(instance, VK_NULL_HANDLE), allocation_callbacks());
+        vkDestroyInstance(std::exchange(instance, (VkInstance)VK_NULL_HANDLE), allocation_callbacks());
 }
 
 namespace {

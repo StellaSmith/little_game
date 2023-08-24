@@ -84,10 +84,7 @@ void engine::Game::cleanup()
     assert(!running);
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-    {
-        std::vector<entt::entity> const to_delete(m_entity_registry.data(), m_entity_registry.data() + m_entity_registry.size());
-        m_entity_registry.destroy(to_delete.cbegin(), to_delete.cend());
-    }
+    m_entity_registry.clear();
 }
 
 engine::Game::~Game()

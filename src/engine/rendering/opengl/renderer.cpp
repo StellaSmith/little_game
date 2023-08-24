@@ -25,7 +25,7 @@ extern int g_render_distance_vertical;
 
 using namespace std::literals;
 
-SDL_Window *engine::rendering::opengl::Renderer::create_window(const char *title, int x, int y, int w, int h, uint32_t flags)
+engine::sdl::Window engine::rendering::opengl::Renderer::create_window(const char *title, int x, int y, int w, int h, uint32_t flags)
 {
 
     auto const &config = engine::config();
@@ -41,11 +41,7 @@ SDL_Window *engine::rendering::opengl::Renderer::create_window(const char *title
     if (config.opengl.depth_bits) SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, *config.opengl.depth_bits);
     if (config.opengl.stencil_bits) SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, *config.opengl.stencil_bits);
 
-    auto const window = SDL_CreateWindow(title, x, y, w, h, flags | SDL_WINDOW_OPENGL);
-    if (window == nullptr) {
-        spdlog::trace("Failed to create SDL window: {}", SDL_GetError());
-        throw std::runtime_error(SDL_GetError());
-    }
+    auto window = engine::sdl::Window::create(title, glm::ivec2 { x, y }, glm::ivec2 { w, h }, flags | SDL_WINDOW_OPENGL);
 
 #ifndef NDEBUG
     if (SDL_SetRelativeMouseMode(SDL_TRUE))
@@ -56,8 +52,8 @@ SDL_Window *engine::rendering::opengl::Renderer::create_window(const char *title
 
 void engine::rendering::opengl::Renderer::setup()
 {
-    m_context = SDL_GL_CreateContext(game().window());
-    SDL_GL_MakeCurrent(game().window(), m_context);
+    m_context = game().window().opengl().create_context();
+    m_context.make_current();
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
         utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
@@ -122,15 +118,15 @@ void engine::rendering::opengl::Renderer::setup()
 
 void engine::rendering::opengl::Renderer::imgui_setup()
 {
-    ImGui_ImplSDL2_InitForOpenGL(game().window(), m_context); // always returns true
+    ImGui_ImplSDL2_InitForOpenGL(game().window().get(), m_context.get()); // always returns true
 
     // See imgui/examples/imgui_impl_opengl3.cpp
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
 }
 
-void engine::rendering::opengl::Renderer::imgui_new_frame(SDL_Window *window)
+void engine::rendering::opengl::Renderer::imgui_new_frame(engine::sdl::Window &window)
 {
-    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplSDL2_NewFrame(window.get());
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 }
@@ -338,7 +334,7 @@ void engine::rendering::opengl::Renderer::render(float)
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     // swap the buffer (present to the window surface)
-    SDL_GL_SwapWindow(game().window());
+    game().window().opengl().swap_buffers();
 }
 
 #include <engine/components/ChunkData.hpp>

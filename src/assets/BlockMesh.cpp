@@ -5,6 +5,7 @@
 #include <engine/resources.hpp>
 
 #include <boost/container/flat_set.hpp>
+#include <fmt/std.h>
 #include <glm/fwd.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
@@ -25,44 +26,36 @@
 #define TEXT(s) s
 #endif
 
-static decltype(auto) string_path(std::filesystem::path const &p) noexcept
-{
-    if constexpr (std::is_same_v<std::filesystem::path::value_type, char>)
-        return p.native();
-    else
-        return p.string();
+namespace {
+    struct ModelVertex {
+        float x, y, z, u, v;
+
+        constexpr engine::rendering::Vertex to_vertex(std::uint32_t texture_index, std::uint32_t color_mask_index) const noexcept
+        {
+            return {
+                .position = { x, y, z },
+                .uv = { u, v },
+                .textures = {
+                    texture_index,
+                    color_mask_index,
+                }
+            };
+        }
+    };
+
+    struct ModelFace {
+        std::uint32_t texture;
+        std::uint32_t color_mask;
+        std::uint32_t vertex_indices[4];
+
+        engine::Sides sides;
+        unsigned char solid : 1;
+        unsigned char quad : 1;
+    };
 }
 
-struct ModelVertex {
-    float x, y, z, u, v;
-
-    constexpr engine::rendering::Vertex to_vertex(std::uint32_t texture_index, std::uint32_t color_mask_index) const noexcept
-    {
-        return {
-            .position = { x, y, z },
-            .uv = { u, v },
-            .textures = {
-                texture_index,
-                color_mask_index,
-            }
-        };
-    }
-};
-
-struct ModelFace {
-    std::uint32_t texture;
-    std::uint32_t color_mask;
-    std::uint32_t vertex_indices[4];
-
-    engine::Sides sides;
-    unsigned char solid : 1;
-    unsigned char quad : 1;
-};
-
 static rapidjson::SchemaDocument const s_model_schema = []() {
-    resources::BaseResource const *schema = engine::open_resource("schemas/ModelSchema.json").value();
-    if (schema == nullptr)
-        throw std::runtime_error("Can't open resources://schemas/ModelSchema.json");
+    resources::BaseResource const *schema = MUST(engine::open_resource("schemas/ModelSchema.json"));
     if (schema->type != resources::ResourceType::FILE_RESOURCE)
         throw std::runtime_error("resources://schemas/ModelSchema.json is not a file");
 
@@ -126,7 +119,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path 
 
 engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 {
-    spdlog::info("Loading model from file {}"sv, string_path(path));
+    spdlog::info("Loading model from file {}", path);
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
@@ -148,7 +141,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
         if (auto const result = reader.GetParseResult(); !result) {
             if (result.Code() == rapidjson::kParseErrorTermination) {
                 if (!reader.IsValid()) {
-                    spdlog::error("Model {} is invalid according to schema", string_path(path));
+                    spdlog::error("Model {} is invalid according to schema", path);
                     rapidjson::StringBuffer sb;
                     reader.GetInvalidDocumentPointer().StringifyUriFragment(sb);
                     spdlog::error("\tpath    : {}", std::string_view { sb.GetString(), sb.GetSize() });
@@ -158,11 +151,11 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
                     spdlog::error("\tdocument: {}", std::string_view { sb.GetString(), sb.GetSize() });
                     throw /* invalid according to schema */;
                 } else {
-                    spdlog::error("Error reading {}", string_path(path));
+                    spdlog::error("Error reading {}", path);
                     throw /* io error */;
                 }
             } else {
-                spdlog::error("{} is not valid json", string_path(path));
+                spdlog::error("{} is not valid json", path);
                 throw /* invalid json */;
             }
         }
@@ -249,7 +242,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
         }
     }
 
-    spdlog::info("Compiling block model from file {}"sv, string_path(path));
+    spdlog::info("Compiling block model from file {}", path);
     engine::assets::BlockMesh result;
     result.m_textures.insert(result.m_textures.end(), textures.cbegin(), textures.cend());
     std::for_each(faces.begin(), faces.end(), [&](ModelFace &face) {

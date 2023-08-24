@@ -58,6 +58,7 @@ find_package(SDL2 REQUIRED)
 find_package(sol2 REQUIRED)
 find_package(ctre REQUIRED)
 find_package(Boost REQUIRED)
+find_package(SDL2_image CONFIG REQUIRED)
 
 add_subdirectory(external)
 
@@ -162,7 +163,7 @@ target_include_directories(little_game PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/inclu
 
 target_link_libraries(little_game
     PRIVATE
-    SDL2::SDL2 glm::glm stb_utils stb_image imgui_impl_sdl2 rapidjson
+    SDL2::SDL2 glm::glm imgui_impl_sdl2 rapidjson SDL2_image::SDL2_image
     fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::boost)
 
 if(WITH_LUA STREQUAL "lua")

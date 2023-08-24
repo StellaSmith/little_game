@@ -57,20 +57,20 @@ class VGameRecipe(ConanFile):
 
     def requirements(self):
         self.requires("glm/cci.20230113")
-        self.requires("entt/3.11.1")
-        self.requires("stb/cci.20220909")
-        self.requires("ctre/3.7.2")
-        self.requires("fmt/10.0.0")
-        self.requires("spdlog/1.11.0")
+        self.requires("entt/3.12.2")
+        self.requires("sdl_image/2.0.5")
+        self.requires("ctre/3.8")
+        self.requires("fmt/10.1.0", override=True)
+        self.requires("spdlog/1.12.0")
         self.requires("rapidjson/cci.20220822")
-        self.requires("imgui/1.89.4")
-        self.requires("boost/1.82.0")
-        self.requires("sol2/3.3.0")
-        self.requires("sdl/2.26.5")
+        self.requires("imgui/1.89.8")
+        self.requires("boost/1.83.0")
+        self.requires("sol2/3.3.1")
+        self.requires("sdl/2.28.2", override=True)
         self.requires("rmlui/4.4")
 
         if self.options.with_lua == "lua":
-            self.requires("lua/5.4.6", override=True)
+            self.requires("lua/5.4.6")
         elif self.options.with_lua == "luajit":
             self.requires("luajit/2.1.0-beta3")
 

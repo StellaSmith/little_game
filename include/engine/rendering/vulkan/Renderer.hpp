@@ -65,14 +65,14 @@ namespace engine::rendering::vulkan {
         }
 
     public:
-        SDL_Window *create_window(char const *title, int x, int y, int w, int h, uint32_t flags) override;
+        engine::sdl::Window create_window(char const *title, int x, int y, int w, int h, uint32_t flags) override;
 
         void setup() override;
         void update() override;
         void render(float delta) override;
 
         void imgui_setup() override;
-        void imgui_new_frame(SDL_Window *) override;
+        void imgui_new_frame(engine::sdl::Window &) override;
 
         ~Renderer() override;
     };

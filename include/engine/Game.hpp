@@ -8,6 +8,7 @@
 #include <engine/named_storage.hpp>
 #include <engine/rendering/IRenderer.hpp>
 #include <engine/rendering/Mesh.hpp>
+#include <engine/sdl/Window.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <entt/entt.hpp>
@@ -41,7 +42,7 @@ namespace engine {
             return m_entity_registry;
         }
 
-        SDL_Window *window() noexcept
+        engine::sdl::Window &window() noexcept
         {
             return m_window;
         }
@@ -80,7 +81,7 @@ namespace engine {
 
     private:
         std::unique_ptr<rendering::IRenderer> m_renderer = nullptr;
-        SDL_Window *m_window = nullptr;
+        engine::sdl::Window m_window = nullptr;
 
         sol::state m_lua;
 

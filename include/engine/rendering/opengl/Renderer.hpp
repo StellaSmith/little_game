@@ -26,7 +26,7 @@ namespace engine::rendering::opengl {
         using IRenderer::IRenderer;
 
     private:
-        SDL_GLContext m_context;
+        engine::sdl::Window::OpenglContext m_context;
         GLuint m_vao;
         GLuint m_shader;
         struct {
@@ -43,14 +43,14 @@ namespace engine::rendering::opengl {
         std::unordered_map<engine::components::ChunkPosition, engine::rendering::Mesh> m_translucent_mesh_data;
 
     public:
-        SDL_Window *create_window(char const *title, int x, int y, int w, int h, uint32_t flags) override;
+        engine::sdl::Window create_window(char const *title, int x, int y, int w, int h, uint32_t flags) override;
 
         void setup() override;
         void update() override;
         void render(float delta) override;
 
         void imgui_setup() override;
-        void imgui_new_frame(SDL_Window *) override;
+        void imgui_new_frame(engine::sdl::Window &) override;
 
         ~Renderer() override;
 
