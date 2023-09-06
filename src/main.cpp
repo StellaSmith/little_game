@@ -1,3 +1,5 @@
+#include <version>
+
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
 #include <utils/error.hpp>
@@ -20,15 +22,19 @@
 
 using namespace std::literals;
 
-static void terminate_handler()
+[[gnu::constructor]]
+static void set_terminate_handler()
 {
-    auto const stacktrace = boost::stacktrace::stacktrace();
-    for (auto const &frame : stacktrace)
-        spdlog::critical("{}", fmt::streamed(frame)); // do not use the macro, location printed by it can be confused
+    static std::terminate_handler const default_handler = std::get_terminate();
 
-    // call the default termination handler
-    std::set_terminate(nullptr);
-    std::get_terminate()();
+    auto handler = []() {
+        auto const stacktrace = boost::stacktrace::stacktrace();
+        for (auto const &frame : stacktrace)
+            spdlog::critical("{}", fmt::streamed(frame)); // do not use the macro, location printed by it can be confused
+
+        default_handler();
+    };
+    std::set_terminate(+handler);
 }
 
 static std::vector<char const *> audio_drivers()
@@ -55,8 +61,6 @@ static std::vector<char const *> video_drivers()
 
 int main(int argc, char **argv)
 {
-    std::set_terminate(&terminate_handler);
-
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif
