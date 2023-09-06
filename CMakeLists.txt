@@ -173,7 +173,7 @@ elseif(WITH_LUA STREQUAL "luajit")
     target_compile_definitions(little_game PRIVATE SOL_LUAJIT)
 endif()
 
-set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
 target_compile_features(little_game PUBLIC cxx_std_20)
 target_include_directories(little_game PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 target_compile_definitions(little_game

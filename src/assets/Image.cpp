@@ -12,7 +12,7 @@ static std::string type_name(T const &obj)
 {
     char const *name = typeid(obj).name();
 #ifdef _WIN32
-    return name
+    return name;
 #else
     int status;
     auto real_name = std::unique_ptr<char[], utils::FreeDeleter>(abi::__cxa_demangle(name, nullptr, nullptr, &status));
