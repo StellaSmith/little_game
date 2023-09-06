@@ -5,4 +5,5 @@ PointerAlignment:   Right
 AllowShortIfStatementsOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
 NamespaceIndentation: All
+BreakAfterAttributes: Always
 # RequiresClausePosition: OwnLine
