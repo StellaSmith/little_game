@@ -73,14 +73,14 @@ void engine::rendering::opengl::Renderer::setup()
     char const *renderer = reinterpret_cast<char const *>(glGetString(GL_RENDERER));
     char const *shading_version = reinterpret_cast<char const *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-    spdlog::info("OpenGL profile: {}.{}", major, minor);
-    spdlog::info("\tRGBA bits: {}, {}, {}, {}", r, g, b, a);
-    spdlog::info("\tDepth bits: {}", d);
-    spdlog::info("\tStencil bits: {}", s);
-    spdlog::info("\tVersion: {}", version);
-    spdlog::info("\tVendor: {}", vendor);
-    spdlog::info("\tRendered: {}", renderer);
-    spdlog::info("\tShading language version: {}", shading_version);
+    SPDLOG_INFO("OpenGL profile: {}.{}", major, minor);
+    SPDLOG_INFO("\tRGBA bits: {}, {}, {}, {}", r, g, b, a);
+    SPDLOG_INFO("\tDepth bits: {}", d);
+    SPDLOG_INFO("\tStencil bits: {}", s);
+    SPDLOG_INFO("\tVersion: {}", version);
+    SPDLOG_INFO("\tVendor: {}", vendor);
+    SPDLOG_INFO("\tRendered: {}", renderer);
+    SPDLOG_INFO("\tShading language version: {}", shading_version);
 
 #if defined(GL_KHR_debug)
     if (GLAD_GL_KHR_debug) {
@@ -92,7 +92,7 @@ void engine::rendering::opengl::Renderer::setup()
             glDebugMessageCallback(glDebugOutput, nullptr);
             glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 
-            spdlog::info("\tdebug output enabled\n");
+            SPDLOG_INFO("\tdebug output enabled\n");
         }
     }
 #endif

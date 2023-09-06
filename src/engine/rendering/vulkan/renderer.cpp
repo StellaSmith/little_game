@@ -32,7 +32,7 @@ void engine::rendering::vulkan::Renderer::setup()
 {
     auto const pfn_vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr());
     if (pfn_vkGetInstanceProcAddr == nullptr) {
-        spdlog::error("SDL_Vulkan_GetVkGetInstanceProcAddr() failed: {}", SDL_GetError());
+        SPDLOG_ERROR("SDL_Vulkan_GetVkGetInstanceProcAddr() failed: {}", SDL_GetError());
         throw std::runtime_error(SDL_GetError());
     }
     volkInitializeCustom(pfn_vkGetInstanceProcAddr);
@@ -54,12 +54,12 @@ void engine::rendering::vulkan::Renderer::setup()
             auto extensionProperties = std::make_unique_for_overwrite<VkExtensionProperties[]>(extensionPropertiesCount);
             CHECK_VK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertiesCount, extensionProperties.get()));
 
-            spdlog::info("available instance extensions ({}):", extensionPropertiesCount);
+            SPDLOG_INFO("available instance extensions ({}):", extensionPropertiesCount);
             for (std::size_t i = 0; i < extensionPropertiesCount; ++i) {
                 auto const major = VK_VERSION_MAJOR(extensionProperties[i].specVersion);
                 auto const minor = VK_VERSION_MINOR(extensionProperties[i].specVersion);
                 auto const patch = VK_VERSION_PATCH(extensionProperties[i].specVersion);
-                spdlog::info("\t{}: {}.{}.{}", extensionProperties[i].extensionName, major, minor, patch);
+                SPDLOG_INFO("\t{}: {}.{}.{}", extensionProperties[i].extensionName, major, minor, patch);
             }
 
             instance_extensions.insert(instance_extensions.end(), required_extensions.begin(), required_extensions.end());
@@ -85,7 +85,7 @@ void engine::rendering::vulkan::Renderer::setup()
             auto layerProperties = std::make_unique_for_overwrite<VkLayerProperties[]>(layerPropertiesCount);
             CHECK_VK(vkEnumerateInstanceLayerProperties(&layerPropertiesCount, layerProperties.get()));
 
-            spdlog::info("available instance layers ({}):", layerPropertiesCount);
+            SPDLOG_INFO("available instance layers ({}):", layerPropertiesCount);
             for (std::size_t i = 0; i < layerPropertiesCount; ++i) {
                 auto const major = VK_VERSION_MAJOR(layerProperties[i].specVersion);
                 auto const minor = VK_VERSION_MINOR(layerProperties[i].specVersion);
@@ -95,11 +95,11 @@ void engine::rendering::vulkan::Renderer::setup()
                 auto const impl_minor = VK_VERSION_MINOR(layerProperties[i].implementationVersion);
                 auto const impl_patch = VK_VERSION_PATCH(layerProperties[i].implementationVersion);
 
-                spdlog::info("\t{}: {}.{}.{} ({}.{}.{})",
+                SPDLOG_INFO("\t{}: {}.{}.{} ({}.{}.{})",
                     layerProperties[i].layerName,
                     major, minor, patch,
                     impl_major, impl_minor, impl_patch);
-                spdlog::info("\t\t{}", layerProperties[i].description);
+                SPDLOG_INFO("\t\t{}", layerProperties[i].description);
             }
 
             instance_layers.insert(instance_layers.end(), required_layers.begin(), required_layers.end());
@@ -114,13 +114,13 @@ void engine::rendering::vulkan::Renderer::setup()
             }
         }
 
-        spdlog::info("selected instance extensions ({}):", instance_extensions.size());
+        SPDLOG_INFO("selected instance extensions ({}):", instance_extensions.size());
         for (auto const extension : instance_extensions)
-            spdlog::info("\t{}", extension);
+            SPDLOG_INFO("\t{}", extension);
 
-        spdlog::info("selected instance layers ({}):", instance_layers.size());
+        SPDLOG_INFO("selected instance layers ({}):", instance_layers.size());
         for (auto const layer : instance_layers)
-            spdlog::info("\t{}", layer);
+            SPDLOG_INFO("\t{}", layer);
 
         VkApplicationInfo const application_info = {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -159,9 +159,8 @@ void engine::rendering::vulkan::Renderer::setup()
                 return vkGetInstanceProcAddr(instance, function_name);
             },
             const_cast<void *>(static_cast<void const *>(&instance)))) {
-        char const *msg = "failed to dynamically load Vulkan functions for ImGui";
-        spdlog::critical("{}", msg);
-        throw std::runtime_error(msg);
+        SPDLOG_CRITICAL("failed to dynamically load Vulkan functions for ImGui");
+        std::terminate();
     }
 
     sdl2_surface = game().window().vulkan().create_surface(instance);
@@ -172,14 +171,14 @@ void engine::rendering::vulkan::Renderer::setup()
 
         if (physical_deviceCount == 0) {
             char const *msg = "no physical vulkan devices available";
-            spdlog::error("{}", msg);
+            SPDLOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
 
         auto physical_devices = std::make_unique_for_overwrite<VkPhysicalDevice[]>(physical_deviceCount);
         CHECK_VK(vkEnumeratePhysicalDevices(instance, &physical_deviceCount, physical_devices.get()));
 
-        spdlog::info("physical vulkan devices ({}):", physical_deviceCount);
+        SPDLOG_INFO("physical vulkan devices ({}):", physical_deviceCount);
         for (uint32_t i = 0; i < physical_deviceCount; ++i) {
 
             VkPhysicalDeviceProperties physical_deviceProperties;
@@ -201,7 +200,7 @@ void engine::rendering::vulkan::Renderer::setup()
                     return "Unknown"sv;
                 }
             }();
-            spdlog::info("\t{} ID={}\tName={} ({})",
+            SPDLOG_INFO("\t{} ID={}\tName={} ({})",
                 i, physical_deviceProperties.deviceID,
                 physical_deviceProperties.deviceName, device_type);
         }
@@ -211,7 +210,7 @@ void engine::rendering::vulkan::Renderer::setup()
 
         VkPhysicalDeviceProperties physical_device_properties;
         vkGetPhysicalDeviceProperties(selected_device, &physical_device_properties);
-        spdlog::info("selected device ID={}, Name={}", physical_device_properties.deviceID, physical_device_properties.deviceName);
+        SPDLOG_INFO("selected device ID={}, Name={}", physical_device_properties.deviceID, physical_device_properties.deviceName);
 
         return physical_devices[0];
     }();
@@ -224,7 +223,7 @@ void engine::rendering::vulkan::Renderer::setup()
 
         auto result = decltype(queue_indices) {};
 
-        spdlog::info("vulkan queue families ({}):", queueFamilyPropertiesCount);
+        SPDLOG_INFO("vulkan queue families ({}):", queueFamilyPropertiesCount);
         for (uint32_t i = 0; i < queueFamilyPropertiesCount; ++i) {
             auto const &queueFamilyProperty = queueFamilyProperties[i];
 
@@ -245,7 +244,7 @@ void engine::rendering::vulkan::Renderer::setup()
             VkBool32 present_support = false;
             CHECK_VK(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, sdl2_surface, &present_support));
 
-            spdlog::info("\t{}: Flags={}\tPresentSupport={}", i, bits_names, static_cast<bool>(present_support));
+            SPDLOG_INFO("\t{}: Flags={}\tPresentSupport={}", i, bits_names, static_cast<bool>(present_support));
 
             if (queueFamilyProperty.queueFlags & VK_QUEUE_GRAPHICS_BIT && result.graphics == UINT32_MAX)
                 result.graphics = i;
@@ -256,15 +255,15 @@ void engine::rendering::vulkan::Renderer::setup()
             if (queueFamilyProperty.queueFlags & VK_QUEUE_COMPUTE_BIT && result.compute == UINT32_MAX)
                 result.compute = i;
         }
-        spdlog::info("selected queue index {} for graphics", result.graphics);
-        spdlog::info("selected queue index {} for present", result.present);
-        spdlog::info("selected queue index {} for compute", result.compute);
+        SPDLOG_INFO("selected queue index {} for graphics", result.graphics);
+        SPDLOG_INFO("selected queue index {} for present", result.present);
+        SPDLOG_INFO("selected queue index {} for compute", result.compute);
 
         return result;
     }();
 
     device = [&] {
-        spdlog::info("creating vulkan logical device");
+        SPDLOG_INFO("creating vulkan logical device");
 
         auto const unique_queue_indices = [&]() {
             auto unique_queue_indices = std::unordered_map<std::uint32_t, std::size_t>(std::size(queue_indices_array));

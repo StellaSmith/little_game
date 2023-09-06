@@ -119,7 +119,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path 
 
 engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 {
-    spdlog::info("Loading model from file {}", path);
+    SPDLOG_INFO("Loading model from file {}", path);
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
@@ -141,21 +141,21 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
         if (auto const result = reader.GetParseResult(); !result) {
             if (result.Code() == rapidjson::kParseErrorTermination) {
                 if (!reader.IsValid()) {
-                    spdlog::error("Model {} is invalid according to schema", path);
+                    SPDLOG_ERROR("Model {} is invalid according to schema", path);
                     rapidjson::StringBuffer sb;
                     reader.GetInvalidDocumentPointer().StringifyUriFragment(sb);
-                    spdlog::error("\tpath    : {}", std::string_view { sb.GetString(), sb.GetSize() });
-                    spdlog::error("\tkeyword : {}", reader.GetInvalidSchemaKeyword());
+                    SPDLOG_ERROR("\tpath    : {}", std::string_view { sb.GetString(), sb.GetSize() });
+                    SPDLOG_ERROR("\tkeyword : {}", reader.GetInvalidSchemaKeyword());
                     sb.Clear();
                     reader.GetInvalidDocumentPointer().StringifyUriFragment(sb);
-                    spdlog::error("\tdocument: {}", std::string_view { sb.GetString(), sb.GetSize() });
+                    SPDLOG_ERROR("\tdocument: {}", std::string_view { sb.GetString(), sb.GetSize() });
                     throw /* invalid according to schema */;
                 } else {
-                    spdlog::error("Error reading {}", path);
+                    SPDLOG_ERROR("Error reading {}", path);
                     throw /* io error */;
                 }
             } else {
-                spdlog::error("{} is not valid json", path);
+                SPDLOG_ERROR("{} is not valid json", path);
                 throw /* invalid json */;
             }
         }
@@ -242,7 +242,7 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
         }
     }
 
-    spdlog::info("Compiling block model from file {}", path);
+    SPDLOG_INFO("Compiling block model from file {}", path);
     engine::assets::BlockMesh result;
     result.m_textures.insert(result.m_textures.end(), textures.cbegin(), textures.cend());
     std::for_each(faces.begin(), faces.end(), [&](ModelFace &face) {

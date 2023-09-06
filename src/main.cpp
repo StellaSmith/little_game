@@ -100,14 +100,14 @@ int main(int argc, char **argv)
     auto &config = engine::Config::load(config_path);
 
     if (int const error = SDL_Init(0); error != 0) {
-        spdlog::trace("Failed to initialize SDL ({}): {}", error, SDL_GetError());
+        SPDLOG_ERROR("Failed to initialize SDL ({}): {}", error, SDL_GetError());
         throw std::runtime_error(SDL_GetError());
     }
 
     {
         char const *video_driver = config.sdl.video_driver ? config.sdl.video_driver->c_str() : nullptr;
         if (int const error = SDL_VideoInit(video_driver); error != 0) {
-            spdlog::trace("Failed to initialize SDL Video subsystem ({}): {}", error, SDL_GetError());
+            SPDLOG_ERROR("Failed to initialize SDL Video subsystem ({}): {}", error, SDL_GetError());
             throw std::runtime_error(SDL_GetError());
         }
     }
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     {
         char const *audio_driver = config.sdl.audio_driver ? config.sdl.audio_driver->c_str() : nullptr;
         if (int const error = SDL_AudioInit(audio_driver); error != 0) {
-            spdlog::trace("Failed to initialize SDL Audio subsystem ({}): {}", error, SDL_GetError());
+            SPDLOG_ERROR("Failed to initialize SDL Audio subsystem ({}): {}", error, SDL_GetError());
             throw std::runtime_error(SDL_GetError());
         }
     }
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
     if (config.imgui.font_path) {
         if (!imgui_io.Fonts->AddFontFromFileTTF(config.imgui.font_path->c_str(), 14)) {
-            spdlog::warn("[ImGui] failed to load font {}, using default font", *config.imgui.font_path);
+            SPDLOG_WARN("[ImGui] failed to load font {}, using default font", *config.imgui.font_path);
             if (!imgui_io.Fonts->AddFontDefault())
                 utils::show_error("ImGui Error."sv, "failed to load default font"sv);
         }

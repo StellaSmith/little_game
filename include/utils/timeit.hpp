@@ -20,7 +20,7 @@ namespace utils {
         {
             auto const now = clock_type::now();
             auto const delta = static_cast<std::chrono::duration<double, std::milli>>(now - m_start);
-            spdlog::info("TIME: {} took {}ms", m_name, delta.count());
+            SPDLOG_INFO("TIME: {} took {}", m_name, delta);
         }
 
         clock_type::time_point m_start;
