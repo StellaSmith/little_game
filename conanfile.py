@@ -5,10 +5,6 @@ from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
 from conan.tools.apple import is_apple_os
 
-import functools
-import shutil
-import io
-import re
 import os
 
 
@@ -31,14 +27,13 @@ class VGameRecipe(ConanFile):
     options = {
         "with_lua": ["lua", "luajit"],
         "with_opengl": [True, False],
-        "with_vulkan": [True, False]
+        "with_vulkan": [True, False],
     }
 
     default_options = {
         "with_lua": "lua",
         "with_opengl": True,
         "with_vulkan": True,
-
 
         "glad/*:gl_profile": "core",
         "glad/*:gl_version": "3.3",
@@ -60,7 +55,7 @@ class VGameRecipe(ConanFile):
         self.requires("entt/3.12.2")
         self.requires("sdl_image/2.0.5")
         self.requires("ctre/3.8")
-        self.requires("fmt/10.1.0", override=True)
+        self.requires("fmt/10.1.1", override=True)
         self.requires("spdlog/1.12.0")
         self.requires("rapidjson/cci.20220822")
         self.requires("imgui/1.89.8")
