@@ -5,7 +5,6 @@
 #include <engine/rendering/Mesh.hpp>
 #include <math/bits.hpp>
 #include <math/constexpr.hpp>
-#include <utils/timeit.hpp>
 
 #include <glm/gtx/norm.hpp>
 
@@ -231,20 +230,12 @@ engine::rendering::Mesh engine::Game::generate_translucent_mesh(engine::componen
     // Generate vertices
 
     using namespace std::literals;
-    {
-        utils::TimeIt timer { "translucent vertex duplication removal"sv };
-        remove_duplicate_vertices(result);
-    }
-    {
-        utils::TimeIt timer { "translucent unreferenced vertex removal"sv };
-        remove_unreferenced_vertices(result);
-    }
-    {
-#if 0
-        utils::TimeIt timer { "translucent lights"sv };
+
+    remove_duplicate_vertices(result);
+    remove_unreferenced_vertices(result);
+#if 0   
         calculate_light(*this, result, chunk_data);
 #endif
-    }
 
     return result;
 }

@@ -7,7 +7,6 @@
 #include <imgui.h>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
-#include <utils/timeit.hpp>
 
 #include <SDL_mouse.h>
 #include <SDL_video.h>
