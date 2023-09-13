@@ -58,7 +58,6 @@ class VGameRecipe(ConanFile):
         self.requires("imgui/1.89.8")
         self.requires("boost/1.83.0")
         self.requires("sdl/2.28.2", override=True)
-        self.requires("rmlui/4.4")
 
         if self.options.with_opengl:
             self.requires("glad/0.1.36")
@@ -67,8 +66,6 @@ class VGameRecipe(ConanFile):
             sdk_version = "1.3.243.0"
             self.requires(f"vulkan-headers/{sdk_version}")
             self.requires(f"volk/{sdk_version}")
-            if is_apple_os(self):
-                self.requires("moltenvk/1.2.2")
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
