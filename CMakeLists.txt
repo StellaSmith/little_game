@@ -3,7 +3,6 @@ project(little_game)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(WITH_LUA "Which Lua implementation to use [lua, luajit]" "lua")
 option(WITH_OPENGL "Use OpenGL as the graphics API" ON)
 option(WITH_VULKAN "Use Vulkan as the graphics API" ON)
 
@@ -37,12 +36,6 @@ else()
     message(CHECK_FAIL "not found")
 endif()
 
-if(WITH_LUA STREQUAL "lua")
-    find_package(lua REQUIRED)
-elseif(WITH_LUA STREQUAL "luajit")
-    find_package(luajit REQUIRED)
-endif()
-
 if(WITH_OPENGL)
     find_package(glad CONFIG REQUIRED)
 endif()
@@ -57,7 +50,6 @@ find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
-find_package(sol2 CONFIG REQUIRED)
 find_package(ctre CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
@@ -166,22 +158,14 @@ target_include_directories(little_game PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/inclu
 target_link_libraries(little_game
     PRIVATE
     SDL2::SDL2 glm::glm imgui_impl_sdl2 rapidjson SDL2_image::SDL2_image
-    fmt::fmt spdlog::spdlog EnTT::EnTT sol2::sol2 ctre::ctre Boost::boost)
-
-if(WITH_LUA STREQUAL "lua")
-    target_link_libraries(little_game PRIVATE lua::lua)
-elseif(WITH_LUA STREQUAL "luajit")
-    target_link_libraries(little_game PRIVATE luajit::luajit)
-    target_compile_definitions(little_game PRIVATE SOL_LUAJIT)
-endif()
+    fmt::fmt spdlog::spdlog EnTT::EnTT ctre::ctre Boost::boost)
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
 target_compile_features(little_game PUBLIC cxx_std_20)
 target_include_directories(little_game PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 target_compile_definitions(little_game
     PUBLIC
-    GLM_FORCE_XYZW_ONLY
-    SOL_ALL_SAFETIES_ON)
+    GLM_FORCE_XYZW_ONLY)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT(MINGW OR CYGWIN))
     message(STATUS "Linking with SDL2main")

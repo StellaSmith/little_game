@@ -12,7 +12,6 @@
 
 #include <boost/circular_buffer.hpp>
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 
 #include <chrono>
 #include <memory>
@@ -50,10 +49,7 @@ namespace engine {
         ~Game();
 
     private:
-        void setup_lua();
         void setup_renderer();
-
-        static int l_print(lua_State *);
 
         void on_chunk_construct(entt::registry &, entt::entity chunk);
         void on_chunk_destroy(entt::registry &, entt::entity chunk);
@@ -82,8 +78,6 @@ namespace engine {
     private:
         std::unique_ptr<rendering::IRenderer> m_renderer = nullptr;
         engine::sdl::Window m_window = nullptr;
-
-        sol::state m_lua;
 
         entt::registry m_entity_registry;
         std::unordered_map<engine::components::ChunkPosition, entt::entity> m_chunks;

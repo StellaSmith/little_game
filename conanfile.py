@@ -25,13 +25,11 @@ class VGameRecipe(ConanFile):
     exports_sources = "CMakeLists.txt", "src/*", "include/*", "external/*", "res/*"
 
     options = {
-        "with_lua": ["lua", "luajit"],
         "with_opengl": [True, False],
         "with_vulkan": [True, False],
     }
 
     default_options = {
-        "with_lua": "lua",
         "with_opengl": True,
         "with_vulkan": True,
 
@@ -60,14 +58,8 @@ class VGameRecipe(ConanFile):
         self.requires("rapidjson/cci.20220822")
         self.requires("imgui/1.89.8")
         self.requires("boost/1.83.0")
-        self.requires("sol2/3.3.1")
         self.requires("sdl/2.28.2", override=True)
         self.requires("rmlui/4.4")
-
-        if self.options.with_lua == "lua":
-            self.requires("lua/5.4.6")
-        elif self.options.with_lua == "luajit":
-            self.requires("luajit/2.1.0-beta3")
 
         if self.options.with_opengl:
             self.requires("glad/0.1.36")
@@ -96,7 +88,6 @@ class VGameRecipe(ConanFile):
         deps = CMakeDeps(self)
         deps.generate()
         tc = CMakeToolchain(self)
-        tc.variables["WITH_LUA"] = self.options.with_lua
         tc.variables["WITH_OPENGL"] = self.options.with_opengl
         tc.variables["WITH_VULKAN"] = self.options.with_vulkan
         tc.variables["IMGUI_RES_DIR"] = os.path.join(self.dependencies["imgui"].package_folder, "res")
