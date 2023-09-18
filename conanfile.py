@@ -52,10 +52,10 @@ class VGameRecipe(ConanFile):
         self.requires("glm/cci.20230113")
         self.requires("entt/3.12.2")
         self.requires("sdl_image/2.0.5")
-        self.requires("fmt/10.1.1", override=True)
+        self.requires("fmt/10.1.1")
         self.requires("spdlog/1.12.0")
         self.requires("rapidjson/cci.20220822")
-        self.requires("imgui/1.89.8")
+        self.requires("imgui/1.89.9")
         self.requires("boost/1.83.0")
         self.requires("sdl/2.28.2", override=True)
 
