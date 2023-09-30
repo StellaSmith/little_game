@@ -364,9 +364,9 @@ void engine::rendering::vulkan::Renderer::imgui_setup()
     ImGui_ImplSDL2_InitForVulkan(game().window().get());
 }
 
-void engine::rendering::vulkan::Renderer::imgui_new_frame(engine::sdl::Window &window)
+void engine::rendering::vulkan::Renderer::imgui_new_frame(std::shared_ptr<engine::rendering::IRenderTarget> target)
 {
-    ImGui_ImplSDL2_NewFrame(window.get());
+    (void)target;
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
 }

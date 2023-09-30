@@ -50,17 +50,17 @@ class VGameRecipe(ConanFile):
 
     def requirements(self):
         self.requires("glm/cci.20230113")
-        self.requires("entt/3.12.2")
-        self.requires("sdl_image/2.0.5")
+        self.requires("entt/[>=3.12.0 <3.13]")
+        self.requires("sdl_image/[>=2.0.0 <2.1]")
         self.requires("fmt/10.1.1")
         self.requires("spdlog/1.12.0")
         self.requires("rapidjson/cci.20220822")
-        self.requires("imgui/1.89.9")
-        self.requires("boost/1.83.0")
-        self.requires("sdl/2.28.2", override=True)
+        self.requires("imgui/[>=1.89.0 <1.90]")
+        self.requires("boost/[>=1.83.0 <1.84]")
+        self.requires("sdl/[>=2.28.0 <2.29]", override=True)
 
         if self.options.with_opengl:
-            self.requires("glad/0.1.36")
+            self.requires("glad/[>=0.1.0 <0.2.0]")
 
         if self.options.with_vulkan:
             sdk_version = "1.3.243.0"

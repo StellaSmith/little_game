@@ -9,7 +9,7 @@
 #include <SDL_video.h>
 #include <glad/glad.h>
 
-#include <engine/components/ChunkPosition.hpp>
+#include <engine/ecs/components/ChunkPosition.hpp>
 #include <engine/rendering/IRenderer.hpp>
 #include <engine/rendering/Mesh.hpp>
 #include <engine/rendering/opengl/MeshHandle.hpp>
@@ -50,7 +50,7 @@ namespace engine::rendering::opengl {
         void render(float delta) override;
 
         void imgui_setup() override;
-        void imgui_new_frame(engine::sdl::Window &) override;
+        void imgui_new_frame(std::shared_ptr<engine::rendering::IRenderTarget>) override;
 
         ~Renderer() override;
 

@@ -11,6 +11,8 @@
 #include <fmt/std.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
+#include <spdlog/sinks/ringbuffer_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <cstdio>
@@ -21,6 +23,15 @@
 #include <system_error>
 
 using namespace std::literals;
+
+[[gnu::constructor]]
+static void set_spdlog_sinks()
+{
+    auto &sinks = spdlog::default_logger_raw()->sinks();
+    sinks.clear();
+    sinks.push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
+    sinks.push_back(std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(1024 * 5));
+}
 
 [[gnu::constructor]]
 static void set_terminate_handler()
@@ -76,7 +87,7 @@ int main(int argc, char **argv)
                 "\t-v --verbose\tDisplay more verbose messages.\n"
                 "\t   --sdl-video-drivers\tEnumerate the available video drivers.\n"
                 "\t   --sdl-audio-drivers\tEnumerate the available audio drivers.\n"
-                "\t-c --config <path>\tPath to engine configuration file (default: {default_config_path})\n",
+                "\t-c --config <path>\tPath to engine configuration file (default: {default_config_path:?})\n",
                 fmt::arg("program", argv[0]),
                 fmt::arg("default_config_path", config_path));
             return 0;

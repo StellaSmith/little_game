@@ -7,6 +7,7 @@
 
 #include <volk.h>
 
+#include <engine/rendering/IRenderTarget.hpp>
 #include <engine/rendering/IRenderer.hpp>
 
 #include <memory_resource>
@@ -72,7 +73,7 @@ namespace engine::rendering::vulkan {
         void render(float delta) override;
 
         void imgui_setup() override;
-        void imgui_new_frame(engine::sdl::Window &) override;
+        void imgui_new_frame(std::shared_ptr<engine::rendering::IRenderTarget>) override;
 
         ~Renderer() override;
     };
@@ -87,7 +88,8 @@ namespace engine::rendering::vulkan {
 }
 
 namespace {
-    [[maybe_unused]] inline void CHECK_VK(VkResult result)
+    [[maybe_unused]]
+    inline void CHECK_VK(VkResult result)
     {
         if (result != VK_SUCCESS)
             throw std::system_error(engine::rendering::vulkan::make_error_code(result));

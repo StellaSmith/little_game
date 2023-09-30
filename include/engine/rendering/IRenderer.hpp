@@ -1,6 +1,7 @@
 #ifndef ENGINE_RENDERING_IRENDERER_HPP
 #define ENGINE_RENDERING_IRENDERER_HPP
 
+#include <engine/rendering/IRenderTarget.hpp>
 #include <engine/sdl/Window.hpp>
 
 #include <cstdint>
@@ -27,7 +28,7 @@ namespace engine::rendering {
         virtual void render(float delta) = 0;
 
         virtual void imgui_setup() = 0;
-        virtual void imgui_new_frame(engine::sdl::Window &window) = 0;
+        virtual void imgui_new_frame(std::shared_ptr<engine::rendering::IRenderTarget> target) = 0;
 
         virtual ~IRenderer() = default;
 

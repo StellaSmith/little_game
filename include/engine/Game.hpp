@@ -3,8 +3,8 @@
 
 #include <engine/BlockType.hpp>
 #include <engine/assets/BlockMesh.hpp>
-#include <engine/components/ChunkData.hpp>
-#include <engine/components/ChunkPosition.hpp>
+#include <engine/ecs/components/ChunkData.hpp>
+#include <engine/ecs/components/ChunkPosition.hpp>
 #include <engine/named_storage.hpp>
 #include <engine/rendering/IRenderer.hpp>
 #include <engine/rendering/Mesh.hpp>
@@ -29,7 +29,7 @@ namespace engine {
 
         void start();
         void stop();
-        void update(clock_type::duration);
+        void update(std::chrono::duration<double> delta);
         void render();
         void input(SDL_Event const &);
         void cleanup();

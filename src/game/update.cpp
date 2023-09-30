@@ -9,6 +9,8 @@
 #include <cstring>
 #include <tuple>
 
+#include <engine/ecs/systems/localplayer_camera.hpp>
+
 extern engine::Camera g_camera;
 static glm::vec3 previous_camera_position {};
 
@@ -16,29 +18,9 @@ int g_render_distance_horizontal = 12;
 int g_render_distance_vertical = 4;
 float g_mouse_sensitivity = 1;
 
-void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration delta)
+void engine::Game::update(std::chrono::duration<double> delta)
 {
-
-    const double d_delta = std::chrono::duration<double>(delta).count();
-    auto const *const keyboard_state = SDL_GetKeyboardState(nullptr);
-
-    constexpr float camera_speed = 25.0f;
-
-    const glm::vec3 right = -glm::cross(g_camera.up, g_camera.forward);
-    if (keyboard_state[SDL_SCANCODE_W])
-        g_camera.position += glm::normalize(glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z }) * camera_speed * static_cast<float>(d_delta);
-    if (keyboard_state[SDL_SCANCODE_S])
-        g_camera.position -= glm::normalize(glm::vec3 { -g_camera.forward.x, 0.0f, g_camera.forward.z }) * camera_speed * static_cast<float>(d_delta);
-    if (keyboard_state[SDL_SCANCODE_D])
-        g_camera.position += glm::vec3 { -right.x, 0.0f, right.z } * camera_speed * static_cast<float>(d_delta);
-    if (keyboard_state[SDL_SCANCODE_A])
-        g_camera.position -= glm::vec3 { -right.x, 0.0f, right.z } * camera_speed * static_cast<float>(d_delta);
-    if (keyboard_state[SDL_SCANCODE_SPACE])
-        g_camera.position.y += camera_speed * static_cast<float>(d_delta);
-    if (keyboard_state[SDL_SCANCODE_LSHIFT])
-        g_camera.position.y -= camera_speed * static_cast<float>(d_delta);
-
-    m_renderer->imgui_new_frame(window());
+    ImGui_ImplSDL2_NewFrame(window().get());
 
     if (ImGui::Begin("Camera")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);
@@ -53,7 +35,7 @@ void engine::Game::update([[maybe_unused]] engine::Game::clock_type::duration de
     }
     ImGui::End();
     if (ImGui::Begin("Random Stuff")) {
-        ImGui::Text("FPS: %.0f", 1 / d_delta);
+        ImGui::Text("FPS: %.0f", 1.0 / delta.count());
         ImGui::SliderInt("Horizotal render distance", &g_render_distance_horizontal, 1, 20);
         ImGui::SliderInt("Vertical  render distance", &g_render_distance_vertical, 1, 20);
     }

@@ -1,7 +1,7 @@
 #include <engine/Camera.hpp>
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
-#include <engine/components/Dirty.hpp>
+#include <engine/ecs/components/Dirty.hpp>
 #include <engine/rendering/vulkan/Renderer.hpp>
 #include <math/bits.hpp>
 

@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace engine::sdl {
     struct WindowDeleter {
@@ -22,9 +23,9 @@ namespace engine::sdl {
         using super = std::unique_ptr<SDL_Window, WindowDeleter>;
         using super::super;
 
-        [[nodiscard]] static Window create(char const *title, std::optional<glm::ivec2> position, glm::ivec2 size, uint32_t flags)
+        [[nodiscard]]
+        static Window create(char const *title, std::optional<glm::ivec2> position, glm::ivec2 size, uint32_t flags)
         {
-
             if (SDL_Window *raw = SDL_CreateWindow(
                     title,
                     position ? position->x : SDL_WINDOWPOS_UNDEFINED,
@@ -37,7 +38,8 @@ namespace engine::sdl {
             throw engine::sdl::Error::current();
         }
 
-        [[nodiscard]] static Window create(std::string const &title, std::optional<glm::ivec2> position, glm::ivec2 size, uint32_t flags)
+        [[nodiscard]]
+        static Window create(std::string const &title, std::optional<glm::ivec2> position, glm::ivec2 size, uint32_t flags)
         {
             return Window::create(title.c_str(), position, size, flags);
         }
@@ -46,7 +48,8 @@ namespace engine::sdl {
         struct VulkanFunctions {
             SDL_Window *raw;
 
-            [[nodiscard]] std::vector<char const *> get_instance_extensions()
+            [[nodiscard]]
+            std::vector<char const *> get_instance_extensions()
             {
                 unsigned int count;
                 if (SDL_Vulkan_GetInstanceExtensions(raw, &count, nullptr) == SDL_FALSE)
@@ -57,7 +60,8 @@ namespace engine::sdl {
                 return result;
             }
 
-            [[nodiscard]] VkSurfaceKHR create_surface(VkInstance instance)
+            [[nodiscard]]
+            VkSurfaceKHR create_surface(VkInstance instance)
             {
                 VkSurfaceKHR surface;
                 if (SDL_Vulkan_CreateSurface(raw, instance, &surface) == SDL_FALSE)
@@ -66,7 +70,8 @@ namespace engine::sdl {
             }
         };
 
-        [[nodiscard]] VulkanFunctions vulkan() & noexcept
+        [[nodiscard]]
+        VulkanFunctions vulkan() & noexcept
         {
             return VulkanFunctions { this->get() };
         }
@@ -113,7 +118,8 @@ namespace engine::sdl {
             }
         };
 
-        [[nodiscard]] OpenglFunctions opengl() & noexcept
+        [[nodiscard]]
+        OpenglFunctions opengl() & noexcept
         {
             return OpenglFunctions { this->get() };
         }

@@ -123,9 +123,9 @@ void engine::rendering::opengl::Renderer::imgui_setup()
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
 }
 
-void engine::rendering::opengl::Renderer::imgui_new_frame(engine::sdl::Window &window)
+void engine::rendering::opengl::Renderer::imgui_new_frame(std::shared_ptr<engine::rendering::IRenderTarget> target)
 {
-    ImGui_ImplSDL2_NewFrame(window.get());
+    (void)target;
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 }
@@ -244,22 +244,17 @@ void engine::rendering::opengl::Renderer::setup_shader()
 #endif
 }
 
+#include <engine/rendering/opengl/Texture.hpp>
+
 void engine::rendering::opengl::Renderer::setup_texture()
 {
-#if 0
-    auto &renderer = std::get<engine::rendering::opengl::Renderer>(m_renderer);
-    {
-        utils::TimeIt timer { "load_textures"sv };
-         renderer.textures = engine::load_textures();
-    }
-    glBindTexture(GL_TEXTURE_2D_ARRAY, renderer.textures.texture2d_array);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-#endif
+    auto texture = opengl::Texture();
+    texture.create();
+    texture.bind(GL_TEXTURE_2D_ARRAY)
+        .setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        .setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        .setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+        .setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void engine::rendering::opengl::Renderer::render(float)
@@ -336,9 +331,9 @@ void engine::rendering::opengl::Renderer::render(float)
     game().window().opengl().swap_buffers();
 }
 
-#include <engine/components/ChunkData.hpp>
-#include <engine/components/ChunkPosition.hpp>
-#include <engine/components/Dirty.hpp>
+#include <engine/ecs/components/ChunkData.hpp>
+#include <engine/ecs/components/ChunkPosition.hpp>
+#include <engine/ecs/components/Dirty.hpp>
 
 static auto get_sorted_indices(engine::rendering::Mesh const &mesh)
 {

@@ -1,7 +1,7 @@
 #include <engine/BlockType.hpp>
 #include <engine/Game.hpp>
 #include <engine/Sides.hpp>
-#include <engine/components/ChunkData.hpp>
+#include <engine/ecs/components/ChunkData.hpp>
 #include <engine/rendering/Mesh.hpp>
 #include <math/bits.hpp>
 #include <math/constexpr.hpp>
