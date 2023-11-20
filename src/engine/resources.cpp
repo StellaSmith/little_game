@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 
 thread_local static boost::container::flat_map<std::string_view, resources::BaseResource const *> s_resource_cache;
@@ -27,7 +26,7 @@ engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine
     for (;;) {
         if (basename == "."sv) {
             auto const pos = basedir.rfind('/');
-            basename = basedir.substr(pos == std::string::npos ? 0 : pos);
+            basename = basedir.substr(pos == std::string::npos ? 0 : pos + 1);
             basedir = basedir.substr(0, pos == std::string::npos ? 0 : pos);
         } else if (basename == ".."sv) {
             auto const pos = basedir.rfind('/');
@@ -57,7 +56,7 @@ engine::result<engine::nonnull<resources::BaseResource const>, std::errc> engine
     });
 
     if (it != (directory_entries + root->size))
-        return s_resource_cache[root->path] = root;
+        return s_resource_cache[path] = s_resource_cache[(*it)->path] = *it;
 
     return std::errc::no_such_file_or_directory;
 }
