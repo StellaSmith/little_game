@@ -5,12 +5,6 @@
 #include <SDL_scancode.h>
 #include <imgui_impl_sdl2.h>
 
-#include <algorithm>
-#include <cstring>
-#include <tuple>
-
-#include <engine/ecs/systems/localplayer_camera.hpp>
-
 extern engine::Camera g_camera;
 static glm::vec3 previous_camera_position {};
 

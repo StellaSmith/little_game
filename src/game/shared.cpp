@@ -2,6 +2,7 @@
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
 #include <engine/ecs/components/Dirty.hpp>
+#include <engine/rendering/opengl/Renderer.hpp>
 #include <engine/rendering/vulkan/Renderer.hpp>
 #include <math/bits.hpp>
 
@@ -16,7 +17,7 @@ engine::Camera g_camera;
 void engine::Game::start()
 {
     constexpr int width = 640, height = 480;
-    m_renderer = std::make_unique<engine::rendering::vulkan::Renderer>(*this);
+    m_renderer = std::make_unique<engine::rendering::opengl::Renderer>(*this);
     m_window = m_renderer->create_window(
         "VGame",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
