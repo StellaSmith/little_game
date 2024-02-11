@@ -4,12 +4,12 @@
 #include <engine/cache.hpp>
 #include <engine/rendering/opengl/Renderer.hpp>
 
+#include <glad/glad.h>
+#include <glm/ext.hpp>
+#include <glm/glm.hpp>
 #include <imgui.h>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
-
-#include <glad/glad.h>
-#include <glm/glm.hpp>
 
 extern engine::Camera g_camera;
 extern int g_render_distance_horizontal;
