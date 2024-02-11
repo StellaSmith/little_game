@@ -20,8 +20,8 @@ The rest of the build tools should be provided by conan
 cd little_game
 mkdir build
 # Make sure we have conan installed
-python -m pip install --user --update conan
+python -m pip install --user --upgrade conan
 # Finally, building
-conan build . --build missing
+conan build . --build missing -s compiler.cppstd=20 
 ```
 The last step will also download and build dependecies if required.
