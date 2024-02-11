@@ -3,20 +3,13 @@
 #include <engine/Game.hpp>
 #include <engine/cache.hpp>
 #include <engine/rendering/opengl/Renderer.hpp>
-#include <glDebug.h>
+
 #include <imgui.h>
 #include <utils/error.hpp>
 #include <utils/file.hpp>
 
-#include <SDL_mouse.h>
-#include <SDL_video.h>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <cstdio>
-#include <memory>
-#include <string>
 
 extern engine::Camera g_camera;
 extern int g_render_distance_horizontal;
@@ -81,20 +74,6 @@ void engine::rendering::opengl::Renderer::setup()
     SPDLOG_INFO("\tRendered: {}", renderer);
     SPDLOG_INFO("\tShading language version: {}", shading_version);
 
-#if defined(GL_KHR_debug)
-    if (GLAD_GL_KHR_debug) {
-        int flags;
-        glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-        if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-            glEnable(GL_DEBUG_OUTPUT);
-            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            glDebugMessageCallback(glDebugOutput, nullptr);
-            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-
-            SPDLOG_INFO("\tdebug output enabled\n");
-        }
-    }
-#endif
     SDL_GL_SetSwapInterval(0);
 
     glClearColor(0.0, 0.25, 0.5, 1.0);

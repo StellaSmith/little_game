@@ -1,5 +1,3 @@
-#include <version>
-
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
 #include <utils/error.hpp>
@@ -15,12 +13,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <cstdio>
-#include <cstdlib>
 #include <exception>
 #include <stdexcept>
-#include <string>
-#include <system_error>
 
 using namespace std::literals;
 
