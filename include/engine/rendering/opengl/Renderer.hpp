@@ -26,7 +26,7 @@ namespace engine::rendering::opengl {
         using IRenderer::IRenderer;
 
     private:
-        engine::sdl::Window::OpenglContext m_context;
+        std::optional<engine::sdl::Window::OpenGLContext> m_context;
         GLuint m_vao;
         GLuint m_shader;
         struct {

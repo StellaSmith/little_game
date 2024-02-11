@@ -46,7 +46,7 @@ engine::sdl::Window engine::rendering::opengl::Renderer::create_window(const cha
 void engine::rendering::opengl::Renderer::setup()
 {
     m_context = game().window().opengl().create_context();
-    m_context.make_current();
+    m_context->make_current();
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
         utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
@@ -97,7 +97,7 @@ void engine::rendering::opengl::Renderer::setup()
 
 void engine::rendering::opengl::Renderer::imgui_setup()
 {
-    ImGui_ImplSDL2_InitForOpenGL(game().window().get(), m_context.get()); // always returns true
+    ImGui_ImplSDL2_InitForOpenGL(game().window().get(), m_context->get()); // always returns true
 
     // See imgui/examples/imgui_impl_opengl3.cpp
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true
@@ -143,22 +143,24 @@ void engine::rendering::opengl::Renderer::setup_shader()
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    std::FILE *fp = std::fopen("assets/shaders/terrain/basic.vert", "r");
-    if (!fp)
-        utils::show_error("Can't open shader: assets/shaders/terrain/basic.vert"sv);
-    std::string const vertex_shader_source_str = utils::load_file(fp);
-    std::fclose(fp);
-    fp = std::fopen("assets/shaders/terrain/basic.frag", "r");
-    if (!fp)
-        utils::show_error("Can't open shader: assets/shaders/terrain/basic.frag"sv);
-    std::string const fragment_shader_source_str = utils::load_file(fp);
-    std::fclose(fp);
+    auto const [vertex_shader_source, fragment_shader_source] = [&]() -> std::pair<std::string, std::string> {
+        auto fp = engine::File::open("assets/shaders/terrain/basic.vert", "r");
+        if (!fp)
+            utils::show_error("can't open shader: assets/shaders/terrain/basic.vert"sv);
+        std::string vertex_shader_source = utils::load_file(fp.assume_value().get());
 
-    char const *const vertex_shader_source = vertex_shader_source_str.c_str();
-    char const *const fragment_shader_source = fragment_shader_source_str.c_str();
+        fp = engine::File::open("assets/shaders/terrain/basic.frag", "r");
+        if (!fp)
+            utils::show_error("can't open shader: assets/shaders/terrain/basic.frag"sv);
+        std::string fragment_shader_source = utils::load_file(fp.assume_value().get());
+        return std::make_pair(std::move(vertex_shader_source), std::move(fragment_shader_source));
+    }();
 
-    glShaderSource(vertex_shader, 1, &vertex_shader_source, nullptr);
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
+    auto const vertex_shader_source_raw = vertex_shader_source.c_str();
+    auto const fragment_shader_source_raw = fragment_shader_source.c_str();
+
+    glShaderSource(vertex_shader, 1, &vertex_shader_source_raw, nullptr);
+    glShaderSource(fragment_shader, 1, &fragment_shader_source_raw, nullptr);
 
     glCompileShader(vertex_shader);
     glCompileShader(fragment_shader);

@@ -77,15 +77,15 @@ namespace engine::sdl {
         }
 #endif
 #ifdef ENGINE_WITH_OPENGL
-        struct OpenglContextDeleter {
+        struct OpenGLContextDeleter {
             using pointer = SDL_GLContext;
             void operator()(SDL_GLContext ctx) { SDL_GL_DeleteContext(ctx); }
         };
 
-        struct OpenglContext : std::unique_ptr<void, OpenglContextDeleter> {
-            using super = std::unique_ptr<void, OpenglContextDeleter>;
-            using super::super;
-            explicit OpenglContext(SDL_Window *window, SDL_GLContext ctx) noexcept
+        struct OpenGLContext : std::unique_ptr<void, OpenGLContextDeleter> {
+            using super = std::unique_ptr<void, OpenGLContextDeleter>;
+
+            explicit OpenGLContext(SDL_Window *window, SDL_GLContext ctx) noexcept
                 : super(ctx)
                 , m_window(window)
             {
@@ -101,12 +101,12 @@ namespace engine::sdl {
             SDL_Window *m_window;
         };
 
-        struct OpenglFunctions {
+        struct OpenGLFunctions {
             SDL_Window *raw;
 
-            OpenglContext create_context()
+            OpenGLContext create_context()
             {
-                if (auto ctx = OpenglContext(SDL_GL_CreateContext(raw)))
+                if (auto ctx = OpenGLContext(raw, SDL_GL_CreateContext(raw)))
                     return ctx;
 
                 throw engine::sdl::Error::current();
@@ -119,9 +119,9 @@ namespace engine::sdl {
         };
 
         [[nodiscard]]
-        OpenglFunctions opengl() & noexcept
+        OpenGLFunctions opengl() & noexcept
         {
-            return OpenglFunctions { this->get() };
+            return OpenGLFunctions { this->get() };
         }
 #endif
     };
