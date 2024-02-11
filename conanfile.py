@@ -42,7 +42,7 @@ class VGameRecipe(ConanFile):
         "openssl/*:shared": True,
 
         "sdl/*:pulse": False,
-        "sdl/*:shared": True,
+        "sdl/*:shared": False,
     }
 
     def layout(self):
@@ -50,14 +50,14 @@ class VGameRecipe(ConanFile):
 
     def requirements(self):
         self.requires("glm/cci.20230113")
-        self.requires("entt/[~3.12]")
-        self.requires("sdl_image/[~2.0]")
-        self.requires("fmt/[~10.1]")
-        self.requires("spdlog/[~1.12]")
+        self.requires("entt/[~3.13]")
+        self.requires("fmt/[~10.2]")
+        self.requires("spdlog/[~1.13]")
         self.requires("rapidjson/cci.20220822")
         self.requires("imgui/[~1.90]")
         self.requires("boost/[~1.83]")
-        self.requires("sdl/[~2]")
+        self.requires("sdl/[~2]", override=True)
+        self.requires("sdl_image/[~2]")
 
         if self.options.with_opengl:
             self.requires("glad/[~0.1]")
