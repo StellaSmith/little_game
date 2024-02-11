@@ -22,6 +22,7 @@ find_package(EnTT CONFIG REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
+find_package(range-v3 CONFIG REQUIRED)
 
 add_subdirectory(external)
 
@@ -127,7 +128,11 @@ target_include_directories(little_game PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/inclu
 target_link_libraries(little_game
     PRIVATE
     SDL2::SDL2 glm::glm imgui_impl_sdl2 rapidjson SDL2_image::SDL2_image
-    fmt::fmt spdlog::spdlog EnTT::EnTT Boost::boost)
+    fmt::fmt spdlog::spdlog EnTT::EnTT Boost::boost range-v3::range-v3)
+
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(little_game PRIVATE Boost::stacktrace_backtrace)
+endif()
 
 set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
 target_compile_features(little_game PUBLIC cxx_std_20)

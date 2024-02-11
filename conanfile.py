@@ -58,6 +58,7 @@ class VGameRecipe(ConanFile):
         self.requires("boost/[~1.83]")
         self.requires("sdl/[~2]", override=True)
         self.requires("sdl_image/[~2]")
+        self.requires("range-v3/[~0.12]")
 
         if self.options.with_opengl:
             self.requires("glad/[~0.1]")

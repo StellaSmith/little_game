@@ -3,12 +3,15 @@
 #include <utils/error.hpp>
 
 #include <SDL.h>
+#include <boost/core/typeinfo.hpp>
 #include <boost/stacktrace.hpp>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/reverse.hpp>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -25,21 +28,6 @@ static void set_spdlog_sinks()
     sinks.clear();
     sinks.push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
     sinks.push_back(std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(1024 * 5));
-}
-
-[[gnu::constructor]]
-static void set_terminate_handler()
-{
-    static std::terminate_handler const default_handler = std::get_terminate();
-
-    auto handler = []() {
-        auto const stacktrace = boost::stacktrace::stacktrace();
-        for (auto const &frame : stacktrace)
-            spdlog::critical("{}", fmt::streamed(frame)); // do not use the macro, location printed by it can be confused
-
-        default_handler();
-    };
-    std::set_terminate(+handler);
 }
 
 static std::vector<char const *> audio_drivers()
@@ -64,8 +52,36 @@ static std::vector<char const *> video_drivers()
     return result;
 }
 
+static void terminate_handler()
+{
+    if (auto exception_ptr = std::current_exception()) {
+        try {
+            std::rethrow_exception(exception_ptr);
+        } catch (std::exception const &e) {
+            spdlog::critical("terminate called with an active exception");
+            auto const type_name = boost::core::demangled_name(typeid(e));
+            spdlog::critical("exception: type={:?}, what={:?}", type_name, e.what());
+        } catch (...) {
+            // TODO: find a way to get this information on Windows
+            auto const type_name = boost::core::demangled_name(*abi::__cxa_current_exception_type());
+            spdlog::critical("terminate called with an active exception");
+            spdlog::critical("exception: type={:?}", type_name);
+        }
+    } else {
+        spdlog::critical("terminate called without an active exception");
+    }
+
+    auto const stacktrace = boost::stacktrace::stacktrace();
+    spdlog::critical("stacktrace:");
+    for (auto const &[i, frame] : stacktrace | ranges::view::reverse | ranges::view::enumerate)
+        spdlog::critical("  #{:02}: {}", i, fmt::streamed(frame));
+    std::abort();
+}
+
 int main(int argc, char **argv)
 {
+    std::set_terminate(+terminate_handler);
+
 #ifdef SDL_MAIN_HANDLED
     SDL_SetMainReady();
 #endif

@@ -4,15 +4,22 @@
 #include <SDL_error.h>
 #include <fmt/core.h>
 
-#include <stdexcept>
+#include <cstring>
+#include <exception>
+#include <memory>
 
 namespace engine::sdl {
 
-    class Error final : std::runtime_error {
-    public:
-        using std::runtime_error::runtime_error;
+    class Error final : public std::runtime_error {
+    private:
+        Error(char const *message)
+            : std::runtime_error(message)
+        {
+        }
 
-        [[nodiscard]] static Error current()
+    public:
+        [[nodiscard]]
+        static Error current()
         {
             return Error(SDL_GetError());
         }

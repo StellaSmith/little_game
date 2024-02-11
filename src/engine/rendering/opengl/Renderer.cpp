@@ -4,6 +4,7 @@
 #include <engine/cache.hpp>
 #include <engine/rendering/opengl/Renderer.hpp>
 
+#include <SDL_mouse.h>
 #include <glad/glad.h>
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
