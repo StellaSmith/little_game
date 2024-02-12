@@ -368,7 +368,6 @@ void engine::rendering::vulkan::Renderer::imgui_new_frame(std::shared_ptr<engine
 {
     (void)target;
     ImGui_ImplVulkan_NewFrame();
-    ImGui::NewFrame();
 }
 
 void engine::rendering::vulkan::Renderer::render(float)

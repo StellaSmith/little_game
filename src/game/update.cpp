@@ -14,7 +14,9 @@ float g_mouse_sensitivity = 1;
 
 void engine::Game::update(std::chrono::duration<double> delta)
 {
+    m_renderer->imgui_new_frame(nullptr);
     ImGui_ImplSDL2_NewFrame(window().get());
+    ImGui::NewFrame();
 
     if (ImGui::Begin("Camera")) {
         ImGui::SliderFloat("FOV", &g_camera.fov, 30.0f, 130.0f);
@@ -34,6 +36,7 @@ void engine::Game::update(std::chrono::duration<double> delta)
         ImGui::SliderInt("Vertical  render distance", &g_render_distance_vertical, 1, 20);
     }
     ImGui::End();
+    ImGui::EndFrame();
 
     previous_camera_position = g_camera.position;
 }

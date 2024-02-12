@@ -23,7 +23,7 @@ static engine::result<engine::File, std::errc> open_cache_file(std::string_view 
     auto const cache_file_path = cache_directory / name;
     auto const cache_file_directory = cache_file_path.parent_path();
 
-    if (!cache_file_directory.lexically_relative(cache_directory).native().starts_with(cache_directory.native())) {
+    if (cache_file_directory.lexically_relative(cache_directory).string().starts_with("..")) {
         SPDLOG_ERROR("tried to open a cache file outside the cache directory: {} resolved to {}", name, cache_file_path);
         return boost::outcome_v2::failure(std::errc::permission_denied);
     }
@@ -33,6 +33,8 @@ static engine::result<engine::File, std::errc> open_cache_file(std::string_view 
         if (!std::filesystem::create_directories(cache_file_directory, ec) || ec) {
             SPDLOG_ERROR("failed to create directory {}", cache_file_directory);
             return boost::outcome_v2::failure(static_cast<std::errc>(ec.value()));
+        } else {
+            SPDLOG_INFO("created directory {}", cache_file_directory);
         }
     }
 
@@ -46,7 +48,10 @@ static engine::result<engine::File, std::errc> open_cache_file(std::string_view 
 
 engine::result<engine::File, std::errc> engine::create_cache_file(std::string_view name)
 {
-    return open_cache_file(name, "wb");
+    auto cache_file = open_cache_file(name, "wb");
+    if (cache_file)
+        SPDLOG_INFO("created cache file {:?}", name);
+    return cache_file;
 }
 
 engine::result<engine::File, std::errc> engine::get_cache_file(std::string_view name, std::span<std::filesystem::path const> ref_files)

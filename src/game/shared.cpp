@@ -82,6 +82,7 @@ void engine::Game::stop()
 void engine::Game::cleanup()
 {
     assert(!running);
+    m_renderer = nullptr;
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     m_entity_registry.clear();
@@ -89,5 +90,4 @@ void engine::Game::cleanup()
 
 engine::Game::~Game()
 {
-    cleanup();
 }

@@ -107,7 +107,6 @@ void engine::rendering::opengl::Renderer::imgui_new_frame(std::shared_ptr<engine
 {
     (void)target;
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui::NewFrame();
 }
 
 void engine::rendering::opengl::Renderer::setup_shader()
