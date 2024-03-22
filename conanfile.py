@@ -56,7 +56,7 @@ class VGameRecipe(ConanFile):
         self.requires("rapidjson/cci.20220822")
         self.requires("imgui/[~1.90]")
         self.requires("boost/[~1.83]")
-        self.requires("sdl/[~2]", override=True)
+        self.requires("sdl/[~2]")
         self.requires("sdl_image/[~2]")
         self.requires("range-v3/[~0.12]")
 

@@ -15,7 +15,7 @@ float g_mouse_sensitivity = 1;
 void engine::Game::update(std::chrono::duration<double> delta)
 {
     m_renderer->imgui_new_frame(nullptr);
-    ImGui_ImplSDL2_NewFrame(window().get());
+    ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
     if (ImGui::Begin("Camera")) {

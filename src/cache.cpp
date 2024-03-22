@@ -65,7 +65,7 @@ engine::result<engine::File, std::errc> engine::get_cache_file(std::string_view 
     std::error_code ec;
     auto cache_time = std::filesystem::last_write_time(cache_file_path, ec);
     if (ec) {
-        SPDLOG_ERROR("failed to obtain last write time for file {}: {}", cache_file_path, ec.message());
+        SPDLOG_WARN("failed to obtain last write time for file {}: {}", cache_file_path, ec.message());
         return boost::outcome_v2::failure(static_cast<std::errc>(ec.value()));
     }
 

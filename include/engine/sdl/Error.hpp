@@ -3,6 +3,7 @@
 
 #include <SDL_error.h>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <cstring>
 #include <exception>
@@ -24,15 +25,18 @@ namespace engine::sdl {
             return Error(SDL_GetError());
         }
 
-        template <typename... T>
-        static Error set_current(fmt::format_string<T...> format, T &&...args)
+        static Error current(std::string_view message)
         {
-            {
-                std::string const error_string = fmt::format(std::move(format), std::forward<T>(args)...);
-                SDL_SetError("%.*s", static_cast<int>(error_string.size()), error_string.data());
-            }
-
+            SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
             return Error::current();
+        }
+
+        template <typename... T>
+        static Error current(fmt::format_string<T...> format, T &&...args)
+        {
+            fmt::memory_buffer buffer;
+            fmt::format_to(fmt::appender(buffer), std::move(format), std::forward<T>(args)...);
+            return Error::current(std::string_view(buffer.data(), buffer.size()));
         }
     };
 

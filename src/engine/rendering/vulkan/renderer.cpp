@@ -360,7 +360,7 @@ void engine::rendering::vulkan::Renderer::imgui_setup()
     vulkan_init_info.Allocator = allocation_callbacks(),
     vulkan_init_info.CheckVkResultFn = &CHECK_VK,
 
-    ImGui_ImplVulkan_Init(&vulkan_init_info, VK_NULL_HANDLE);
+    ImGui_ImplVulkan_Init(&vulkan_init_info);
     ImGui_ImplSDL2_InitForVulkan(game().window().get());
 }
 
