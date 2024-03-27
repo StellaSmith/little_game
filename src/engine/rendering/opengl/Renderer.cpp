@@ -97,7 +97,7 @@ void engine::rendering::opengl::Renderer::setup()
 
 void engine::rendering::opengl::Renderer::imgui_setup()
 {
-    ImGui_ImplSDL2_InitForOpenGL(game().window().get(), m_context->get()); // always returns true
+    ImGui_ImplSDL2_InitForOpenGL(game().window().raw(), m_context->raw()); // always returns true
 
     // See imgui/examples/imgui_impl_opengl3.cpp
     ImGui_ImplOpenGL3_Init("#version 330 core"); // always returns true

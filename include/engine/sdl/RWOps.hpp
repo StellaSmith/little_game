@@ -16,7 +16,7 @@ namespace engine::sdl {
     class RWOps {
     public:
         explicit RWOps(SDL_RWops *rw_ops) noexcept
-            : m_rw_ops(rw_ops)
+            : m_raw(rw_ops)
         {
         }
 
@@ -94,13 +94,13 @@ namespace engine::sdl {
 
         void close() noexcept
         {
-            m_rw_ops.reset();
+            m_raw.reset();
         }
 
         [[nodiscard]]
         std::size_t write(std::span<std::byte const> data)
         {
-            auto written = SDL_RWwrite(m_rw_ops.get(), data.data(), 1, data.size());
+            auto written = SDL_RWwrite(m_raw.get(), data.data(), 1, data.size());
             if (written == 0) {
                 SPDLOG_ERROR("failed to write to SDL_RWops: {}", SDL_GetError());
                 throw engine::sdl::Error::current();
@@ -111,7 +111,7 @@ namespace engine::sdl {
         [[nodiscard]]
         std::size_t read(std::span<std::byte> data)
         {
-            auto read = SDL_RWread(m_rw_ops.get(), data.data(), 1, data.size());
+            auto read = SDL_RWread(m_raw.get(), data.data(), 1, data.size());
             if (read == 0) {
                 SPDLOG_ERROR("failed to read from SDL_RWops: {}", SDL_GetError());
                 throw engine::sdl::Error::current();
@@ -127,7 +127,7 @@ namespace engine::sdl {
 
         std::int64_t seek(std::int64_t offset, Whence whence)
         {
-            auto position = SDL_RWseek(m_rw_ops.get(), offset, static_cast<int>(whence));
+            auto position = SDL_RWseek(m_raw.get(), offset, static_cast<int>(whence));
             if (position < 0) {
                 SPDLOG_ERROR("failed to seek in SDL_RWops: {}", SDL_GetError());
                 throw engine::sdl::Error::current();
@@ -144,7 +144,7 @@ namespace engine::sdl {
         [[nodiscard]]
         std::int64_t size() const
         {
-            auto size = SDL_RWsize(m_rw_ops.get());
+            auto size = SDL_RWsize(m_raw.get());
             if (size < 0) {
                 SPDLOG_ERROR("failed to get size of SDL_RWops: {}", SDL_GetError());
                 throw engine::sdl::Error::current();
@@ -161,7 +161,7 @@ namespace engine::sdl {
             }
         };
 
-        std::unique_ptr<SDL_RWops, Deleter> m_rw_ops;
+        std::unique_ptr<SDL_RWops, Deleter> m_raw;
     };
 
 } // namespace

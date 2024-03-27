@@ -43,7 +43,7 @@ namespace engine {
 
         engine::sdl::Window &window() noexcept
         {
-            return m_window;
+            return m_window.value();
         }
 
         ~Game();
@@ -77,7 +77,7 @@ namespace engine {
 
     private:
         std::unique_ptr<rendering::IRenderer> m_renderer = nullptr;
-        engine::sdl::Window m_window = nullptr;
+        std::optional<engine::sdl::Window> m_window;
 
         entt::registry m_entity_registry;
         std::unordered_map<engine::components::ChunkPosition, entt::entity> m_chunks;

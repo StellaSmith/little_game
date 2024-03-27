@@ -15,16 +15,26 @@
 #include <vector>
 
 namespace engine::sdl {
-    struct WindowDeleter {
-        void operator()(SDL_Window *ptr) const noexcept { SDL_DestroyWindow(ptr); }
-    };
 
-    struct Window : std::unique_ptr<SDL_Window, WindowDeleter> {
-        using super = std::unique_ptr<SDL_Window, WindowDeleter>;
-        using super::super;
+    struct Window {
+    private:
+        struct Deleter {
+            using pointer = SDL_Window *;
+            void operator()(pointer ptr) const noexcept
+            {
+                SDL_DestroyWindow(ptr);
+            }
+        };
+        std::unique_ptr<SDL_Window, Deleter> m_raw;
+
+    public:
+        explicit Window(SDL_Window *raw) noexcept
+            : m_raw(raw)
+        {
+        }
 
         [[nodiscard]]
-        static Window create(char const *title, std::optional<glm::ivec2> position, glm::ivec2 size, uint32_t flags)
+        static Window create(char const *title, std::optional<glm::ivec2> position, glm::ivec2 size, std::uint32_t flags)
         {
             if (SDL_Window *raw = SDL_CreateWindow(
                     title,
@@ -39,23 +49,35 @@ namespace engine::sdl {
         }
 
         [[nodiscard]]
-        static Window create(std::string const &title, std::optional<glm::ivec2> position, glm::ivec2 size, uint32_t flags)
+        static Window create(std::string const &title, std::optional<glm::ivec2> position, glm::ivec2 size, std::uint32_t flags)
         {
             return Window::create(title.c_str(), position, size, flags);
         }
 
+        [[nodiscard]]
+        std::uint32_t id() const noexcept
+        {
+            return SDL_GetWindowID(m_raw.get());
+        }
+
+        [[nodiscard]]
+        SDL_Window *raw() const noexcept
+        {
+            return m_raw.get();
+        }
+
 #ifdef ENGINE_WITH_VULKAN
         struct VulkanFunctions {
-            SDL_Window *raw;
+            Window &window;
 
             [[nodiscard]]
             std::vector<char const *> get_instance_extensions()
             {
                 unsigned int count;
-                if (SDL_Vulkan_GetInstanceExtensions(raw, &count, nullptr) == SDL_FALSE)
+                if (SDL_Vulkan_GetInstanceExtensions(window.m_raw.get(), &count, nullptr) == SDL_FALSE)
                     throw engine::sdl::Error::current();
                 std::vector<char const *> result(count);
-                if (SDL_Vulkan_GetInstanceExtensions(raw, &count, result.data()) == SDL_FALSE)
+                if (SDL_Vulkan_GetInstanceExtensions(window.m_raw.get(), &count, result.data()) == SDL_FALSE)
                     throw engine::sdl::Error::current();
                 return result;
             }
@@ -64,7 +86,7 @@ namespace engine::sdl {
             VkSurfaceKHR create_surface(VkInstance instance)
             {
                 VkSurfaceKHR surface;
-                if (SDL_Vulkan_CreateSurface(raw, instance, &surface) == SDL_FALSE)
+                if (SDL_Vulkan_CreateSurface(window.m_raw.get(), instance, &surface) == SDL_FALSE)
                     throw engine::sdl::Error::current();
                 return surface;
             }
@@ -73,55 +95,65 @@ namespace engine::sdl {
         [[nodiscard]]
         VulkanFunctions vulkan() & noexcept
         {
-            return VulkanFunctions { this->get() };
+            return VulkanFunctions { *this };
         }
 #endif
+
 #ifdef ENGINE_WITH_OPENGL
-        struct OpenGLContextDeleter {
-            using pointer = SDL_GLContext;
-            void operator()(SDL_GLContext ctx) { SDL_GL_DeleteContext(ctx); }
-        };
 
-        struct OpenGLContext : std::unique_ptr<void, OpenGLContextDeleter> {
-            using super = std::unique_ptr<void, OpenGLContextDeleter>;
+        struct OpenGLContext {
+        private:
+            struct Deleter {
+                using pointer = SDL_GLContext;
+                void operator()(pointer ctx) const noexcept
+                {
+                    SDL_GL_DeleteContext(ctx);
+                }
+            };
 
+            std::unique_ptr<std::remove_pointer_t<Deleter::pointer>, Deleter> m_raw;
+            SDL_Window *m_window;
+
+        public:
             explicit OpenGLContext(SDL_Window *window, SDL_GLContext ctx) noexcept
-                : super(ctx)
+                : m_raw(ctx)
                 , m_window(window)
             {
             }
 
             void make_current()
             {
-                if (SDL_GL_MakeCurrent(m_window, this->get()) < 0)
+                if (SDL_GL_MakeCurrent(m_window, m_raw.get()) < 0)
                     throw engine::sdl::Error::current();
             }
 
-        private:
-            SDL_Window *m_window;
+            [[nodiscard]]
+            SDL_GLContext raw() const noexcept
+            {
+                return m_raw.get();
+            }
         };
 
         struct OpenGLFunctions {
-            SDL_Window *raw;
+            Window &window;
 
             OpenGLContext create_context()
             {
-                if (auto ctx = OpenGLContext(raw, SDL_GL_CreateContext(raw)))
-                    return ctx;
-
+                if (auto raw = SDL_GL_CreateContext(window.m_raw.get()))
+                    return OpenGLContext(window.m_raw.get(), raw);
                 throw engine::sdl::Error::current();
             }
 
             void swap_buffers()
             {
-                SDL_GL_SwapWindow(raw);
+                SDL_GL_SwapWindow(window.m_raw.get());
             }
         };
 
         [[nodiscard]]
         OpenGLFunctions opengl() & noexcept
         {
-            return OpenGLFunctions { this->get() };
+            return OpenGLFunctions { *this };
         }
 #endif
     };

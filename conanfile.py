@@ -53,7 +53,7 @@ class VGameRecipe(ConanFile):
         self.requires("entt/[~3.13]")
         self.requires("fmt/[~10.2]")
         self.requires("spdlog/[~1.13]")
-        self.requires("rapidjson/cci.20220822")
+        self.requires("rapidjson/cci.20230929")
         self.requires("imgui/[~1.90]")
         self.requires("boost/[~1.83]")
         self.requires("sdl/[~2]")
