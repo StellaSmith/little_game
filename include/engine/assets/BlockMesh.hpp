@@ -1,7 +1,9 @@
 #ifndef ENGINE_ASSETS_BLOCKMODEL_HPP
 #define ENGINE_ASSETS_BLOCKMODEL_HPP
 
+#include <engine/OptionalArray.hpp>
 #include <engine/Sides.hpp>
+#include <engine/assets/IAsset.hpp>
 #include <engine/rendering/Mesh.hpp>
 
 #include <boost/container/small_vector.hpp>
@@ -11,9 +13,12 @@
 
 namespace engine::assets {
 
-    class BlockMesh {
+    class BlockMesh : public IAsset {
     public:
-        static BlockMesh load(std::filesystem::path const &path);
+        explicit BlockMesh(std::string_view name);
+        void load(std::filesystem::path const &path) override;
+
+        void load_json(std::filesystem::path const &path);
 
         engine::rendering::Mesh const *get_solid_mesh(engine::Sides sides) const noexcept
         {
@@ -27,59 +32,29 @@ namespace engine::assets {
             return get_mesh(i);
         }
 
-        BlockMesh(BlockMesh const &) = delete;
-        BlockMesh &operator=(BlockMesh const &) = delete;
-
-        BlockMesh(BlockMesh &&) noexcept;
-        BlockMesh &operator=(BlockMesh &&) noexcept;
-
-        void swap(BlockMesh &other) noexcept;
-
-        ~BlockMesh();
-
     private:
-        BlockMesh();
-
         bool has_mesh(std::size_t i) const noexcept
         {
-            return m_bits[i / CHAR_BIT] & (1 << (i % CHAR_BIT));
+            return m_meshes.has(i);
         }
 
         engine::rendering::Mesh const *get_mesh(std::size_t i) const noexcept
         {
-            if (has_mesh(i))
-                return std::launder(&m_meshes[i].storage);
-            else
-                return nullptr;
+            return m_meshes.at(i);
         }
 
         engine::rendering::Mesh *get_mesh(std::size_t i) noexcept
         {
-            if (has_mesh(i))
-                return std::launder(&m_meshes[i].storage);
-            else
-                return nullptr;
+            return m_meshes.at(i);
         }
 
         engine::rendering::Mesh &get_or_emplace(std::size_t i) noexcept
         {
-            if (has_mesh(i))
-                return m_meshes[i].storage;
-            else
-                return *new (&m_meshes[i].storage) engine::rendering::Mesh;
+            return m_meshes.emplace(i);
         }
 
-        static BlockMesh load_json(std::filesystem::path const &path);
-
     private:
-        union MaybeMesh {
-            MaybeMesh() { }
-            engine::rendering::Mesh storage;
-            ~MaybeMesh() { }
-        };
-
-        char m_bits[128 / CHAR_BIT] {};
-        MaybeMesh m_meshes[128];
+        engine::OptionalArray<engine::rendering::Mesh, 128> m_meshes;
         boost::container::small_vector<std::uint32_t, 4> m_textures;
     };
 

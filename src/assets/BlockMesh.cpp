@@ -66,60 +66,21 @@ static rapidjson::SchemaDocument const s_model_schema = []() {
 
 using namespace std::literals;
 
-engine::assets::BlockMesh::BlockMesh()
+engine::assets::BlockMesh::BlockMesh(std::string_view name)
+    : IAsset(name)
 {
 }
 
-engine::assets::BlockMesh::BlockMesh(engine::assets::BlockMesh &&rhs) noexcept
-    : BlockMesh() // make sure we are default constructed
-{
-    swap(rhs);
-}
-
-engine::assets::BlockMesh &engine::assets::BlockMesh::operator=(engine::assets::BlockMesh &&rhs) noexcept
-{
-    swap(rhs);
-    return *this;
-}
-
-engine::assets::BlockMesh::~BlockMesh()
-{
-    for (std::size_t i = 0; i < std::size(m_meshes); ++i) {
-        if (has_mesh(i))
-            std::destroy_at(&m_meshes[i].storage);
-    }
-}
-
-void engine::assets::BlockMesh::swap(engine::assets::BlockMesh &other) noexcept
-{ // CAN'T MOVE HERE, move uses swap already
-    using std::swap;
-    for (std::size_t i = 0; i < std::size(m_meshes); ++i) {
-        auto const lhs_has_mesh = has_mesh(i);
-        auto const rhs_has_mesh = other.has_mesh(i);
-        if (lhs_has_mesh && rhs_has_mesh)
-            swap(m_meshes[i].storage, other.m_meshes[i].storage);
-        else if (lhs_has_mesh && !rhs_has_mesh) {
-            std::construct_at(&other.m_meshes[i].storage, std::move(m_meshes[i].storage));
-            std::destroy_at(&m_meshes[i].storage);
-        } else if (!lhs_has_mesh && rhs_has_mesh) {
-            std::construct_at(&m_meshes[i].storage, std::move(other.m_meshes[i].storage));
-            std::destroy_at(&other.m_meshes[i].storage);
-        }
-    }
-    swap(m_bits, other.m_bits);
-    swap(m_textures, other.m_textures);
-}
-
-engine::assets::BlockMesh engine::assets::BlockMesh::load(std::filesystem::path const &path)
+void engine::assets::BlockMesh::load(std::filesystem::path const &path)
 {
     if (path.native().ends_with(TEXT(".json"sv)) || path.native().ends_with(TEXT(".cjson"sv)))
         return load_json(path);
     throw engine::errors::UnsupportedFileType();
 }
 
-engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
+void engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 {
-    SPDLOG_INFO("Loading model from file {}", path);
+    SPDLOG_INFO("Loading model from file {:?}", path);
 
     std::vector<ModelVertex> vertices;
     std::vector<ModelFace> faces;
@@ -243,17 +204,16 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
     }
 
     SPDLOG_INFO("Compiling block model from file {}", path);
-    engine::assets::BlockMesh result;
-    result.m_textures.insert(result.m_textures.end(), textures.cbegin(), textures.cend());
+    m_textures.insert(m_textures.end(), textures.cbegin(), textures.cend());
     std::for_each(faces.begin(), faces.end(), [&](ModelFace &face) {
         face.texture = static_cast<std::uint32_t>(textures.index_of(textures.find(face.texture)));
         face.color_mask = static_cast<std::uint32_t>(color_masks.index_of(color_masks.find(face.color_mask)));
     });
 
-    auto const append_face = [](engine::assets::BlockMesh &model, ModelFace const &face, std::vector<ModelVertex> const &vertices) {
+    auto const append_face = [&](ModelFace const &face, std::vector<ModelVertex> const &vertices) {
         std::size_t const i = face.sides + (!face.solid * 64);
 
-        auto &current = model.get_or_emplace(i);
+        auto &current = get_or_emplace(i);
         std::uint32_t const current_index = current.indices.size();
         if (face.quad) {
             current.vertices.insert(
@@ -297,12 +257,10 @@ engine::assets::BlockMesh engine::assets::BlockMesh::load_json(std::filesystem::
             if (!(face.sides & side_mask)) continue;
             for (bool solid : { true, false }) {
                 if (face.solid != solid) continue;
-                append_face(result, face, vertices);
+                append_face(face, vertices);
             }
         }
     }
 
     // TODO: deduplicate the vertices
-
-    return result;
 }

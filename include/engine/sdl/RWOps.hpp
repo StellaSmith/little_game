@@ -152,6 +152,12 @@ namespace engine::sdl {
             return size;
         }
 
+        [[nodiscard]]
+        SDL_RWops *raw()
+        {
+            return m_raw.get();
+        }
+
     private:
         struct Deleter {
             void operator()(SDL_RWops *rw_ops) const noexcept

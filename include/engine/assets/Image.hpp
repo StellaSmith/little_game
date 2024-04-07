@@ -1,6 +1,7 @@
 #ifndef ENGINE_ASSETS_IMAGE_HPP
 #define ENGINE_ASSETS_IMAGE_HPP
 
+#include <engine/assets/IAsset.hpp>
 #include <engine/sdl/Error.hpp>
 #include <utils/memory.hpp>
 
@@ -13,10 +14,12 @@
 
 namespace engine::assets {
 
-    class Image {
+    class Image : public engine::assets::IAsset {
     public:
-        static Image load(std::filesystem::path const &path);
-        static Image load(std::span<std::byte const> bytes, std::optional<std::string_view> format = std::nullopt);
+        explicit Image(std::string_view);
+
+        void load(std::filesystem::path const &path) override;
+        void load(std::span<std::byte const> bytes, std::optional<std::string_view> format = std::nullopt);
 
         void save(std::filesystem::path const &path, std::string_view format = "png") const;
         void save(std::span<std::byte> bytes, std::string_view format = "png") const;
