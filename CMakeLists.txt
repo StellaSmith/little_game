@@ -36,6 +36,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR(CMAKE_CXX_COMPILER_ID MATCHES "Clang*
         target_link_libraries(little_game PRIVATE -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic)
         message(STATUS "Using static libwinpthread")
     endif()
+
+    target_link_libraries(little_game PRIVATE -Wl,-as-needed)
 endif()
 
 if(MSVC)
