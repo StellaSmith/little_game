@@ -4,6 +4,7 @@ build/
 .venv/
 
 # Auto generated
+cache/
 cfg/imgui.ini
 .cache/
 CMakeUserPresets.json
