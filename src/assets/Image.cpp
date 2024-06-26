@@ -3,7 +3,7 @@
 #include <engine/sdl/RWOps.hpp>
 
 #include <SDL_image.h>
-
+#include <SDL_surface.h>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <fmt/std.h>
@@ -27,21 +27,19 @@ engine::assets::Image::Image(std::string_view name)
     : IAsset(name)
 {
 }
-#include <engine/sdl/RWOps.hpp>
+
 void engine::assets::Image::load(std::span<std::byte const> bytes, std::optional<std::string_view> format)
 {
     SPDLOG_INFO("loading image from memory");
     auto rw_ops = engine::sdl::RWOps::from_const_memory(bytes);
 
     // since the format must be null-terminated, it gets converted to a std::string
-    SDL_Surface *surface = IMG_LoadTyped_RW(rw_ops.raw(), false, format ? std::string(*format).c_str() : nullptr);
-    if (!surface) {
+    m_surface = std::unique_ptr<SDL_Surface, Deleter>(IMG_LoadTyped_RW(rw_ops.get(), false, format ? std::string(*format).c_str() : nullptr));
+    if (!m_surface) {
         auto error = SDLImageError::current();
-        SPDLOG_ERROR("failed to load image: {}", error.what());
+        SPDLOG_ERROR("failed to load image: {}", error);
         throw std::move(error);
     }
-
-    m_surface.reset(surface);
 }
 
 void engine::assets::Image::load(std::filesystem::path const &path)
@@ -51,24 +49,26 @@ void engine::assets::Image::load(std::filesystem::path const &path)
         boost::interprocess::file_mapping file_mapping;
         boost::interprocess::mapped_region mapped_region;
         try {
-            file_mapping = boost::interprocess::file_mapping(path.native().c_str(), boost::interprocess::read_only);
+            file_mapping = boost::interprocess::file_mapping(path.c_str(), boost::interprocess::read_only);
             mapped_region = boost::interprocess::mapped_region(file_mapping, boost::interprocess::read_only);
         } catch (boost::interprocess::interprocess_exception const &e) {
-            SPDLOG_ERROR("failed to memory map file {:?}: {}", path, e.what());
+            SPDLOG_ERROR("failed to memory map file {:?}: {}", path, e);
             goto read_ops;
         }
-        auto const ptr = static_cast<std::byte const *>(mapped_region.get_address());
-        auto const len = mapped_region.get_size();
+
+        auto const span = std::span<std::byte const>(
+            static_cast<std::byte const *>(mapped_region.get_address()),
+            mapped_region.get_size());
 
         auto const extension = path.extension().string();
         auto const format = [&]() -> std::optional<std::string_view> {
             if (extension == ""sv || extension == "."sv) // either the file didn't have an extension or the filename ends with a dot
                 return std::nullopt;
             else
-                return std::string_view { extension }.substr(1);
+                return std::string_view(extension).substr(1);
         }();
 
-        return Image::load(std::span<std::byte const> { ptr, len }, format);
+        return Image::load(span, format);
     }
 read_ops:
 
@@ -84,13 +84,12 @@ read_ops:
     }();
 
     auto rw_ops = engine::sdl::RWOps::from_fp(std::move(fp));
-    SDL_Surface *surface = IMG_Load_RW(rw_ops.raw(), SDL_FALSE);
-    if (!surface) {
-        SPDLOG_ERROR("failed to load image: {}", IMG_GetError());
-        throw std::runtime_error(IMG_GetError());
+    m_surface = std::unique_ptr<SDL_Surface, Deleter>(IMG_Load_RW(rw_ops.get(), SDL_FALSE));
+    if (!m_surface) {
+        auto error = SDLImageError::current();
+        SPDLOG_ERROR("failed to load image: {}", error.what());
+        throw error;
     }
-
-    m_surface.reset(surface);
 }
 
 void engine::assets::Image::save(std::filesystem::path const &path, std::string_view format) const
@@ -98,18 +97,21 @@ void engine::assets::Image::save(std::filesystem::path const &path, std::string_
     SPDLOG_INFO("saving image to file {}", path);
     if (SDL_strncasecmp(format.data(), "bmp", format.size()) == 0) {
         if (SDL_SaveBMP(m_surface.get(), path.c_str()) != 0) {
-            SPDLOG_ERROR("failed to save image: {}", SDL_GetError());
-            throw std::runtime_error(SDL_GetError());
+            auto error = SDLImageError::current();
+            SPDLOG_ERROR("failed to save image: {}", error);
+            throw std::move(error);
         }
     } else if (SDL_strncasecmp(format.data(), "png", format.size()) == 0) {
         if (IMG_SavePNG(m_surface.get(), path.c_str()) != 0) {
-            SPDLOG_ERROR("failed to save image: {}", IMG_GetError());
-            throw std::runtime_error(IMG_GetError());
+            auto error = SDLImageError::current();
+            SPDLOG_ERROR("failed to save image: {}", error);
+            throw std::move(error);
         }
     } else if (SDL_strncasecmp(format.data(), "jpg", format.size()) == 0) {
         if (IMG_SaveJPG(m_surface.get(), path.c_str(), 100) != 0) {
-            SPDLOG_ERROR("failed to save image: {}", IMG_GetError());
-            throw std::runtime_error(IMG_GetError());
+            auto error = SDLImageError::current();
+            SPDLOG_ERROR("failed to save image: {}", error);
+            throw std::move(error);
         }
     } else {
         SPDLOG_ERROR("unsupported image format: {:?}", format);
@@ -121,21 +123,24 @@ void engine::assets::Image::save(std::span<std::byte> bytes, std::string_view fo
 {
     SPDLOG_INFO("saving image to memory");
 
-    auto *rwops = SDL_RWFromMem(bytes.data(), bytes.size());
+    auto rw_ops = engine::sdl::RWOps::from_memory(bytes);
     if (SDL_strncasecmp(format.data(), "bmp", format.size()) == 0) {
-        if (SDL_SaveBMP_RW(m_surface.get(), rwops, 1) != 0) {
-            SPDLOG_ERROR("failed to save image: {}", SDL_GetError());
-            throw std::runtime_error(SDL_GetError());
+        if (SDL_SaveBMP_RW(m_surface.get(), rw_ops.get(), SDL_FALSE) != 0) {
+            auto error = SDLImageError::current();
+            SPDLOG_ERROR("failed to save image: {}", error);
+            throw std::move(error);
         }
     } else if (SDL_strncasecmp(format.data(), "png", format.size()) == 0) {
-        if (IMG_SavePNG_RW(m_surface.get(), rwops, 1) != 0) {
-            SPDLOG_ERROR("failed to save image: {}", IMG_GetError());
-            throw std::runtime_error(IMG_GetError());
+        if (IMG_SavePNG_RW(m_surface.get(), rw_ops.get(), SDL_FALSE) != 0) {
+            auto error = SDLImageError::current();
+            SPDLOG_ERROR("failed to save image: {}", error);
+            throw std::move(error);
         }
     } else if (SDL_strncasecmp(format.data(), "jpg", format.size()) == 0) {
-        if (IMG_SaveJPG_RW(m_surface.get(), rwops, 1, 100) != 0) {
-            SPDLOG_ERROR("failed to save image: {}", IMG_GetError());
-            throw std::runtime_error(IMG_GetError());
+        if (IMG_SaveJPG_RW(m_surface.get(), rw_ops.get(), SDL_FALSE, 100) != 0) {
+            auto error = SDLImageError::current();
+            SPDLOG_ERROR("failed to save image: {}", error);
+            throw std::move(error);
         }
     } else {
         SPDLOG_ERROR("unsupported image format: {:?}", format);

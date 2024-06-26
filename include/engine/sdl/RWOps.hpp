@@ -153,21 +153,22 @@ namespace engine::sdl {
         }
 
         [[nodiscard]]
-        SDL_RWops *raw()
+        SDL_RWops *get()
         {
             return m_raw.get();
         }
 
     private:
         struct Deleter {
-            void operator()(SDL_RWops *rw_ops) const noexcept
+            static void operator()(SDL_RWops *rw_ops) noexcept
             {
                 if (SDL_RWclose(rw_ops) < 0)
                     SPDLOG_WARN("failed to close SDL_RWops: {}", SDL_GetError());
             }
         };
+        using pointer = std::unique_ptr<SDL_RWops, Deleter>;
 
-        std::unique_ptr<SDL_RWops, Deleter> m_raw;
+        pointer m_raw;
     };
 
 } // namespace

@@ -10,7 +10,7 @@ namespace engine::assets {
         std::string_view m_name;
 
     public:
-        IAsset(std::string_view name)
+        explicit IAsset(std::string_view name) noexcept
             : m_name(name)
         {
         }

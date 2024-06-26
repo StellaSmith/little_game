@@ -33,11 +33,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR(CMAKE_CXX_COMPILER_ID MATCHES "Clang*
     message(STATUS "Using static libstdc++ & libgcc_s")
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        target_link_libraries(little_game PRIVATE -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic)
+        target_link_libraries(little_game PRIVATE -Wl,--push-state,-Bstatic -lstdc++ -lpthread -Wl,--pop-state)
         message(STATUS "Using static libwinpthread")
     endif()
 
-    target_link_libraries(little_game PRIVATE -Wl,-as-needed)
+    target_link_libraries(little_game PRIVATE -Wl,--as-needed)
 endif()
 
 if(MSVC)
@@ -136,12 +136,14 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(little_game PRIVATE Boost::stacktrace_backtrace)
 endif()
 
-set_target_properties(little_game PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
-target_compile_features(little_game PUBLIC cxx_std_20)
+set_target_properties(little_game PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS ON)
+target_compile_features(little_game PUBLIC cxx_std_23)
 target_include_directories(little_game PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 target_compile_definitions(little_game
     PUBLIC
-    GLM_FORCE_XYZW_ONLY)
+    GLM_FORCE_XYZW_ONLY
+    GLM_ENABLE_EXPERIMENTAL
+)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT(MINGW OR CYGWIN))
     message(STATUS "Linking with SDL2main")

@@ -11,7 +11,7 @@ arch=x86_64
 os=Windows
 toolchain=/usr/${arch}-w64-mingw32
 target_host=${arch}-w64-mingw32
-build_type=Release
+build_type=Debug
 
 cc=${target_host}-gcc
 cxx=${target_host}-g++

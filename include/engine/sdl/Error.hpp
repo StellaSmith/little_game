@@ -6,8 +6,6 @@
 #include <fmt/format.h>
 
 #include <cstring>
-#include <exception>
-#include <memory>
 
 namespace engine::sdl {
 

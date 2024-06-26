@@ -49,17 +49,17 @@ class VGameRecipe(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires("glm/cci.20230113")
+        self.requires("glm/[~1.0]")
         self.requires("entt/[~3.13]")
         self.requires("fmt/[~10.2]")
-        self.requires("spdlog/[~1.13]")
+        self.requires("spdlog/[~1.14]")
         self.requires("rapidjson/cci.20230929")
         self.requires("imgui/[~1.90]")
-        self.requires("boost/[~1.84]")
-        self.requires("sdl/[~2]")
+        self.requires("boost/[~1.85]")
+        self.requires("sdl/2.28.3")
         self.requires("sdl_image/[~2]")
         self.requires("range-v3/[~0.12]")
-        self.requires("assimp/[~5.3]")
+        self.requires("assimp/[~5.4]")
 
         if self.options.with_opengl:
             self.requires("glad/[~0.1]")

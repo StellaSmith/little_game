@@ -61,7 +61,7 @@ namespace engine::sdl {
         }
 
         [[nodiscard]]
-        SDL_Window *raw() const noexcept
+        SDL_Window *get() const noexcept
         {
             return m_raw.get();
         }
@@ -74,10 +74,10 @@ namespace engine::sdl {
             std::vector<char const *> get_instance_extensions()
             {
                 unsigned int count;
-                if (SDL_Vulkan_GetInstanceExtensions(window.m_raw.get(), &count, nullptr) == SDL_FALSE)
+                if (SDL_Vulkan_GetInstanceExtensions(window.get(), &count, nullptr) == SDL_FALSE)
                     throw engine::sdl::Error::current();
-                std::vector<char const *> result(count);
-                if (SDL_Vulkan_GetInstanceExtensions(window.m_raw.get(), &count, result.data()) == SDL_FALSE)
+                auto result = std::vector<char const *>(count);
+                if (SDL_Vulkan_GetInstanceExtensions(window.get(), &count, result.data()) == SDL_FALSE)
                     throw engine::sdl::Error::current();
                 return result;
             }
@@ -86,7 +86,7 @@ namespace engine::sdl {
             VkSurfaceKHR create_surface(VkInstance instance)
             {
                 VkSurfaceKHR surface;
-                if (SDL_Vulkan_CreateSurface(window.m_raw.get(), instance, &surface) == SDL_FALSE)
+                if (SDL_Vulkan_CreateSurface(window.get(), instance, &surface) == SDL_FALSE)
                     throw engine::sdl::Error::current();
                 return surface;
             }
@@ -128,7 +128,7 @@ namespace engine::sdl {
             }
 
             [[nodiscard]]
-            SDL_GLContext raw() const noexcept
+            SDL_GLContext get() const noexcept
             {
                 return m_raw.get();
             }
@@ -139,14 +139,14 @@ namespace engine::sdl {
 
             OpenGLContext create_context()
             {
-                if (auto raw = SDL_GL_CreateContext(window.m_raw.get()))
-                    return OpenGLContext(window.m_raw.get(), raw);
+                if (auto raw = SDL_GL_CreateContext(window.get()))
+                    return OpenGLContext(window.get(), raw);
                 throw engine::sdl::Error::current();
             }
 
             void swap_buffers()
             {
-                SDL_GL_SwapWindow(window.m_raw.get());
+                SDL_GL_SwapWindow(window.get());
             }
         };
 

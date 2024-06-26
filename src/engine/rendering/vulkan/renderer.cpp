@@ -361,7 +361,7 @@ void engine::rendering::vulkan::Renderer::imgui_setup()
     vulkan_init_info.CheckVkResultFn = &CHECK_VK,
 
     ImGui_ImplVulkan_Init(&vulkan_init_info);
-    ImGui_ImplSDL2_InitForVulkan(game().window().raw());
+    ImGui_ImplSDL2_InitForVulkan(game().window().get());
 }
 
 void engine::rendering::vulkan::Renderer::imgui_new_frame(std::shared_ptr<engine::rendering::IRenderTarget> target)
