@@ -2,8 +2,11 @@
 #define ENGINE_SDL_ERROR_HPP
 
 #include <SDL_error.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
 #include <fmt/core.h>
 #include <fmt/format.h>
+#pragma GCC diagnostic pop
 
 #include <cstring>
 

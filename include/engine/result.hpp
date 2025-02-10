@@ -1,7 +1,10 @@
 #ifndef ENGINE_RESULT_HPP
 #define ENGINE_RESULT_HPP
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
 #include <spdlog/spdlog.h>
+#pragma GCC diagnostic pop
 
 #include <boost/outcome/basic_result.hpp>
 #include <boost/outcome/policy/all_narrow.hpp>

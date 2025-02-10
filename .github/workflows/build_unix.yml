@@ -1,0 +1,27 @@
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Get Conan
+      run: pip install conan
+
+    - name: Detect Conan Profile
+      run: conan profile detect
+
+    - name: Install Dependencies
+      run: conan install . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}} --build missing
+
+    - name: Build
+      run: conan build . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}}

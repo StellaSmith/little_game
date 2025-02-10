@@ -26,12 +26,10 @@ class VGameRecipe(ConanFile):
 
     options = {
         "with_opengl": [True, False],
-        "with_vulkan": [True, False],
     }
 
     default_options = {
         "with_opengl": True,
-        "with_vulkan": True,
 
         "glad/*:gl_profile": "core",
         "glad/*:gl_version": "3.3",
@@ -51,23 +49,18 @@ class VGameRecipe(ConanFile):
     def requirements(self):
         self.requires("glm/[~1.0]")
         self.requires("entt/[~3.13]")
-        self.requires("fmt/[~10.2]")
-        self.requires("spdlog/[~1.14]")
+        self.requires("fmt/[~11.0]")
+        self.requires("spdlog/[~1.15]")
         self.requires("rapidjson/cci.20230929")
-        self.requires("imgui/[~1.90]")
-        self.requires("boost/[~1.85]")
-        self.requires("sdl/2.28.3")
+        self.requires("imgui/[~1.91]")
+        self.requires("boost/[~1.86]")
+        self.requires("sdl/[~2.30]", override=True)
         self.requires("sdl_image/[~2]")
         self.requires("range-v3/[~0.12]")
         self.requires("assimp/[~5.4]")
 
         if self.options.with_opengl:
             self.requires("glad/[~0.1]")
-
-        if self.options.with_vulkan:
-            sdk_version = "[~1.3]"
-            self.requires(f"vulkan-headers/{sdk_version}")
-            self.requires(f"volk/{sdk_version}")
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -78,16 +71,12 @@ class VGameRecipe(ConanFile):
                 raise ConanInvalidConfiguration("OpenGL 3.3 or greater is required")
             if not self.dependencies["sdl"].options.opengl:
                 raise ConanInvalidConfiguration(f"OpenGL is enabled but {self.dependencies['sdl'].ref} OpenGL support is disabled")
-        if self.options.with_vulkan:
-            if not self.dependencies["sdl"].options.vulkan:
-                raise ConanInvalidConfiguration(f"Vulkan is enabled but {self.dependencies['sdl'].ref} Vulkan support is disabled")
 
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()
         tc = CMakeToolchain(self)
         tc.variables["WITH_OPENGL"] = self.options.with_opengl
-        tc.variables["WITH_VULKAN"] = self.options.with_vulkan
         tc.variables["IMGUI_RES_DIR"] = os.path.join(self.dependencies["imgui"].package_folder, "res")
         tc.generate()
 

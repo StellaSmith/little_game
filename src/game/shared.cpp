@@ -3,7 +3,6 @@
 #include <engine/Game.hpp>
 #include <engine/ecs/components/Dirty.hpp>
 #include <engine/rendering/opengl/Renderer.hpp>
-#include <engine/rendering/vulkan/Renderer.hpp>
 #include <math/bits.hpp>
 
 #include <SDL_video.h>
