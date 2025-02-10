@@ -21,7 +21,7 @@ jobs:
       run: conan profile detect
 
     - name: Install Dependencies
-      run: conan install . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}} --build missing
+      run: conan install . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}} --build missing -c tools.system.package_manager:mode=install
 
     - name: Build
       run: conan build . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}}
