@@ -15,8 +15,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Get Conan
-      run: pip install conan
-      run: pip install ninja
+      run: pip install conan ninja
 
     - name: Detect Conan Profile
       run: conan profile detect
