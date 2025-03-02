@@ -73,15 +73,7 @@ void engine::assets::Image::load(std::filesystem::path const &path)
 read_ops:
 
     SPDLOG_INFO("loading image from file {:?}", path);
-    auto fp = [&]() {
-        auto maybe_fp = engine::File::open(path, "r");
-        if (!maybe_fp.has_value()) {
-            auto error_code = std::make_error_code(maybe_fp.error());
-            SPDLOG_ERROR("failed to to open file {:?}: {}", path, error_code.message());
-            throw std::system_error(error_code);
-        }
-        return std::move(maybe_fp).value();
-    }();
+    auto fp = engine::File::open(path, "r");
 
     auto rw_ops = engine::sdl::RWOps::from_fp(std::move(fp));
     m_surface = std::unique_ptr<SDL_Surface, Deleter>(IMG_Load_RW(rw_ops.get(), SDL_FALSE));

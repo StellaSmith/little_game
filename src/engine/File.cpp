@@ -1,6 +1,7 @@
 #include <engine/File.hpp>
 #include <engine/system/block_size.hpp>
 #include <engine/system/page_size.hpp>
+#include <spdlog/spdlog.h>
 
 #ifdef _WIN32
 #include <io.h>
@@ -26,21 +27,26 @@ template <typename T>
 static T read_to(std::FILE *fp)
 {
     T result;
-    auto const maybe_blocksize = engine::system::block_size(fp);
-    std::size_t const bufsiz = std::gcd(BUFSIZ, std::gcd(engine::system::page_size(), maybe_blocksize ? maybe_blocksize.value() : 0));
+
+    std::size_t block_size = 0;
+    try {
+        block_size = engine::system::block_size(fp);
+    } catch (std::system_error const &) {
+    }
+    std::size_t const buffer_size = std::gcd(BUFSIZ, std::gcd(engine::system::page_size(), block_size));
 
     for (;;) {
-        result.resize(result.size() + bufsiz);
+        result.resize(result.size() + buffer_size);
 
         errno = 0;
-        std::size_t const bytes_read = std::fread(result.data() + result.size() - bufsiz, 1, bufsiz, fp);
+        std::size_t const bytes_read = std::fread(result.data() + result.size() - buffer_size, 1, buffer_size, fp);
         if (bytes_read == 0) {
             if (std::ferror(fp))
-                throw std::system_error(errno, std::generic_category(), "std::fread failed");
+                throw std::system_error(errno, std::generic_category(), "std::fread() failed");
             else
                 break;
         }
-        result.resize(result.size() - bufsiz + bytes_read);
+        result.resize(result.size() - buffer_size + bytes_read);
     }
     return result;
 }
@@ -77,7 +83,8 @@ std::span<std::byte const> engine::impl::FileBytesBase::span()
                               try {
                                   auto &region = m_cache.emplace<boost::interprocess::mapped_region>(map_to_memory(m_fp));
                                   return std::span<std::byte const>(reinterpret_cast<std::byte const *>(region.get_address()), region.get_size());
-                              } catch (std::system_error const &) {
+                              } catch (std::system_error const &ex) {
+                                  SPDLOG_WARN("failed to memory map file: {}", ex.what());
                                   auto &v = m_cache.emplace<std::vector<std::byte>>(read_to<std::vector<std::byte>>(m_fp));
                                   return std::span<std::byte const>(v.data(), v.size());
                               }

@@ -1,3 +1,4 @@
+#include "engine/File.hpp"
 #include <engine/Camera.hpp>
 #include <engine/Config.hpp>
 #include <engine/Game.hpp>
@@ -142,18 +143,12 @@ void engine::rendering::opengl::Renderer::setup_shader()
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    auto const [vertex_shader_source, fragment_shader_source] = [&]() -> std::pair<std::string, std::string> {
-        auto fp = engine::File::open("assets/shaders/terrain/basic.vert", "r");
-        if (!fp)
-            utils::show_error("can't open shader: assets/shaders/terrain/basic.vert"sv);
-        std::string vertex_shader_source = utils::load_file(fp.assume_value().get());
-
-        fp = engine::File::open("assets/shaders/terrain/basic.frag", "r");
-        if (!fp)
-            utils::show_error("can't open shader: assets/shaders/terrain/basic.frag"sv);
-        std::string fragment_shader_source = utils::load_file(fp.assume_value().get());
-        return std::make_pair(std::move(vertex_shader_source), std::move(fragment_shader_source));
-    }();
+    auto const vertex_shader_source = engine::File::open("assets/shaders/terrain/basic.vert", "r")
+                                          .bytes()
+                                          .string();
+    auto const fragment_shader_source = engine::File::open("assets/shaders/terrain/basic.frag", "r")
+                                            .bytes()
+                                            .string();
 
     auto const vertex_shader_source_raw = vertex_shader_source.c_str();
     auto const fragment_shader_source_raw = fragment_shader_source.c_str();

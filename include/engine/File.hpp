@@ -36,25 +36,36 @@ namespace engine {
         using super = std::unique_ptr<std::FILE, FileDeleter>;
         using super::super;
 
-        [[nodiscard]] std::shared_ptr<std::FILE> shared() && noexcept
+        [[nodiscard]]
+        std::shared_ptr<std::FILE> shared() && noexcept
         {
             return std::shared_ptr<std::FILE>(std::move(*this));
         }
 
-        [[nodiscard]] static engine::result<File, std::errc> open(std::filesystem::path const &path, char const *mode) noexcept
+        [[nodiscard]]
+        static File open(std::filesystem::path const &path, char const *mode)
         {
-            std::FILE *fp = TRY(engine::system::open_file(path, mode));
+            auto fp = engine::system::fopen(path, mode);
             return File(fp);
         }
 
-        [[nodiscard]] FileBytes<std::FILE *> bytes() & noexcept;
-        [[nodiscard]] FileBytes<File> bytes() && noexcept;
+        [[nodiscard]]
+        FileBytes<std::FILE *> bytes() & noexcept;
 
-        [[nodiscard]] FileLines<std::FILE *> lines() & noexcept;
-        [[nodiscard]] FileLines<File> lines() && noexcept;
+        [[nodiscard]]
+        FileBytes<File> bytes() && noexcept;
 
-        [[nodiscard]] FileLock<std::FILE *> lock() & noexcept;
-        [[nodiscard]] FileLock<File> lock() && noexcept;
+        [[nodiscard]]
+        FileLines<std::FILE *> lines() & noexcept;
+
+        [[nodiscard]]
+        FileLines<File> lines() && noexcept;
+
+        [[nodiscard]]
+        FileLock<std::FILE *> lock() & noexcept;
+
+        [[nodiscard]]
+        FileLock<File> lock() && noexcept;
     };
 
     namespace impl {
@@ -64,11 +75,16 @@ namespace engine {
             {
             }
 
-            [[nodiscard]] std::span<std::byte const> span();
-            [[nodiscard]] std::vector<std::byte> vector() &;
-            [[nodiscard]] std::vector<std::byte> vector() &&;
-            [[nodiscard]] std::string string() &;
-            [[nodiscard]] std::string string() &&;
+            [[nodiscard]]
+            std::span<std::byte const> span();
+            [[nodiscard]]
+            std::vector<std::byte> vector() &;
+            [[nodiscard]]
+            std::vector<std::byte> vector() &&;
+            [[nodiscard]]
+            std::string string() &;
+            [[nodiscard]]
+            std::string string() &&;
 
         private:
             std::FILE *m_fp;

@@ -76,6 +76,6 @@ engine::result<std::span<std::byte const>, std::errc> engine::load_resource(std:
         return std::errc::is_a_directory;
 
     assert(resource->type == resources::ResourceType::FILE_RESOURCE);
-    auto file_resource = static_cast<resources::FileResource const *>(resource);
+    auto file_resource = static_cast<resources::FileResource const *>(&*resource);
     return std::span<std::byte const> { (std::byte const *)file_resource->data, file_resource->size };
 }

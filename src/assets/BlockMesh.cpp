@@ -89,7 +89,7 @@ void engine::assets::BlockMesh::load_json(std::filesystem::path const &path)
 
     {
 
-        auto fp = engine::File::open(path, "r").value();
+        auto fp = engine::File::open(path, "r");
 
         char buf[1024 * 8] {}; // 8KiB
 

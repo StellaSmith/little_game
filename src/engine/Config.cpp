@@ -39,13 +39,7 @@ engine::Config const &engine::Config::load(std::filesystem::path const &path)
     if (s_config_loaded.exchange(true) == true)
         THROW_CRITICAL("{}", "engine config already loaded");
 
-    auto content = [&]() {
-        if (auto maybe_fp = engine::File::open(path, "r"); maybe_fp.has_error()) {
-            THROW_CRITICAL("error opening engine configuration file {}: {}", path, std::make_error_code(maybe_fp.error()).message());
-        } else {
-            return maybe_fp.value().bytes().string();
-        }
-    }();
+    auto content = engine::File::open(path, "r").bytes().string();
 
     rapidjson::Document doc;
     {

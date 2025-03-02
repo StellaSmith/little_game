@@ -5,10 +5,9 @@
 #include <engine/result.hpp>
 
 #include <cstdio>
-#include <system_error>
 
 namespace engine::system {
-    [[nodiscard]] engine::result<std::size_t, std::errc> block_size(engine::nonnull<std::FILE>) noexcept;
+    [[nodiscard]] std::size_t block_size(engine::nonnull<std::FILE>);
 } // namespace engine::system
 
 #endif
