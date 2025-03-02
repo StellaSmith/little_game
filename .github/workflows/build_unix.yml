@@ -1,35 +1,38 @@
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
-
-env:
-  BUILD_TYPE: Debug
+    branches: [master]
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type:
+          - Debug
+          - Release
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Get Conan
-      run: pip install conan ninja
+      - name: Get Conan
+        run: pip install conan ninja
 
-    - name: Detect Conan Profile
-      run: conan profile detect
+      - name: Detect Conan Profile
+        run: conan profile detect
 
-    - name: Conan Cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.conan2/p/
-        key: conan_ubuntu-latest_cache
+      - name: Conan Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2/p/
+          key: conan_ubuntu-latest_${{ matrix.build_type }}_cache
 
-    - name: Install Dependencies
-      run: conan install . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}} --build missing --lockfile conan/x86_64-linux-gnu.lock -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True -c tools.cmake.cmaketoolchain:generator=Ninja
+      - name: Install Dependencies
+        run: conan install . -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }} --build missing --lockfile conan/x86_64-linux-gnu.lock -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True -c tools.cmake.cmaketoolchain:generator=Ninja
 
-    - name: Build
-      run: conan build . -s compiler.cppstd=20 -s build_type=${{env.BUILD_TYPE}} --lockfile conan/x86_64-linux-gnu.lock -c tools.cmake.cmaketoolchain:generator=Ninja
-    
-    - run: conan cache clean
+      - name: Build
+        run: conan build . -s compiler.cppstd=20 -s build_type=${{ matrix.build_type }} --lockfile conan/x86_64-linux-gnu.lock -c tools.cmake.cmaketoolchain:generator=Ninja
+
+      - run: conan cache clean
