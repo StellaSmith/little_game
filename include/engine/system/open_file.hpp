@@ -20,7 +20,9 @@ namespace engine::system {
     [[nodiscard]]
     inline engine::nonnull<std::FILE> fopen(std::filesystem::path const &path, engine::nonnull<char const> mode)
     {
-        return engine::system::fopen(nonnull(path.c_str()), mode);
+        // because nonnull & std::filesystem::path are both convertible from char const*,
+        // we need to explictly use the right type
+        return engine::system::fopen(nonnull<std::filesystem::path::value_type const>(path.c_str()), mode);
     }
 } // namespace engine::system
 
