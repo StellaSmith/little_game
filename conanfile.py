@@ -10,7 +10,7 @@ import os
 
 class VGameRecipe(ConanFile):
     name = "vgame"
-    # version = "develop"
+    version = "develop"
     package_type = "application"
 
     name = "vgame"
@@ -21,8 +21,6 @@ class VGameRecipe(ConanFile):
     author = "Stella Smith"
 
     settings = "os", "compiler", "build_type", "arch"
-
-    exports_sources = "CMakeLists.txt", "src/*", "include/*", "external/*", "res/*"
 
     options = {
         "with_opengl": [True, False],
@@ -36,31 +34,30 @@ class VGameRecipe(ConanFile):
         "glad/*:no_loader": True,
         "glad/*:extensions": "GL_KHR_debug,GL_ARB_get_program_binary",
 
-        "libalsa/*:shared": True,
         "openssl/*:shared": True,
+        "sdl/*:shared": True,
 
         "sdl/*:pulse": False,
-        "sdl/*:shared": False,
     }
 
     def layout(self):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires("glm/[~1.0]")
+        self.requires("glm/[~1]")
         self.requires("entt/[~3.13]")
-        self.requires("fmt/[~11.0]")
-        self.requires("spdlog/[~1.15]")
+        self.requires("fmt/[~12]", override=True)
+        self.requires("spdlog/[~1.16]")
         self.requires("rapidjson/cci.20230929")
-        self.requires("imgui/[~1.91]")
-        self.requires("boost/[~1.86]")
-        self.requires("sdl/[~2.30]", override=True)
+        self.requires("imgui/1.92.5-docking")
+        self.requires("boost/[~1]")
+        self.requires("sdl/3.2.18", override=True)
         self.requires("sdl_image/[~2]")
         self.requires("range-v3/[~0.12]")
-        self.requires("assimp/[~5.4]")
+        self.requires("assimp/[~6.0]")
 
         if self.options.with_opengl:
-            self.requires("glad/[~0.1]")
+            self.requires("glad/[~2]")
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):

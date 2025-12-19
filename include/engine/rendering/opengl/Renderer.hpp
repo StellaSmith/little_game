@@ -7,7 +7,7 @@
 #define ENGINE_RENDERING_OPENGL_RENDERER_HPP
 
 #include <SDL_video.h>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include <engine/ecs/components/ChunkPosition.hpp>
 #include <engine/rendering/IRenderer.hpp>

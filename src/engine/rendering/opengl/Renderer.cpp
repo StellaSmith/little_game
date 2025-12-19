@@ -6,7 +6,7 @@
 #include <engine/rendering/opengl/Renderer.hpp>
 
 #include <SDL_mouse.h>
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -49,7 +49,10 @@ void engine::rendering::opengl::Renderer::setup()
     m_context = game().window().opengl().create_context();
     m_context->make_current();
 
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(&SDL_GL_GetProcAddress)))
+    if (!gladLoadGL(+[](const char *name) {
+            auto address = SDL_GL_GetProcAddress(name);
+            return *reinterpret_cast<GLADapiproc *>(&address);
+        }))
         utils::show_error("GLAD Error."sv, "Failed to initialize the OpenGL context."sv);
 
     int major, minor, r, g, b, a, d, s;

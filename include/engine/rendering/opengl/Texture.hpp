@@ -1,7 +1,7 @@
 
 
 #pragma once
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include <engine/rendering/opengl/Object.hpp>
 

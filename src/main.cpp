@@ -52,6 +52,8 @@ static std::vector<char const *> video_drivers()
     return result;
 }
 
+#include <boost/core/verbose_terminate_handler.hpp>
+
 static void terminate_handler()
 {
     if (auto exception_ptr = std::current_exception()) {
@@ -59,11 +61,11 @@ static void terminate_handler()
             std::rethrow_exception(exception_ptr);
         } catch (std::exception const &e) {
             spdlog::critical("terminate called with an active exception");
-            auto const type_name = boost::core::demangled_name(typeid(e));
+            auto const type_name = boost::core::demangled_name(*exception_ptr.__cxa_exception_type());
             spdlog::critical("exception: type={:?}, what={:?}", type_name, e.what());
         } catch (...) {
             // TODO: find a way to get this information on Windows
-            auto const type_name = boost::core::demangled_name(*abi::__cxa_current_exception_type());
+            auto const type_name = boost::core::demangled_name(*exception_ptr.__cxa_exception_type());
             spdlog::critical("terminate called with an active exception");
             spdlog::critical("exception: type={:?}", type_name);
         }
@@ -75,11 +77,11 @@ static void terminate_handler()
     spdlog::critical("stacktrace:");
     for (auto const &[i, frame] : stacktrace | ranges::view::reverse | ranges::view::enumerate)
         spdlog::critical("  #{:02}: {}", i, fmt::streamed(frame));
-    std::abort();
+    boost::core::verbose_terminate_handler();
 }
 
 int main(int argc, char **argv)
-{
+try {
     std::set_terminate(+terminate_handler);
 
 #ifdef SDL_MAIN_HANDLED
@@ -149,6 +151,8 @@ int main(int argc, char **argv)
     ImGuiIO &imgui_io = ImGui::GetIO();
     imgui_io.IniFilename = "cfg/imgui.ini";
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    imgui_io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+    imgui_io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER))
         imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 
@@ -195,4 +199,6 @@ int main(int argc, char **argv)
     game.cleanup();
 
     return 0;
+} catch (...) {
+    std::terminate();
 }

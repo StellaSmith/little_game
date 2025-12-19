@@ -7,7 +7,7 @@
 #include <vector>
 
 #ifdef ENGINE_WITH_OPENGL
-#include <glad/glad.h>
+#include <glad/gl.h>
 #endif
 
 namespace engine::rendering {

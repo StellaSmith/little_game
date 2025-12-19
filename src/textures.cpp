@@ -14,7 +14,7 @@
 #include <stb_image.h>
 
 #ifdef ENGINE_WITH_OPENGL
-#include <glad/glad.h>
+#include <glad/gl.h>
 #endif
 #ifdef ENGINE_WITH_VULKAN
 #include <vulkan/vulkan.h>

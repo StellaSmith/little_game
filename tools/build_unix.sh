@@ -18,19 +18,42 @@ esac;
 declare -r build_directory="$PWD/build/$build_type";
 declare -r generators_directory="$build_directory/generators";
 
+if [ ! -v "CONAN_HOME" ]; then
+    export CONAN_HOME="$PWD/.conan";
+fi;
+
+if ! command -v conan >& /dev/null; then
+    python -m venv "$PWD/.venv";
+    pip install conan;
+fi;
+
+export CC=$(command -v cc)
+export CXX=$(command -v c++)
+export CMAKE_GENERATOR=Ninja
+
+if [ ! -e "$CONAN_HOME" ]; then
+    conan profile detect;
+fi;
+
 if [[ ! -e "$generators_directory" ]]; then
-    conan install . -pr:h default -s:h compiler.cppstd=20 -b missing -s "build_type=$build_type"  -u;
+    nice conan install . -pr:h default \
+        -s:h compiler.cppstd=20 \
+        -b missing \
+        -s "build_type=$build_type" \
+        -o "boost/*:without_cobalt=True" \
+        -o "boost/*:without_cobalt_io=True" \
+        -u;
 fi;
 
 
 # shellcheck source=/dev/null
 source "$generators_directory/conanbuild.sh";
 if [[ ! -e "$build_directory/CMakeCache.txt" ]]; then
-    cmake --preset "conan-$1"
+    nice cmake --preset "conan-$1";
 fi;
 
-cmake --build --preset "conan-$1" --parallel;
+nice cmake --build --preset "conan-$1" --parallel;
 
 # shellcheck source=/dev/null
 source "$generators_directory/conanrun.sh";
-cmake --install "$build_directory" --prefix "$PWD/install";
+nice cmake --install "$build_directory" --prefix "$PWD/export" --parallel $(nproc);

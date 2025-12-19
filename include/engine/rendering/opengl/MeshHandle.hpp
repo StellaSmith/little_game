@@ -5,7 +5,7 @@
 #ifndef ENGINE_RENDERING_OPENGL_MESH_HANDLE_HPP
 #define ENGINE_RENDERING_OPENGL_MESH_HANDLE_HPP
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include <cstdint>
 
